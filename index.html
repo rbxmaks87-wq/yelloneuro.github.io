@@ -15,7 +15,7 @@
         body {
             margin: 0;
             padding: 20px;
-            background: linear-gradient(135deg, #0a0a0a, #1a1a00, #2a2a00); /* Чёрно-жёлтый градиент */
+            background: linear-gradient(135deg, #0a0a0a, #1a1a00, #2a2a00);
             min-height: 100vh;
             display: flex;
             justify-content: center;
@@ -24,7 +24,6 @@
             color: white;
         }
 
-        /* Анимированные частицы на фоне */
         body::before {
             content: '';
             position: fixed;
@@ -41,11 +40,11 @@
         }
 
         .menu-box {
-            background: rgba(0, 0, 0, 0.7); /* Тёмный полупрозрачный фон */
+            background: rgba(0, 0, 0, 0.7);
             backdrop-filter: blur(15px);
             padding: 40px;
             border-radius: 20px;
-            border: 2px solid rgba(255, 215, 0, 0.3); /* Золотая рамка */
+            border: 2px solid rgba(255, 215, 0, 0.3);
             width: 350px;
             text-align: center;
             box-shadow: 
@@ -56,7 +55,6 @@
             z-index: 1;
         }
 
-        /* Логотип */
         .logo {
             width: 100px;
             height: 100px;
@@ -85,7 +83,7 @@
 
         h2 {
             margin-top: 0;
-            margin-bottom: 30px;
+            margin-bottom: 20px;
             font-size: 28px;
             letter-spacing: 3px;
             text-transform: uppercase;
@@ -102,14 +100,87 @@
             50% { filter: brightness(1.3); }
         }
 
+        /* 🔍 Поле поиска */
+        .search-container {
+            position: relative;
+            margin-bottom: 20px;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 12px 45px 12px 20px;
+            border: 2px solid rgba(255, 215, 0, 0.4);
+            border-radius: 50px;
+            background: rgba(0, 0, 0, 0.5);
+            color: #ffd700;
+            font-size: 14px;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        .search-input::placeholder {
+            color: rgba(255, 215, 0, 0.5);
+        }
+
+        .search-input:focus {
+            border-color: #ffd700;
+            box-shadow: 0 0 15px rgba(255, 215, 0, 0.3);
+            background: rgba(0, 0, 0, 0.7);
+        }
+
+        .search-icon {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 18px;
+            opacity: 0.7;
+        }
+
+        .search-clear {
+            position: absolute;
+            right: 40px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: #ffd700;
+            font-size: 16px;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.3s;
+            padding: 5px;
+            margin: 0;
+            width: auto;
+        }
+
+        .search-clear.visible {
+            opacity: 0.7;
+        }
+
+        .search-clear:hover {
+            opacity: 1;
+            transform: translateY(-50%) scale(1.1);
+            box-shadow: none;
+        }
+
+        /* Счётчик результатов */
+        .search-results {
+            font-size: 12px;
+            color: rgba(255, 215, 0, 0.7);
+            margin-top: 8px;
+            height: 16px;
+            transition: all 0.3s ease;
+        }
+
         button {
             width: 100%;
             padding: 15px 20px;
             margin-bottom: 12px;
-            background: linear-gradient(90deg, #ffd700, #ffb800, #ffd700); /* Золотые кнопки */
+            background: linear-gradient(90deg, #ffd700, #ffb800, #ffd700);
             border: none;
             border-radius: 50px;
-            color: #000000; /* Чёрный текст */
+            color: #000000;
             font-size: 15px;
             font-weight: bold;
             cursor: pointer;
@@ -153,7 +224,38 @@
             height: 100%;
         }
 
-        /* Декоративные элементы */
+        /* ⭐ Подсветка при поиске */
+        button.highlight {
+            background: linear-gradient(90deg, #ffff00, #ffea00, #ffff00) !important;
+            box-shadow: 
+                0 0 25px rgba(255, 255, 0, 0.8),
+                0 0 50px rgba(255, 255, 0, 0.5),
+                inset 0 0 20px rgba(255, 255, 255, 0.3) !important;
+            transform: scale(1.03);
+            animation: glow 1s ease-in-out infinite alternate;
+            border: 2px solid #fff;
+        }
+
+        @keyframes glow {
+            0% {
+                box-shadow: 
+                    0 0 25px rgba(255, 255, 0, 0.8),
+                    0 0 50px rgba(255, 255, 0, 0.5);
+            }
+            100% {
+                box-shadow: 
+                    0 0 35px rgba(255, 255, 0, 1),
+                    0 0 70px rgba(255, 255, 0, 0.7);
+            }
+        }
+
+        /* Затемнение не найденных */
+        button.dimmed {
+            opacity: 0.3;
+            transform: scale(0.95);
+            filter: grayscale(50%);
+        }
+
         .menu-box::before,
         .menu-box::after {
             content: '⚡';
@@ -172,9 +274,8 @@
             right: 20px;
         }
 
-        /* Скроллбар для длинного списка */
         .buttons-container {
-            max-height: 400px;
+            max-height: 350px;
             overflow-y: auto;
             padding-right: 5px;
         }
@@ -192,16 +293,41 @@
             background: linear-gradient(180deg, #ffd700, #ffb800);
             border-radius: 10px;
         }
+
+        /* Сообщение "ничего не найдено" */
+        .no-results {
+            display: none;
+            padding: 20px;
+            color: rgba(255, 215, 0, 0.6);
+            font-style: italic;
+        }
+
+        .no-results.visible {
+            display: block;
+        }
     </style>
 </head>
 <body>
     <div class="menu-box">
-        <!-- Логотип -->
         <img src="image/logo.jpg" alt="Нейро Рич 2" class="logo">
         
         <h2>⭐ Меню ⭐</h2>
         
-        <div class="buttons-container">
+        <!-- 🔍 Поле поиска -->
+        <div class="search-container">
+            <input 
+                type="text" 
+                class="search-input" 
+                id="searchInput" 
+                placeholder="🔍 Поиск проектов..."
+                autocomplete="off"
+            >
+            <button class="search-clear" id="clearBtn" onclick="clearSearch()">✕</button>
+            <span class="search-icon">🔎</span>
+        </div>
+        <div class="search-results" id="searchResults"></div>
+        
+        <div class="buttons-container" id="buttonsContainer">
             <button><a href="AI.html">🤖 Наш ИИ</a></button>
             <button><a href="Chat2.html">💬 Наш чат</a></button>
             <button><a href="create.html">🎮 Создать игру 3D</a></button>
@@ -231,7 +357,87 @@
             <button><a href="index4.html">🎬 MC Animator Pro</a></button>
             <button><a href="index3.html">🦖 Google Dinosaur</a></button>
             <button><a href="index2.html">💻 Windows 12</a></button>
+            
+            <div class="no-results" id="noResults">😔 Ничего не найдено</div>
         </div>
     </div>
+
+    <script>
+        const searchInput = document.getElementById('searchInput');
+        const clearBtn = document.getElementById('clearBtn');
+        const searchResults = document.getElementById('searchResults');
+        const noResults = document.getElementById('noResults');
+        const buttons = document.querySelectorAll('.buttons-container button');
+
+        // Поиск при вводе
+        searchInput.addEventListener('input', function() {
+            const query = this.value.toLowerCase().trim();
+            
+            // Показать/скрыть кнопку очистки
+            clearBtn.classList.toggle('visible', query.length > 0);
+            
+            let matchCount = 0;
+            let firstMatch = null;
+
+            buttons.forEach(button => {
+                const text = button.textContent.toLowerCase();
+                const isMatch = query && text.includes(query);
+                
+                // Убираем все классы
+                button.classList.remove('highlight', 'dimmed');
+                
+                if (query) {
+                    if (isMatch) {
+                        button.classList.add('highlight');
+                        matchCount++;
+                        if (!firstMatch) firstMatch = button;
+                    } else {
+                        button.classList.add('dimmed');
+                    }
+                }
+            });
+
+            // Обновляем счётчик
+            if (query) {
+                if (matchCount > 0) {
+                    searchResults.textContent = `✨ Найдено: ${matchCount} проект(ов)`;
+                    noResults.classList.remove('visible');
+                    // Прокрутка к первому результату
+                    if (firstMatch) {
+                        firstMatch.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                    }
+                } else {
+                    searchResults.textContent = '';
+                    noResults.classList.add('visible');
+                }
+            } else {
+                searchResults.textContent = '';
+                noResults.classList.remove('visible');
+            }
+        });
+
+        // Очистка поиска
+        function clearSearch() {
+            searchInput.value = '';
+            searchInput.dispatchEvent(new Event('input'));
+            searchInput.focus();
+        }
+
+        // Очистка по Escape
+        searchInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                clearSearch();
+            }
+        });
+
+        // Фокус на поиск при нажатии Ctrl+F
+        document.addEventListener('keydown', function(e) {
+            if (e.ctrlKey && e.key === 'f') {
+                e.preventDefault();
+                searchInput.focus();
+                searchInput.select();
+            }
+        });
+    </script>
 </body>
 </html>
