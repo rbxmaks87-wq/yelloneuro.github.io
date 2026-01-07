@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Нейро Рич 2.0</title>
+    <link rel="icon" href="image/logo.jpg">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #0a0a0a, #1a1a00, #2a2a00); /* Чёрно-жёлтый градиент */
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Segoe UI', sans-serif;
+            color: white;
+        }
+
+        /* Анимированные частицы на фоне */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 20% 80%, rgba(255, 215, 0, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(255, 193, 7, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 40% 40%, rgba(255, 235, 59, 0.05) 0%, transparent 40%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .menu-box {
+            background: rgba(0, 0, 0, 0.7); /* Тёмный полупрозрачный фон */
+            backdrop-filter: blur(15px);
+            padding: 40px;
+            border-radius: 20px;
+            border: 2px solid rgba(255, 215, 0, 0.3); /* Золотая рамка */
+            width: 350px;
+            text-align: center;
+            box-shadow: 
+                0 15px 35px rgba(0, 0, 0, 0.8),
+                0 0 30px rgba(255, 215, 0, 0.2),
+                inset 0 0 30px rgba(255, 215, 0, 0.05);
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Логотип */
+        .logo {
+            width: 100px;
+            height: 100px;
+            margin: 0 auto 20px;
+            border-radius: 50%;
+            border: 3px solid #ffd700;
+            box-shadow: 
+                0 0 20px rgba(255, 215, 0, 0.5),
+                0 0 40px rgba(255, 215, 0, 0.3);
+            object-fit: cover;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                box-shadow: 
+                    0 0 20px rgba(255, 215, 0, 0.5),
+                    0 0 40px rgba(255, 215, 0, 0.3);
+            }
+            50% {
+                box-shadow: 
+                    0 0 30px rgba(255, 215, 0, 0.8),
+                    0 0 60px rgba(255, 215, 0, 0.5);
+            }
+        }
+
+        h2 {
+            margin-top: 0;
+            margin-bottom: 30px;
+            font-size: 28px;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            background: linear-gradient(90deg, #ffd700, #ffec8b, #ffd700);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: none;
+            animation: shimmer 3s ease-in-out infinite;
+        }
+
+        @keyframes shimmer {
+            0%, 100% { filter: brightness(1); }
+            50% { filter: brightness(1.3); }
+        }
+
+        button {
+            width: 100%;
+            padding: 15px 20px;
+            margin-bottom: 12px;
+            background: linear-gradient(90deg, #ffd700, #ffb800, #ffd700); /* Золотые кнопки */
+            border: none;
+            border-radius: 50px;
+            color: #000000; /* Чёрный текст */
+            font-size: 15px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+            transition: left 0.5s ease;
+        }
+
+        button:hover::before {
+            left: 100%;
+        }
+
+        button:hover {
+            transform: translateY(-3px);
+            box-shadow: 
+                0 8px 25px rgba(255, 215, 0, 0.5),
+                0 0 20px rgba(255, 215, 0, 0.3);
+            background: linear-gradient(90deg, #ffec8b, #ffd700, #ffec8b);
+        }
+
+        button:active {
+            transform: scale(0.97);
+        }
+
+        button a {
+            text-decoration: none;
+            color: #000000;
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Декоративные элементы */
+        .menu-box::before,
+        .menu-box::after {
+            content: '⚡';
+            position: absolute;
+            font-size: 24px;
+            opacity: 0.6;
+        }
+
+        .menu-box::before {
+            top: 15px;
+            left: 20px;
+        }
+
+        .menu-box::after {
+            top: 15px;
+            right: 20px;
+        }
+
+        /* Скроллбар для длинного списка */
+        .buttons-container {
+            max-height: 400px;
+            overflow-y: auto;
+            padding-right: 5px;
+        }
+
+        .buttons-container::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .buttons-container::-webkit-scrollbar-track {
+            background: rgba(255, 215, 0, 0.1);
+            border-radius: 10px;
+        }
+
+        .buttons-container::-webkit-scrollbar-thumb {
+            background: linear-gradient(180deg, #ffd700, #ffb800);
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="menu-box">
+        <!-- Логотип -->
+        <img src="image/logo.jpg" alt="Нейро Рич 2" class="logo">
+        
+        <h2>⭐ Меню ⭐</h2>
+        <div class="buttons-container">
+        <h2>Windows 12</h2>
+        <button><a href="index.html">Вернуться Назад</a></button>
+        <button><a href="downoald/win12.rar">Скачать Файл</a></button>
+        <button><a href="win12.html">Протестировать тут</a></button>
+    </div>
+</body>
+</html>
