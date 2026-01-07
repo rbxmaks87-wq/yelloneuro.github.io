@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>AI Chat Bot</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            overscroll-behavior-y: contain;
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1; 
+            border-radius: 3px;
+        }
+        .dark ::-webkit-scrollbar-thumb {
+            background: #475569;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8; 
+        }
+        .message-enter {
+            animation: fadeIn 0.3s ease-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        /* Dark mode transitions */
+        body, header, footer, div, input, textarea, button {
+            transition-property: background-color, border-color, color;
+            transition-duration: 300ms;
+        }
+    </style>
+</head>
+<body class="bg-slate-100 dark:bg-slate-900 h-screen flex flex-col font-sans text-slate-800 dark:text-slate-100 overflow-hidden transition-colors duration-300">
+
+    <!-- Header -->
+    <header class="bg-white dark:bg-slate-800 shadow-sm p-4 flex justify-between items-center z-10 shrink-0 border-b border-transparent dark:border-slate-700">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold text-lg shadow-md" id="bot-avatar">
+                AI
+            </div>
+            <div>
+                <h1 id="header-bot-name" class="font-bold text-lg leading-tight dark:text-white">Bot</h1>
+                <p class="text-xs text-slate-500 dark:text-slate-400">Уровень: <span id="header-level">1</span></p>
+            </div>
+        </div>
+        <button onclick="toggleMenu()" class="p-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full transition">
+            <i class="fa-solid fa-bars text-xl"></i>
+        </button>
+    </header>
+
+    <!-- Chat Area -->
+    <main id="chat-container" class="flex-1 overflow-y-auto p-4 space-y-4 pb-20 scroll-smooth">
+        <!-- Messages will be injected here -->
+        <div class="text-center text-slate-400 dark:text-slate-500 text-sm py-4">
+            Начните общение или используйте:<br>
+            <code class="bg-slate-200 dark:bg-slate-700 px-1 rounded text-slate-700 dark:text-slate-300">словарь: фраза{answerto="ответ"}</code>
+        </div>
+    </main>
+
+    <!-- Input Area -->
+    <footer class="bg-white dark:bg-slate-800 p-3 border-t border-slate-200 dark:border-slate-700 shrink-0">
+        <div class="flex items-end gap-2 max-w-4xl mx-auto">
+            <button id="voice-btn" class="p-3 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-blue-100 hover:text-blue-600 dark:hover:text-blue-400 transition shrink-0" title="Голосовой ввод">
+                <i class="fa-solid fa-microphone"></i>
+            </button>
+            <textarea id="message-input" rows="1" class="flex-1 bg-slate-100 dark:bg-slate-700 dark:text-white rounded-2xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none max-h-32 placeholder-slate-400" placeholder="Сообщение..."></textarea>
+            <button onclick="sendMessage()" class="p-3 rounded-full bg-blue-500 text-white shadow-md hover:bg-blue-600 transition shrink-0">
+                <i class="fa-solid fa-paper-plane"></i>
+            </button>
+        </div>
+    </footer>
+
+    <!-- Menu / Settings Modal -->
+    <div id="menu-overlay" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 hidden transition-opacity opacity-0" onclick="toggleMenu()"></div>
+    <div id="side-menu" class="fixed top-0 right-0 h-full w-80 bg-white dark:bg-slate-800 shadow-2xl z-50 transform translate-x-full transition-transform duration-300 flex flex-col text-slate-800 dark:text-slate-100">
+        <div class="p-4 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center">
+            <h2 class="font-bold text-xl">Меню</h2>
+            <button onclick="toggleMenu()" class="text-slate-500 dark:text-slate-400 hover:text-red-500">
+                <i class="fa-solid fa-xmark text-xl"></i>
+            </button>
+        </div>
+        
+        <div class="flex-1 overflow-y-auto p-4 space-y-6">
+            
+            <!-- Theme Toggle -->
+            <div class="flex justify-between items-center bg-slate-50 dark:bg-slate-700 p-3 rounded-lg">
+                <span class="font-medium">Темная тема</span>
+                <button onclick="toggleTheme()" class="w-12 h-6 rounded-full bg-slate-300 dark:bg-blue-600 relative transition-colors">
+                    <div id="theme-toggle-circle" class="w-4 h-4 rounded-full bg-white absolute top-1 left-1 dark:left-7 transition-all shadow-sm"></div>
+                </button>
+            </div>
+
+            <!-- Rename Bot -->
+            <div>
+                <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Имя Бота</label>
+                <div class="flex gap-2">
+                    <input type="text" id="setting-name" class="flex-1 border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white rounded px-3 py-2 text-sm" placeholder="Имя бота">
+                    <button onclick="saveBotName()" class="bg-green-500 text-white px-3 py-2 rounded text-sm hover:bg-green-600">ОК</button>
+                </div>
+            </div>
+
+            <!-- Stats -->
+            <div class="bg-blue-50 dark:bg-slate-700 p-4 rounded-lg border border-blue-100 dark:border-slate-600">
+                <h3 class="font-bold text-blue-800 dark:text-blue-300 mb-2">Статистика</h3>
+                <p class="text-sm text-blue-700 dark:text-slate-300">Уровень: <span id="menu-level" class="font-bold">1</span></p>
+                <p class="text-sm text-blue-700 dark:text-slate-300">Всего сообщений: <span id="menu-msg-count">0</span></p>
+                <p class="text-sm text-blue-700 dark:text-slate-300">Слов в словаре: <span id="menu-dict-count">0</span></p>
+            </div>
+
+            <!-- Encryption Tool Link -->
+            <button onclick="toggleEncryptionModal()" class="w-full flex items-center gap-3 px-4 py-3 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 rounded text-left transition border border-indigo-100 dark:border-indigo-800">
+                <i class="fa-solid fa-lock"></i> Шифратор файлов
+            </button>
+
+            <!-- Data Management -->
+            <div class="space-y-3">
+                <h3 class="font-bold text-slate-800 dark:text-white">Управление данными</h3>
+                
+                <button onclick="exportData()" class="w-full flex items-center gap-3 px-4 py-3 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 rounded text-left transition">
+                    <i class="fa-solid fa-download text-slate-500 dark:text-slate-400"></i> Экспорт JSON
+                </button>
+                
+                <div class="relative">
+                    <button onclick="document.getElementById('file-upload').click()" class="w-full flex items-center gap-3 px-4 py-3 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 rounded text-left transition">
+                        <i class="fa-solid fa-upload text-slate-500 dark:text-slate-400"></i> Импорт JSON
+                    </button>
+                    <input type="file" id="file-upload" class="hidden" accept=".json" onchange="importData(this)">
+                </div>
+            </div>
+
+            <!-- Dangerous Actions -->
+            <div class="space-y-3 pt-4 border-t border-slate-100 dark:border-slate-700">
+                <button onclick="clearChat()" class="w-full flex items-center gap-3 px-4 py-3 bg-orange-50 dark:bg-orange-900/20 hover:bg-orange-100 dark:hover:bg-orange-900/40 text-orange-700 dark:text-orange-400 rounded text-left transition">
+                    <i class="fa-solid fa-eraser"></i> Очистить чат
+                </button>
+                
+                <button onclick="clearCache()" class="w-full flex items-center gap-3 px-4 py-3 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/40 text-red-700 dark:text-red-400 rounded text-left transition">
+                    <i class="fa-solid fa-trash-can"></i> Очистить кэш и сбросить
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Encryption Modal -->
+    <div id="enc-modal-overlay" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] hidden flex items-center justify-center p-4" onclick="toggleEncryptionModal()">
+        <div class="bg-white dark:bg-slate-800 w-full max-w-md rounded-2xl shadow-2xl overflow-hidden" onclick="event.stopPropagation()">
+            <div class="bg-indigo-600 p-4 text-white flex justify-between items-center">
+                <h3 class="font-bold text-lg"><i class="fa-solid fa-shield-halved mr-2"></i>Шифратор</h3>
+                <button onclick="toggleEncryptionModal()" class="hover:text-indigo-200"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            
+            <div class="p-6 space-y-4">
+                <!-- Mode Switch -->
+                <div class="flex bg-slate-100 dark:bg-slate-700 rounded-lg p-1 mb-4">
+                    <button onclick="setEncMode('encrypt')" id="btn-mode-enc" class="flex-1 py-2 text-sm font-bold rounded-md shadow bg-white dark:bg-slate-600 text-indigo-600 dark:text-indigo-300 transition">Зашифровать</button>
+                    <button onclick="setEncMode('decrypt')" id="btn-mode-dec" class="flex-1 py-2 text-sm font-medium rounded-md text-slate-500 dark:text-slate-400 hover:text-indigo-600 transition">Расшифровать</button>
+                </div>
+
+                <!-- Input -->
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">1. Выберите файл или фото</label>
+                    <input type="file" id="enc-file-input" class="block w-full text-sm text-slate-500 dark:text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 dark:file:bg-indigo-900 dark:file:text-indigo-300">
+                </div>
+
+                <!-- Password -->
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">2. Пароль</label>
+                    <div class="relative">
+                        <input type="password" id="enc-password" class="w-full border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white rounded-lg px-3 py-2 pr-10 focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="Секретный ключ">
+                        <button onclick="togglePassVis()" class="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600"><i class="fa-solid fa-eye" id="pass-eye"></i></button>
+                    </div>
+                </div>
+
+                <!-- Action -->
+                <button onclick="processEncryption()" id="btn-process-enc" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-lg shadow transition flex justify-center items-center gap-2">
+                    <i class="fa-solid fa-lock"></i> Выполнить
+                </button>
+
+                <div id="enc-status" class="text-center text-sm min-h-[20px]"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-20 left-1/2 transform -translate-x-1/2 bg-slate-800 dark:bg-slate-600 text-white px-4 py-2 rounded-lg shadow-lg text-sm opacity-0 transition-opacity pointer-events-none z-[70]">
+        Notification
+    </div>
+
+    <script>
+        // --- State Management ---
+        const STATE = {
+            botName: "AI Bot",
+            level: 1,
+            exp: 0,
+            messages: [],
+            dictionary: {},
+            theme: 'light'
+        };
+
+        const STORAGE_KEY = 'ai_chat_app_data';
+
+        // --- Initialization ---
+        document.addEventListener('DOMContentLoaded', () => {
+            loadState();
+            applyTheme();
+            renderMessages();
+            updateUI();
+            setupAutoResize();
+        });
+
+        // --- Core Logic ---
+
+        function loadState() {
+            const saved = localStorage.getItem(STORAGE_KEY);
+            if (saved) {
+                try {
+                    const parsed = JSON.parse(saved);
+                    STATE.botName = parsed.botName || "AI Bot";
+                    STATE.level = parsed.level || 1;
+                    STATE.exp = parsed.exp || 0;
+                    STATE.messages = parsed.messages || [];
+                    STATE.dictionary = parsed.dictionary || {};
+                    STATE.theme = parsed.theme || 'light';
+                } catch (e) {
+                    console.error("Error loading state", e);
+                }
+            }
+        }
+
+        function saveState() {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(STATE));
+            updateUI();
+        }
+
+        function updateUI() {
+            document.getElementById('header-bot-name').innerText = STATE.botName;
+            document.getElementById('header-level').innerText = STATE.level;
+            document.getElementById('bot-avatar').innerText = STATE.botName.substring(0, 2).toUpperCase();
+            
+            // Menu values
+            document.getElementById('setting-name').value = STATE.botName;
+            document.getElementById('menu-level').innerText = STATE.level;
+            document.getElementById('menu-msg-count').innerText = STATE.messages.length;
+            document.getElementById('menu-dict-count').innerText = Object.keys(STATE.dictionary).length;
+        }
+
+        // --- Theme Logic ---
+
+        function toggleTheme() {
+            STATE.theme = STATE.theme === 'light' ? 'dark' : 'light';
+            applyTheme();
+            saveState();
+        }
+
+        function applyTheme() {
+            const html = document.documentElement;
+            const circle = document.getElementById('theme-toggle-circle');
+            
+            if (STATE.theme === 'dark') {
+                html.classList.add('dark');
+                if (circle) circle.style.left = '28px'; // Tailwind w-12 is 3rem=48px, circle w-4 is 16px. 48-16-4(padding)=28
+            } else {
+                html.classList.remove('dark');
+                if (circle) circle.style.left = '4px';
+            }
+        }
+
+        // --- Messaging System ---
+
+        function addMessage(text, sender) {
+            const msg = {
+                id: Date.now().toString(),
+                text: text,
+                sender: sender, // 'user' or 'bot'
+                timestamp: new Date().toISOString()
+            };
+            STATE.messages.push(msg);
+            
+            // Level Logic
+            if (sender === 'user') {
+                STATE.exp += 10;
+                if (STATE.exp > STATE.level * 100) {
+                    STATE.level++;
+                    STATE.exp = 0;
+                    showToast(`Повышение уровня: ${STATE.level}!`);
+                }
+            }
+
+            saveState();
+            renderSingleMessage(msg);
+            scrollToBottom();
+        }
+
+        function renderMessages() {
+            const container = document.getElementById('chat-container');
+            container.innerHTML = ''; // Clear
+            if (STATE.messages.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center text-slate-400 dark:text-slate-500 text-sm py-10 select-none">
+                        <i class="fa-solid fa-robot text-4xl mb-3 opacity-50"></i><br>
+                        История пуста.<br>Напишите привет!
+                        <br><br>
+                        <span class="text-xs bg-slate-200 dark:bg-slate-700 dark:text-slate-300 px-2 py-1 rounded">словарь: текст{answerto="ответ"}</span>
+                    </div>
+                `;
+                return;
+            }
+            STATE.messages.forEach(msg => renderSingleMessage(msg));
+            scrollToBottom();
+        }
+
+        function renderSingleMessage(msg) {
+            const container = document.getElementById('chat-container');
+            // Remove placeholder if exists
+            if (container.firstElementChild && container.firstElementChild.classList.contains('text-center')) {
+                container.innerHTML = '';
+            }
+
+            const isUser = msg.sender === 'user';
+            
+            const div = document.createElement('div');
+            div.className = `flex w-full message-enter ${isUser ? 'justify-end' : 'justify-start'}`;
+            div.id = `msg-${msg.id}`;
+
+            const bubble = document.createElement('div');
+            bubble.className = `max-w-[85%] sm:max-w-[70%] rounded-2xl px-4 py-2 shadow-sm relative group text-sm sm:text-base break-words transition-colors ${
+                isUser 
+                ? 'bg-blue-500 text-white rounded-br-none' 
+                : 'bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-bl-none border border-slate-200 dark:border-slate-600'
+            }`;
+            
+            // Basic text rendering
+            bubble.innerText = msg.text;
+
+            const footer = document.createElement('div');
+            footer.className = `flex justify-end gap-3 mt-1 text-[10px] ${isUser ? 'text-blue-200' : 'text-slate-400 dark:text-slate-500'}`;
+            
+            // Copy Btn
+            const copyBtn = document.createElement('span');
+            copyBtn.innerHTML = '<i class="fa-regular fa-copy"></i>';
+            copyBtn.className = "cursor-pointer opacity-50 hover:opacity-100";
+            copyBtn.onclick = (e) => { e.stopPropagation(); copyMessage(msg.text); };
+
+            // Del Btn
+            const delBtn = document.createElement('span');
+            delBtn.innerHTML = '<i class="fa-solid fa-xmark"></i>';
+            delBtn.className = "cursor-pointer opacity-50 hover:opacity-100";
+            delBtn.onclick = (e) => { e.stopPropagation(); deleteMessage(msg.id); };
+
+            const time = document.createElement('span');
+            const d = new Date(msg.timestamp);
+            time.innerText = `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
+
+            footer.appendChild(copyBtn);
+            footer.appendChild(delBtn);
+            footer.appendChild(time);
+            
+            bubble.appendChild(footer);
+            div.appendChild(bubble);
+            container.appendChild(div);
+        }
+
+        function scrollToBottom() {
+            const container = document.getElementById('chat-container');
+            setTimeout(() => {
+                container.scrollTop = container.scrollHeight;
+            }, 50);
+        }
+
+        function sendMessage() {
+            const input = document.getElementById('message-input');
+            const text = input.value.trim();
+            if (!text) return;
+
+            addMessage(text, 'user');
+            input.value = '';
+            input.style.height = 'auto'; // Reset height
+
+            processBotResponse(text);
+        }
+
+        // --- AI Logic & Dictionary ---
+
+        function processBotResponse(userText) {
+            setTimeout(() => {
+                // 1. Check for Dictionary Teaching Command
+                const teachRegex = /^словарь:\s*(.+?)\{answerto="(.+?)"\}$/i;
+                const match = userText.match(teachRegex);
+
+                if (match) {
+                    const trigger = match[1].trim().toLowerCase();
+                    const response = match[2].trim();
+                    
+                    if (trigger && response) {
+                        STATE.dictionary[trigger] = response;
+                        saveState();
+                        addMessage(`✅ Я запомнил! Если вы скажете "${trigger}", я отвечу "${response}".`, 'bot');
+                        return;
+                    }
+                }
+
+                // 2. Check Dictionary for match
+                const lowerText = userText.toLowerCase();
+                let foundResponse = null;
+                
+                if (STATE.dictionary[lowerText]) {
+                    foundResponse = STATE.dictionary[lowerText];
+                } else {
+                    const keys = Object.keys(STATE.dictionary);
+                    for (let key of keys) {
+                        if (lowerText.includes(key)) {
+                            foundResponse = STATE.dictionary[key];
+                            break;
+                        }
+                    }
+                }
+
+                if (foundResponse) {
+                    addMessage(foundResponse, 'bot');
+                    return;
+                }
+
+                // 3. Default Responses
+                const defaults = [
+                    "Интересно!", 
+                    "Расскажи подробнее.", 
+                    "Я вас понимаю.", 
+                    "А что было дальше?", 
+                    `Вы можете научить меня отвечать на это, написав: словарь: ${userText}{answerto="Ваш ответ"}`,
+                    "Хм...",
+                    "Я всего лишь бот, но я учусь."
+                ];
+                const randomDefault = defaults[Math.floor(Math.random() * defaults.length)];
+                addMessage(randomDefault, 'bot');
+
+            }, 600);
+        }
+
+        // --- Voice Input ---
+
+        const voiceBtn = document.getElementById('voice-btn');
+        let recognition;
+
+        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognition = new SpeechRecognition();
+            recognition.continuous = false;
+            recognition.lang = 'ru-RU';
+            recognition.interimResults = false;
+
+            recognition.onstart = () => {
+                voiceBtn.classList.add('bg-red-100', 'text-red-500', 'animate-pulse');
+                voiceBtn.classList.remove('bg-slate-100', 'dark:bg-slate-700', 'text-slate-600', 'dark:text-slate-300');
+            };
+
+            recognition.onend = () => {
+                voiceBtn.classList.remove('bg-red-100', 'text-red-500', 'animate-pulse');
+                voiceBtn.classList.add('bg-slate-100', 'dark:bg-slate-700', 'text-slate-600', 'dark:text-slate-300');
+            };
+
+            recognition.onresult = (event) => {
+                const transcript = event.results[0][0].transcript;
+                document.getElementById('message-input').value = transcript;
+                sendMessage();
+            };
+        } else {
+            voiceBtn.style.display = 'none';
+        }
+
+        voiceBtn.addEventListener('click', () => {
+            if (recognition) {
+                try {
+                    recognition.start();
+                } catch(e) {
+                    recognition.stop();
+                }
+            } else {
+                showToast("Голосовой ввод не поддерживается браузером");
+            }
+        });
+
+        // --- Message Actions ---
+
+        function copyMessage(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                showToast("Сообщение скопировано");
+            });
+        }
+
+        function deleteMessage(id) {
+            STATE.messages = STATE.messages.filter(m => m.id !== id.toString());
+            saveState();
+            const el = document.getElementById(`msg-${id}`);
+            if (el) {
+                el.style.opacity = '0';
+                setTimeout(() => el.remove(), 300);
+            }
+            if (STATE.messages.length === 0) renderMessages();
+        }
+
+        // --- Encryption Tool Logic ---
+
+        let encMode = 'encrypt';
+
+        function toggleEncryptionModal() {
+            const modal = document.getElementById('enc-modal-overlay');
+            const menu = document.getElementById('side-menu');
+            
+            // Close menu if open
+            if(!menu.classList.contains('translate-x-full')) {
+                toggleMenu();
+            }
+
+            if (modal.classList.contains('hidden')) {
+                modal.classList.remove('hidden');
+            } else {
+                modal.classList.add('hidden');
+                document.getElementById('enc-file-input').value = '';
+                document.getElementById('enc-password').value = '';
+                document.getElementById('enc-status').innerText = '';
+            }
+        }
+
+        function setEncMode(mode) {
+            encMode = mode;
+            const btnEnc = document.getElementById('btn-mode-enc');
+            const btnDec = document.getElementById('btn-mode-dec');
+            const actionBtn = document.getElementById('btn-process-enc');
+
+            if (mode === 'encrypt') {
+                btnEnc.className = "flex-1 py-2 text-sm font-bold rounded-md shadow bg-white dark:bg-slate-600 text-indigo-600 dark:text-indigo-300 transition";
+                btnDec.className = "flex-1 py-2 text-sm font-medium rounded-md text-slate-500 dark:text-slate-400 hover:text-indigo-600 transition";
+                actionBtn.innerHTML = '<i class="fa-solid fa-lock"></i> Зашифровать и скачать';
+            } else {
+                btnDec.className = "flex-1 py-2 text-sm font-bold rounded-md shadow bg-white dark:bg-slate-600 text-indigo-600 dark:text-indigo-300 transition";
+                btnEnc.className = "flex-1 py-2 text-sm font-medium rounded-md text-slate-500 dark:text-slate-400 hover:text-indigo-600 transition";
+                actionBtn.innerHTML = '<i class="fa-solid fa-unlock"></i> Расшифровать и скачать';
+            }
+        }
+
+        function togglePassVis() {
+            const input = document.getElementById('enc-password');
+            const icon = document.getElementById('pass-eye');
+            if (input.type === "password") {
+                input.type = "text";
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                input.type = "password";
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        }
+
+        function processEncryption() {
+            const fileInput = document.getElementById('enc-file-input');
+            const password = document.getElementById('enc-password').value;
+            const status = document.getElementById('enc-status');
+            const file = fileInput.files[0];
+
+            if (!file) {
+                status.innerHTML = '<span class="text-red-500">Выберите файл</span>';
+                return;
+            }
+            if (!password) {
+                status.innerHTML = '<span class="text-red-500">Введите пароль</span>';
+                return;
+            }
+
+            status.innerHTML = '<span class="text-indigo-500"><i class="fa-solid fa-spinner fa-spin"></i> Обработка...</span>';
+
+            const reader = new FileReader();
+
+            reader.onload = function(e) {
+                try {
+                    const content = e.target.result;
+                    let resultData, filename, mimeType;
+
+                    if (encMode === 'encrypt') {
+                        // Encrypt
+                        const encrypted = CryptoJS.AES.encrypt(content, password).toString();
+                        // Create a file
+                        const blob = new Blob([encrypted], {type: 'text/plain'});
+                        resultData = blob;
+                        filename = file.name + '.enc';
+                    } else {
+                        // Decrypt
+                        const decryptedBytes = CryptoJS.AES.decrypt(content, password);
+                        const decryptedString = decryptedBytes.toString(CryptoJS.enc.Utf8);
+                        
+                        if (!decryptedString) throw new Error("Wrong password or corrupted file");
+
+                        // Check if it's a data URL
+                        if (decryptedString.startsWith('data:')) {
+                            const arr = decryptedString.split(',');
+                            const mime = arr[0].match(/:(.*?);/)[1];
+                            const bstr = atob(arr[1]);
+                            let n = bstr.length;
+                            const u8arr = new Uint8Array(n);
+                            while(n--){
+                                u8arr[n] = bstr.charCodeAt(n);
+                            }
+                            resultData = new Blob([u8arr], {type: mime});
+                            filename = file.name.replace('.enc', '').replace(/\.enc$/, ''); // Remove .enc
+                        } else {
+                            // Fallback for text files
+                            resultData = new Blob([decryptedString], {type: 'text/plain'});
+                            filename = file.name.replace('.enc', '');
+                        }
+                    }
+
+                    // Download
+                    const url = URL.createObjectURL(resultData);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = filename;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    
+                    status.innerHTML = '<span class="text-green-500 font-bold">Готово! Файл скачан.</span>';
+                } catch (err) {
+                    console.error(err);
+                    status.innerHTML = '<span class="text-red-500">Ошибка: Неверный пароль или файл.</span>';
+                }
+            };
+
+            if (encMode === 'encrypt') {
+                // Read as DataURL to preserve file type/binary as string
+                reader.readAsDataURL(file);
+            } else {
+                // Read as Text for decryption (since .enc is text base64)
+                reader.readAsText(file);
+            }
+        }
+
+        // --- Menu Functions ---
+
+        function toggleMenu() {
+            const menu = document.getElementById('side-menu');
+            const overlay = document.getElementById('menu-overlay');
+            const isOpen = !menu.classList.contains('translate-x-full');
+
+            if (isOpen) {
+                menu.classList.add('translate-x-full');
+                overlay.classList.remove('opacity-100');
+                overlay.classList.add('opacity-0');
+                setTimeout(() => overlay.classList.add('hidden'), 300);
+            } else {
+                overlay.classList.remove('hidden');
+                void overlay.offsetWidth;
+                overlay.classList.remove('opacity-0');
+                overlay.classList.add('opacity-100');
+                menu.classList.remove('translate-x-full');
+                updateUI();
+            }
+        }
+
+        function saveBotName() {
+            const name = document.getElementById('setting-name').value.trim();
+            if (name) {
+                STATE.botName = name;
+                saveState();
+                showToast("Имя сохранено");
+            }
+        }
+
+        function exportData() {
+            const dataStr = JSON.stringify(STATE, null, 2);
+            const blob = new Blob([dataStr], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `ai_bot_backup_${new Date().toISOString().slice(0,10)}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            showToast("Экспорт завершен");
+        }
+
+        function importData(input) {
+            const file = input.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const parsed = JSON.parse(e.target.result);
+                    if (parsed && typeof parsed === 'object') {
+                        STATE.botName = parsed.botName || STATE.botName;
+                        STATE.level = parsed.level || STATE.level;
+                        STATE.exp = parsed.exp || STATE.exp;
+                        STATE.messages = parsed.messages || [];
+                        STATE.dictionary = parsed.dictionary || {};
+                        STATE.theme = parsed.theme || 'light';
+                        
+                        saveState();
+                        applyTheme();
+                        renderMessages();
+                        updateUI();
+                        showToast("Данные успешно импортированы");
+                        toggleMenu();
+                    }
+                } catch (err) {
+                    showToast("Ошибка: Неверный формат JSON");
+                }
+            };
+            reader.readAsText(file);
+            input.value = '';
+        }
+
+        function clearChat() {
+            if(confirm("Вы уверены, что хотите удалить все сообщения?")) {
+                STATE.messages = [];
+                saveState();
+                renderMessages();
+                showToast("Чат очищен");
+                toggleMenu();
+            }
+        }
+
+        function clearCache() {
+            if(confirm("Это удалит ВЕСЬ прогресс, словарь и настройки. Продолжить?")) {
+                localStorage.removeItem(STORAGE_KEY);
+                location.reload();
+            }
+        }
+
+        // --- Helpers ---
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            toast.innerText = msg;
+            toast.classList.remove('opacity-0');
+            setTimeout(() => {
+                toast.classList.add('opacity-0');
+            }, 3000);
+        }
+
+        function setupAutoResize() {
+            const tx = document.getElementById('message-input');
+            tx.addEventListener('input', function() {
+                this.style.height = 'auto';
+                this.style.height = (this.scrollHeight) + 'px';
+            });
+            tx.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage();
+                }
+            });
+        }
+
+    </script>
+</body>
+</html>

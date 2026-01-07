@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Кликер</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            color: white;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+            text-align: center;
+        }
+        
+        .header {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .balance {
+            font-size: 3.5rem;
+            font-weight: bold;
+            color: #00ff88;
+            text-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
+            margin: 10px 0;
+        }
+        
+        .click-btn {
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #ff0080, #ff8c00);
+            border: none;
+            color: white;
+            font-size: 1.8rem;
+            font-weight: bold;
+            margin: 30px auto;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 10px 30px rgba(255, 0, 128, 0.3);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .click-btn:active {
+            transform: scale(0.95);
+            box-shadow: 0 5px 15px rgba(255, 0, 128, 0.2);
+        }
+        
+        .click-value {
+            font-size: 1.2rem;
+            color: #00ff88;
+            margin-top: 5px;
+        }
+        
+        .shop-btn {
+            background: rgba(255, 255, 255, 0.15);
+            border: 2px solid #00ff88;
+            color: white;
+            padding: 15px 30px;
+            font-size: 1.2rem;
+            border-radius: 15px;
+            cursor: pointer;
+            margin: 20px 0;
+            transition: all 0.3s;
+            width: 100%;
+        }
+        
+        .shop-btn:hover {
+            background: rgba(0, 255, 136, 0.2);
+        }
+        
+        .upgrade {
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 15px;
+            padding: 15px;
+            margin: 10px 0;
+            text-align: left;
+            border-left: 4px solid #00ff88;
+            display: none;
+        }
+        
+        .upgrade.active {
+            display: block;
+            animation: fadeIn 0.5s;
+        }
+        
+        .upgrade h3 {
+            color: #00ff88;
+            margin-bottom: 5px;
+        }
+        
+        .upgrade button {
+            background: linear-gradient(135deg, #00ff88, #00cc66);
+            border: none;
+            color: #1a1a2e;
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 10px;
+            width: 100%;
+            transition: transform 0.2s;
+        }
+        
+        .upgrade button:disabled {
+            background: #666;
+            cursor: not-allowed;
+        }
+        
+        .upgrade button:active:not(:disabled) {
+            transform: scale(0.98);
+        }
+        
+        .per-click {
+            font-size: 1.2rem;
+            color: #ff8c00;
+            margin-top: 10px;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>💰 Кликер</h1>
+            <div class="balance" id="balance">$0</div>
+            <div class="per-click">За клик: +<span id="perClick">1</span>$</div>
+        </div>
+        
+        <button class="click-btn" id="clickBtn">
+            ЖМИ!
+            <span class="click-value">+<span id="clickValue">1</span>$</span>
+        </button>
+        
+        <button class="shop-btn" id="shopBtn">🏪 Магазин улучшений</button>
+        
+        <div id="upgradesContainer"></div>
+    </div>
+
+    <script>
+        const upgrades = [
+            { cost: 50, bonus: 1, desc: "+1$ за клик" },
+            { cost: 100, bonus: 1, desc: "+1$ за клик" },
+            { cost: 250, bonus: 3, desc: "+3$ за клик" },
+            { cost: 500, bonus: 5, desc: "+5$ за клик" },
+            { cost: 750, bonus: 10, desc: "+10$ за клик" },
+            { cost: 1500, bonus: 15, desc: "+15$ за клик" },
+            { cost: 4000, bonus: 35, desc: "+35$ за клик" },
+            { cost: 8500, bonus: 50, desc: "+50$ за клик" },
+            { cost: 14000, bonus: 75, desc: "+75$ за клик" },
+            { cost: 18500, bonus: 100, desc: "+100$ за клик" },
+            { cost: 30000, bonus: 150, desc: "+150$ за клик" },
+            { cost: 45000, bonus: 225, desc: "+225$ за клик" },
+            { cost: 80000, bonus: 375, desc: "+375$ за клик" },
+            { cost: 135000, bonus: 425, desc: "+425$ за клик" },
+            { cost: 200000, bonus: 500, desc: "+500$ за клик" },
+            { cost: 500000, bonus: 0, desc: "🏆 КОНЕЦ ИГРЫ!" }
+        ];
+
+        let balance = 0;
+        let perClick = 1;
+        let currentUpgrade = 0;
+        let shopOpen = false;
+
+        const balanceEl = document.getElementById('balance');
+        const perClickEl = document.getElementById('perClick');
+        const clickValueEl = document.getElementById('clickValue');
+        const clickBtn = document.getElementById('clickBtn');
+        const shopBtn = document.getElementById('shopBtn');
+        const upgradesContainer = document.getElementById('upgradesContainer');
+
+        function updateDisplay() {
+            balanceEl.textContent = `$${balance}`;
+            perClickEl.textContent = perClick;
+            clickValueEl.textContent = perClick;
+            
+            // Обновить кнопки улучшений
+            document.querySelectorAll('.upgrade-btn').forEach((btn, i) => {
+                if (i === currentUpgrade) {
+                    btn.disabled = balance < upgrades[i].cost;
+                    btn.textContent = balance >= upgrades[i].cost 
+                        ? `Купить за $${upgrades[i].cost}` 
+                        : `Нужно $${upgrades[i].cost}`;
+                }
+            });
+        }
+
+        function createUpgrades() {
+            upgrades.forEach((upgrade, i) => {
+                const div = document.createElement('div');
+                div.className = `upgrade ${i === currentUpgrade ? 'active' : ''}`;
+                div.innerHTML = `
+                    <h3>Улучшение ${i + 1}</h3>
+                    <p>${upgrade.desc}</p>
+                    <button class="upgrade-btn" onclick="buyUpgrade(${i})">
+                        Купить за $${upgrade.cost}
+                    </button>
+                `;
+                upgradesContainer.appendChild(div);
+            });
+        }
+
+        function buyUpgrade(index) {
+            if (index !== currentUpgrade) return;
+            const upgrade = upgrades[index];
+            
+            if (balance >= upgrade.cost) {
+                balance -= upgrade.cost;
+                perClick += upgrade.bonus;
+                currentUpgrade++;
+                
+                // Скрыть текущее, показать следующее
+                document.querySelectorAll('.upgrade').forEach((el, i) => {
+                    el.classList.toggle('active', i === currentUpgrade);
+                });
+                
+                // Конец игры
+                if (index === upgrades.length - 1) {
+                    alert('🎉 ПОЗДРАВЛЯЮ! Вы достигли максимального уровня!');
+                    clickBtn.disabled = true;
+                }
+                
+                updateDisplay();
+            }
+        }
+
+        clickBtn.addEventListener('click', () => {
+            balance += perClick;
+            updateDisplay();
+            
+            // Анимация
+            clickBtn.style.transform = 'scale(0.95)';
+            setTimeout(() => {
+                clickBtn.style.transform = 'scale(1)';
+            }, 100);
+        });
+
+        shopBtn.addEventListener('click', () => {
+            shopOpen = !shopOpen;
+            upgradesContainer.style.display = shopOpen ? 'block' : 'none';
+            shopBtn.textContent = shopOpen ? '✖ Закрыть магазин' : '🏪 Магазин улучшений';
+        });
+
+        // Инициализация
+        createUpgrades();
+        updateDisplay();
+        
+        // Скрыть магазин при загрузке
+        upgradesContainer.style.display = 'none';
+    </script>
+</body>
+</html>

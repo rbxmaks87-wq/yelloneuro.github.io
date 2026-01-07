@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>3D Studio Pro - Blender Web</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            overflow: hidden;
+            background: #0a0a0a;
+            color: white;
+        }
+        .glass {
+            background: rgba(20, 20, 20, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        canvas {
+            display: block;
+            touch-action: none;
+        }
+        .custom-range {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 4px;
+            background: #333;
+            border-radius: 2px;
+            outline: none;
+        }
+        .custom-range::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            background: #3b82f6;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        #viewport-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+        #processing-layer {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            transition: filter 0.3s ease;
+        }
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <!-- UI Overlay -->
+    <div class="fixed inset-0 z-10 flex flex-col md:flex-row pointer-events-none">
+        
+        <!-- Sidebar Controls -->
+        <aside class="w-full md:w-80 h-[45%] md:h-full glass p-6 pointer-events-auto flex flex-col gap-6 overflow-y-auto no-scrollbar order-2 md:order-1 shadow-2xl">
+            <div>
+                <h1 class="text-xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent mb-1">3D STUDIO PRO</h1>
+                <p class="text-xs text-gray-400">Advanced Scene Editor</p>
+            </div>
+
+            <!-- Object Controls -->
+            <section>
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-sm font-semibold text-gray-300 uppercase tracking-wider">Objects</h2>
+                    <label class="inline-flex items-center cursor-pointer">
+                        <span class="text-[10px] text-gray-500 mr-2 uppercase">Auto-Rotate</span>
+                        <input type="checkbox" id="autoRotate" checked class="sr-only peer">
+                        <div class="w-7 h-4 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-blue-600"></div>
+                    </label>
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <button onclick="addShape('cube')" class="px-3 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-xs transition">Cube</button>
+                    <button onclick="addShape('sphere')" class="px-3 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-xs transition">Sphere</button>
+                    <button onclick="addShape('torus')" class="px-3 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-xs transition">Torus</button>
+                    <button onclick="addShape('knot')" class="px-3 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-xs transition">Knot</button>
+                </div>
+            </section>
+
+            <!-- Material & Colors -->
+            <section>
+                <h2 class="text-sm font-semibold mb-4 text-gray-300 uppercase tracking-wider">Material Properties</h2>
+                <div class="space-y-4">
+                    <div>
+                        <label class="text-xs text-gray-400 block mb-2">Object Color</label>
+                        <input type="color" id="objColor" value="#3b82f6" class="w-full h-8 rounded cursor-pointer bg-transparent border-none">
+                    </div>
+                    <div>
+                        <label class="text-xs text-gray-400 block mb-2">Metallic</label>
+                        <input type="range" id="metallic" min="0" max="1" step="0.01" value="0.5" class="custom-range">
+                    </div>
+                    <div>
+                        <label class="text-xs text-gray-400 block mb-2">Roughness</label>
+                        <input type="range" id="roughness" min="0" max="1" step="0.01" value="0.2" class="custom-range">
+                    </div>
+                </div>
+            </section>
+
+            <!-- Post Processing -->
+            <section>
+                <h2 class="text-sm font-semibold mb-4 text-gray-300 uppercase tracking-wider">Post-Processing</h2>
+                <div class="space-y-4">
+                    <div>
+                        <label class="text-xs text-gray-400 block mb-2">Depth Blur (px)</label>
+                        <input type="range" id="blur" min="0" max="20" step="1" value="0" class="custom-range">
+                    </div>
+                    <div>
+                        <label class="text-xs text-gray-400 block mb-2">Brightness (%)</label>
+                        <input type="range" id="brightness" min="50" max="200" step="1" value="100" class="custom-range">
+                    </div>
+                    <div>
+                        <label class="text-xs text-gray-400 block mb-2">Contrast (%)</label>
+                        <input type="range" id="contrast" min="50" max="200" step="1" value="100" class="custom-range">
+                    </div>
+                </div>
+            </section>
+
+            <button onclick="takeScreenshot()" class="mt-auto w-full py-4 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl transition-all shadow-lg shadow-blue-900/20 active:scale-95">
+                CAPTURE PHOTO
+            </button>
+        </aside>
+
+        <!-- Viewport controls (Mobile Friendly) -->
+        <div class="flex-1 order-1 md:order-2 relative">
+            <div class="absolute top-6 right-6 flex gap-2 pointer-events-auto">
+                <button onclick="resetCamera()" class="p-3 glass rounded-full hover:bg-white/10 transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"></path></svg>
+                </button>
+                <button onclick="clearScene()" class="p-3 glass rounded-full hover:bg-red-500/20 text-red-400 transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3D Viewport Container -->
+    <div id="viewport-container">
+        <div id="processing-layer"></div>
+    </div>
+
+    <script>
+        let scene, camera, renderer, controls, activeObject;
+        const objects = [];
+
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+
+        function init() {
+            // Scene setup
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x050505);
+            scene.fog = new THREE.Fog(0x050505, 10, 50);
+
+            // Camera
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(5, 5, 5);
+
+            // Renderer
+            renderer = new THREE.WebGLRenderer({ 
+                antialias: true, 
+                alpha: true,
+                preserveDrawingBuffer: true // Required for screenshots
+            });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.shadowMap.enabled = true;
+            renderer.toneMapping = THREE.ACESFilmicToneMapping;
+            renderer.outputEncoding = THREE.sRGBEncoding;
+            
+            document.getElementById('viewport-container').appendChild(renderer.domElement);
+
+            // Controls
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+
+            // Lights
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+            scene.add(ambientLight);
+
+            const pointLight = new THREE.PointLight(0xffffff, 1);
+            pointLight.position.set(10, 10, 10);
+            pointLight.castShadow = true;
+            scene.add(pointLight);
+
+            const blueLight = new THREE.PointLight(0x3b82f6, 2);
+            blueLight.position.set(-10, 5, -5);
+            scene.add(blueLight);
+
+            const pinkLight = new THREE.PointLight(0xd946ef, 1.5);
+            pinkLight.position.set(5, -5, 5);
+            scene.add(pinkLight);
+
+            // Grid & Floor
+            const grid = new THREE.GridHelper(40, 40, 0x222222, 0x111111);
+            grid.position.y = -2;
+            scene.add(grid);
+
+            // Click listener for selection
+            window.addEventListener('mousedown', onPointerDown);
+            window.addEventListener('touchstart', onPointerDown);
+
+            // Initial Object
+            addShape('knot');
+
+            animate();
+        }
+
+        function onPointerDown(event) {
+            const x = event.touches ? event.touches[0].clientX : event.clientX;
+            const y = event.touches ? event.touches[0].clientY : event.clientY;
+            
+            mouse.x = (x / window.innerWidth) * 2 - 1;
+            mouse.y = -(y / window.innerHeight) * 2 + 1;
+
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(objects);
+
+            if (intersects.length > 0) {
+                if(activeObject) activeObject.material.emissive.setHex(0x000000);
+                activeObject = intersects[0].object;
+                activeObject.material.emissive.setHex(0x111111);
+                
+                // Sync UI
+                document.getElementById('objColor').value = '#' + activeObject.material.color.getHexString();
+                document.getElementById('metallic').value = activeObject.material.metalness;
+                document.getElementById('roughness').value = activeObject.material.roughness;
+            }
+        }
+
+        function addShape(type) {
+            let geometry;
+            switch(type) {
+                case 'cube': geometry = new THREE.BoxGeometry(2, 2, 2); break;
+                case 'sphere': geometry = new THREE.SphereGeometry(1.5, 32, 32); break;
+                case 'torus': geometry = new THREE.TorusGeometry(1.2, 0.4, 16, 100); break;
+                case 'knot': geometry = new THREE.TorusKnotGeometry(1, 0.3, 128, 16); break;
+            }
+
+            const material = new THREE.MeshPhysicalMaterial({
+                color: document.getElementById('objColor').value,
+                metalness: parseFloat(document.getElementById('metallic').value),
+                roughness: parseFloat(document.getElementById('roughness').value),
+                envMapIntensity: 1
+            });
+
+            const mesh = new THREE.Mesh(geometry, material);
+            mesh.castShadow = true;
+            mesh.receiveShadow = true;
+            
+            // Random position a bit
+            mesh.position.y = 0;
+            
+            if(activeObject) {
+                activeObject.material.emissive.setHex(0x000000);
+            }
+            
+            scene.add(mesh);
+            objects.push(mesh);
+            activeObject = mesh;
+            
+            // Highlight selected
+            activeObject.material.emissive = new THREE.Color(0x111111);
+        }
+
+        function clearScene() {
+            objects.forEach(obj => scene.remove(obj));
+            objects.length = 0;
+            activeObject = null;
+        }
+
+        function resetCamera() {
+            camera.position.set(5, 5, 5);
+            controls.target.set(0, 0, 0);
+        }
+
+        function updateFilters() {
+            const blur = document.getElementById('blur').value;
+            const brightness = document.getElementById('brightness').value;
+            const contrast = document.getElementById('contrast').value;
+            
+            const filterStr = `blur(${blur}px) brightness(${brightness}%) contrast(${contrast}%)`;
+            renderer.domElement.style.filter = filterStr;
+        }
+
+        function takeScreenshot() {
+            // Quickly remove helpers if any
+            const dataURL = renderer.domElement.toDataURL('image/png');
+            const link = document.createElement('a');
+            link.download = '3d-studio-render.png';
+            link.href = dataURL;
+            link.click();
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            const isRotating = document.getElementById('autoRotate').checked;
+            
+            if (activeObject) {
+                if (isRotating) activeObject.rotation.y += 0.005;
+                // Update material from inputs
+                activeObject.material.color.set(document.getElementById('objColor').value);
+                activeObject.material.metalness = parseFloat(document.getElementById('metallic').value);
+                activeObject.material.roughness = parseFloat(document.getElementById('roughness').value);
+            }
+
+            updateFilters();
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        init();
+    </script>
+</body>
+</html>

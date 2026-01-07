@@ -1,0 +1,1600 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>City Builder - Градостроитель</title>
+    <style>
+        /* ==================== БАЗОВЫЕ СТИЛИ ==================== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #1a1a2e;
+            color: #fff;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        /* ==================== ТИТУЛЬНЫЙ ЭКРАН ==================== */
+        #title-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            transition: opacity 0.5s ease;
+        }
+
+        #title-screen.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        #title-screen h1 {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            text-shadow: 0 0 20px rgba(100, 200, 255, 0.5);
+        }
+
+        #title-screen p {
+            font-size: 1.2rem;
+            margin-bottom: 2rem;
+            color: #aaa;
+        }
+
+        .title-btn {
+            padding: 15px 40px;
+            font-size: 1.2rem;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 10px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .title-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .btn-start {
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+            color: white;
+        }
+
+        .btn-load {
+            background: linear-gradient(135deg, #2196F3, #1976D2);
+            color: white;
+        }
+
+        .btn-load:disabled {
+            background: #555;
+            cursor: not-allowed;
+        }
+
+        /* ==================== ИГРОВОЙ ИНТЕРФЕЙС ==================== */
+        #game-container {
+            display: none;
+            width: 100%;
+            height: 100vh;
+        }
+
+        #game-container.active {
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Верхняя панель */
+        #top-panel {
+            height: 60px;
+            background: linear-gradient(180deg, #2d2d44 0%, #1a1a2e 100%);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 20px;
+            border-bottom: 2px solid #3d3d5c;
+            flex-shrink: 0;
+        }
+
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 1.1rem;
+        }
+
+        .stat-icon {
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+        }
+
+        #balance-display {
+            color: #4CAF50;
+            font-weight: bold;
+            font-size: 1.3rem;
+            transition: color 0.3s;
+        }
+
+        #balance-display.negative {
+            color: #f44336;
+        }
+
+        #month-display {
+            color: #64b5f6;
+        }
+
+        #day-display {
+            color: #aaa;
+            font-size: 0.9rem;
+        }
+
+        .top-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .top-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: background 0.2s;
+        }
+
+        .btn-save {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .btn-save:hover {
+            background: #45a049;
+        }
+
+        .btn-menu {
+            background: #f44336;
+            color: white;
+        }
+
+        .btn-menu:hover {
+            background: #d32f2f;
+        }
+
+        /* Основная область */
+        #main-area {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        /* ==================== БОКОВАЯ ПАНЕЛЬ (МЕНЮ СТРОИТЕЛЬСТВА) ==================== */
+        #side-panel {
+            width: 220px;
+            background: #2d2d44;
+            border-right: 2px solid #3d3d5c;
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+            overflow-y: auto;
+        }
+
+        .panel-tabs {
+            display: flex;
+            border-bottom: 2px solid #3d3d5c;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 12px 8px;
+            border: none;
+            background: #1a1a2e;
+            color: #888;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: all 0.2s;
+        }
+
+        .tab-btn:hover {
+            background: #3d3d5c;
+            color: #fff;
+        }
+
+        .tab-btn.active {
+            background: #4a4a6a;
+            color: #fff;
+            border-bottom: 2px solid #4CAF50;
+        }
+
+        .tab-content {
+            display: none;
+            padding: 10px;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .tab-content.active {
+            display: flex;
+        }
+
+        .build-item {
+            background: #3d3d5c;
+            border-radius: 8px;
+            padding: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 2px solid transparent;
+        }
+
+        .build-item:hover {
+            background: #4a4a6a;
+            transform: translateX(5px);
+        }
+
+        .build-item.selected {
+            border-color: #4CAF50;
+            box-shadow: 0 0 10px rgba(76, 175, 80, 0.3);
+        }
+
+        .build-item-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 6px;
+        }
+
+        .build-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+        }
+
+        .build-name {
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+
+        .build-cost {
+            font-size: 0.8rem;
+            color: #4CAF50;
+        }
+
+        .build-desc {
+            font-size: 0.75rem;
+            color: #aaa;
+        }
+
+        /* Цвета зон */
+        .zone-industrial { background: #8B0000; }
+        .zone-commercial { background: #FFD700; color: #000; }
+        .zone-residential { background: #32CD32; }
+        .zone-road { background: #696969; }
+        .zone-service { background: #9C27B0; }
+
+        /* ==================== ИГРОВОЕ ПОЛЕ ==================== */
+        #game-area {
+            flex: 1;
+            overflow: hidden;
+            position: relative;
+            background: #e8e4d9;
+        }
+
+        #game-canvas-container {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            position: relative;
+        }
+
+        #game-canvas {
+            position: absolute;
+            cursor: crosshair;
+        }
+
+        /* Информация о зуме */
+        #zoom-info {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+        }
+
+        /* ==================== ВСПЛЫВАЮЩИЕ УВЕДОМЛЕНИЯ ==================== */
+        #notifications {
+            position: fixed;
+            top: 70px;
+            right: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 500;
+        }
+
+        .notification {
+            padding: 12px 20px;
+            border-radius: 8px;
+            color: white;
+            font-size: 0.9rem;
+            animation: slideIn 0.3s ease, fadeOut 0.3s ease 2.7s;
+            max-width: 300px;
+        }
+
+        .notification.success { background: #4CAF50; }
+        .notification.error { background: #f44336; }
+        .notification.info { background: #2196F3; }
+        .notification.warning { background: #FF9800; }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        @keyframes fadeOut {
+            from { opacity: 1; }
+            to { opacity: 0; }
+        }
+
+        /* ==================== КАРТОЧКА ЗДАНИЯ ==================== */
+        #building-info {
+            position: fixed;
+            background: #2d2d44;
+            border: 2px solid #4a4a6a;
+            border-radius: 12px;
+            padding: 15px;
+            min-width: 250px;
+            z-index: 600;
+            display: none;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        #building-info.visible {
+            display: block;
+            animation: popIn 0.2s ease;
+        }
+
+        @keyframes popIn {
+            from { transform: scale(0.8); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        .info-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #4a4a6a;
+        }
+
+        .info-title {
+            font-size: 1.1rem;
+            font-weight: bold;
+        }
+
+        .info-close {
+            background: none;
+            border: none;
+            color: #888;
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        .info-close:hover {
+            color: #fff;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+        }
+
+        .info-label { color: #aaa; }
+        .info-value { font-weight: bold; }
+        .info-value.positive { color: #4CAF50; }
+        .info-value.negative { color: #f44336; }
+
+        .btn-demolish {
+            width: 100%;
+            padding: 10px;
+            margin-top: 12px;
+            background: #f44336;
+            border: none;
+            border-radius: 6px;
+            color: white;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+
+        .btn-demolish:hover {
+            background: #d32f2f;
+        }
+
+        /* ==================== МЕСЯЧНЫЙ ОТЧЁТ ==================== */
+        #monthly-report {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #2d2d44;
+            border: 2px solid #4a4a6a;
+            border-radius: 16px;
+            padding: 25px;
+            min-width: 350px;
+            z-index: 700;
+            display: none;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7);
+        }
+
+        #monthly-report.visible {
+            display: block;
+            animation: popIn 0.3s ease;
+        }
+
+        .report-title {
+            font-size: 1.4rem;
+            text-align: center;
+            margin-bottom: 20px;
+            color: #64b5f6;
+        }
+
+        .report-section {
+            margin-bottom: 15px;
+        }
+
+        .report-section-title {
+            font-size: 0.9rem;
+            color: #888;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+        }
+
+        .report-close {
+            display: block;
+            width: 100%;
+            padding: 12px;
+            margin-top: 15px;
+            background: #4CAF50;
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-size: 1rem;
+            cursor: pointer;
+        }
+
+        /* ==================== АДАПТИВНОСТЬ ==================== */
+        @media (max-width: 768px) {
+            #side-panel {
+                width: 180px;
+            }
+
+            .build-item {
+                padding: 8px;
+            }
+
+            .build-name {
+                font-size: 0.8rem;
+            }
+
+            #top-panel {
+                padding: 0 10px;
+                height: 50px;
+            }
+
+            .stat-item {
+                font-size: 0.9rem;
+            }
+
+            #title-screen h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- ==================== ТИТУЛЬНЫЙ ЭКРАН ==================== -->
+    <div id="title-screen">
+        <h1>🏙️ City Builder</h1>
+        <p>Построй город своей мечты</p>
+        <button class="title-btn btn-start" onclick="startNewGame()">🎮 Новая игра</button>
+        <button class="title-btn btn-load" id="btn-continue" onclick="loadGame()" disabled>📂 Продолжить</button>
+    </div>
+
+    <!-- ==================== ИГРОВОЙ КОНТЕЙНЕР ==================== -->
+    <div id="game-container">
+        <!-- Верхняя панель -->
+        <div id="top-panel">
+            <div class="stat-item">
+                <span class="stat-icon">💰</span>
+                <span id="balance-display">$500,000</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-icon">📅</span>
+                <span id="month-display">Месяц 1</span>
+                <span id="day-display">(День 1)</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-icon">👥</span>
+                <span id="population-display">0</span>
+            </div>
+            <div class="top-buttons">
+                <button class="top-btn btn-save" onclick="saveGame()">💾 Сохранить</button>
+                <button class="top-btn btn-menu" onclick="returnToMenu()">🏠 Меню</button>
+            </div>
+        </div>
+
+        <!-- Основная область -->
+        <div id="main-area">
+            <!-- ==================== МЕНЮ СТРОИТЕЛЬСТВА ==================== -->
+            <div id="side-panel">
+                <div class="panel-tabs">
+                    <button class="tab-btn active" data-tab="roads">🛤️</button>
+                    <button class="tab-btn" data-tab="zones">🏗️</button>
+                    <button class="tab-btn" data-tab="services">🏥</button>
+                </div>
+
+                <!-- Вкладка: Дороги -->
+                <div class="tab-content active" id="tab-roads">
+                    <div class="build-item" data-type="road" data-building="road">
+                        <div class="build-item-header">
+                            <div class="build-icon zone-road">🛤️</div>
+                            <div>
+                                <div class="build-name">Дорога</div>
+                                <div class="build-cost">$1,000</div>
+                            </div>
+                        </div>
+                        <div class="build-desc">Зажмите мышь для рисования</div>
+                    </div>
+                </div>
+
+                <!-- Вкладка: Зоны -->
+                <div class="tab-content" id="tab-zones">
+                    <h4 style="color: #8B0000; margin-bottom: 8px;">🏭 Промышленность</h4>
+                    <div class="build-item" data-type="industrial" data-building="iron_factory">
+                        <div class="build-item-header">
+                            <div class="build-icon zone-industrial">🏭</div>
+                            <div>
+                                <div class="build-name">Завод железа</div>
+                                <div class="build-cost">$50,000</div>
+                            </div>
+                        </div>
+                        <div class="build-desc">+10 железа/мес (+$1,000)</div>
+                    </div>
+                    <div class="build-item" data-type="industrial" data-building="warehouse">
+                        <div class="build-item-header">
+                            <div class="build-icon zone-industrial">📦</div>
+                            <div>
+                                <div class="build-name">Склад</div>
+                                <div class="build-cost">$30,000</div>
+                            </div>
+                        </div>
+                        <div class="build-desc">+$2,000/мес</div>
+                    </div>
+                    <div class="build-item" data-type="industrial" data-building="goods_factory">
+                        <div class="build-item-header">
+                            <div class="build-icon zone-industrial">⚙️</div>
+                            <div>
+                                <div class="build-name">Фабрика товаров</div>
+                                <div class="build-cost">$80,000</div>
+                            </div>
+                        </div>
+                        <div class="build-desc">+$5,000/мес</div>
+                    </div>
+
+                    <h4 style="color: #FFD700; margin: 12px 0 8px;">🏪 Коммерция</h4>
+                    <div class="build-item" data-type="commercial" data-building="shop">
+                        <div class="build-item-header">
+                            <div class="build-icon zone-commercial">🏪</div>
+                            <div>
+                                <div class="build-name">Магазин</div>
+                                <div class="build-cost">$30,000</div>
+                            </div>
+                        </div>
+                        <div class="build-desc">+$5,000/мес</div>
+                    </div>
+                    <div class="build-item" data-type="commercial" data-building="mall">
+                        <div class="build-item-header">
+                            <div class="build-icon zone-commercial">🏬</div>
+                            <div>
+                                <div class="build-name">Торговый центр</div>
+                                <div class="build-cost">$150,000</div>
+                            </div>
+                        </div>
+                        <div class="build-desc">+$20,000/мес</div>
+                    </div>
+                    <div class="build-item" data-type="commercial" data-building="cafe">
+                        <div class="build-item-header">
+                            <div class="build-icon zone-commercial">☕</div>
+                            <div>
+                                <div class="build-name">Кафе</div>
+                                <div class="build-cost">$20,000</div>
+                            </div>
+                        </div>
+                        <div class="build-desc">+$3,000/мес</div>
+                    </div>
+
+                    <h4 style="color: #32CD32; margin: 12px 0 8px;">🏠 Жилая зона</h4>
+                    <div class="build-item" data-type="residential" data-building="house">
+                        <div class="build-item-header">
+                            <div class="build-icon zone-residential">🏠</div>
+                            <div>
+                                <div class="build-name">Дом</div>
+                                <div class="build-cost">$20,000</div>
+                            </div>
+                        </div>
+                        <div class="build-desc">4 жителя, налог от счастья</div>
+                    </div>
+                    <div class="build-item" data-type="residential" data-building="apartment">
+                        <div class="build-item-header">
+                            <div class="build-icon zone-residential">🏢</div>
+                            <div>
+                                <div class="build-name">Многоквартирный дом</div>
+                                <div class="build-cost">$80,000</div>
+                            </div>
+                        </div>
+                        <div class="build-desc">20 жителей, налог от счастья</div>
+                    </div>
+                    <div class="build-item" data-type="residential" data-building="cottage">
+                        <div class="build-item-header">
+                            <div class="build-icon zone-residential">🏡</div>
+                            <div>
+                                <div class="build-name">Элитный коттедж</div>
+                                <div class="build-cost">$100,000</div>
+                            </div>
+                        </div>
+                        <div class="build-desc">2 жителя, высокий налог</div>
+                    </div>
+                </div>
+
+                <!-- Вкладка: Службы -->
+                <div class="tab-content" id="tab-services">
+                    <div class="build-item" data-type="service" data-building="police">
+                        <div class="build-item-header">
+                            <div class="build-icon zone-service">🚔</div>
+                            <div>
+                                <div class="build-name">Полицейский участок</div>
+                                <div class="build-cost">$100,000</div>
+                            </div>
+                        </div>
+                        <div class="build-desc">+10 счастья (радиус 3)</div>
+                    </div>
+                    <div class="build-item" data-type="service" data-building="hospital">
+                        <div class="build-item-header">
+                            <div class="build-icon zone-service">🏥</div>
+                            <div>
+                                <div class="build-name">Больница</div>
+                                <div class="build-cost">$150,000</div>
+                            </div>
+                        </div>
+                        <div class="build-desc">+15 счастья (радиус 3)</div>
+                    </div>
+                    <div class="build-item" data-type="service" data-building="fire_station">
+                        <div class="build-item-header">
+                            <div class="build-icon zone-service">🚒</div>
+                            <div>
+                                <div class="build-name">Пожарная часть</div>
+                                <div class="build-cost">$120,000</div>
+                            </div>
+                        </div>
+                        <div class="build-desc">+5 счастья (радиус 3)</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Игровое поле -->
+            <div id="game-area">
+                <div id="game-canvas-container">
+                    <canvas id="game-canvas"></canvas>
+                </div>
+                <div id="zoom-info">Зум: 100% | Колесо мыши для масштаба</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== УВЕДОМЛЕНИЯ ==================== -->
+    <div id="notifications"></div>
+
+    <!-- ==================== КАРТОЧКА ЗДАНИЯ ==================== -->
+    <div id="building-info">
+        <div class="info-header">
+            <span class="info-title" id="info-title">Здание</span>
+            <button class="info-close" onclick="closeBuildingInfo()">×</button>
+        </div>
+        <div id="info-content"></div>
+        <button class="btn-demolish" onclick="demolishBuilding()">🗑️ Снести здание</button>
+    </div>
+
+    <!-- ==================== МЕСЯЧНЫЙ ОТЧЁТ ==================== -->
+    <div id="monthly-report">
+        <div class="report-title" id="report-title">📊 Отчёт за месяц 1</div>
+        <div class="report-section">
+            <div class="report-section-title">Доходы</div>
+            <div id="report-income"></div>
+        </div>
+        <div class="report-section">
+            <div class="report-section-title">Расходы</div>
+            <div id="report-expenses"></div>
+        </div>
+        <div class="report-section">
+            <div class="info-row">
+                <span class="info-label">Итого:</span>
+                <span class="info-value" id="report-total">+$0</span>
+            </div>
+        </div>
+        <button class="report-close" onclick="closeReport()">Продолжить</button>
+    </div>
+
+    <script>
+        // ==================== КОНФИГУРАЦИЯ ИГРЫ ====================
+        const CONFIG = {
+            CELL_SIZE: 40,
+            GRID_WIDTH: 20,
+            GRID_HEIGHT: 20,
+            START_MONEY: 500000,
+            MONTH_DURATION: 180000, // 3 минуты = 180000 мс
+            DAY_DURATION: 6000, // 6 секунд = 1 день (30 дней в месяце)
+            SERVICE_RADIUS: 3
+        };
+
+        // Данные о зданиях
+        const BUILDINGS = {
+            // Дороги
+            road: {
+                name: 'Дорога',
+                type: 'road',
+                cost: 1000,
+                maintenance: 50,
+                icon: '🛤️',
+                color: '#696969'
+            },
+            // Промышленность
+            iron_factory: {
+                name: 'Завод железа',
+                type: 'industrial',
+                cost: 50000,
+                maintenance: 1000,
+                income: 0,
+                production: { iron: 10 },
+                icon: '🏭',
+                color: '#8B0000'
+            },
+            warehouse: {
+                name: 'Склад',
+                type: 'industrial',
+                cost: 30000,
+                maintenance: 500,
+                income: 2000,
+                icon: '📦',
+                color: '#8B0000'
+            },
+            goods_factory: {
+                name: 'Фабрика товаров',
+                type: 'industrial',
+                cost: 80000,
+                maintenance: 1500,
+                income: 5000,
+                icon: '⚙️',
+                color: '#8B0000'
+            },
+            // Коммерция
+            shop: {
+                name: 'Магазин',
+                type: 'commercial',
+                cost: 30000,
+                maintenance: 500,
+                income: 5000,
+                icon: '🏪',
+                color: '#FFD700'
+            },
+            mall: {
+                name: 'Торговый центр',
+                type: 'commercial',
+                cost: 150000,
+                maintenance: 3000,
+                income: 20000,
+                icon: '🏬',
+                color: '#FFD700'
+            },
+            cafe: {
+                name: 'Кафе',
+                type: 'commercial',
+                cost: 20000,
+                maintenance: 300,
+                income: 3000,
+                icon: '☕',
+                color: '#FFD700'
+            },
+            // Жилая зона
+            house: {
+                name: 'Дом',
+                type: 'residential',
+                cost: 20000,
+                maintenance: 200,
+                residents: 4,
+                taxMultiplier: 100,
+                icon: '🏠',
+                color: '#32CD32'
+            },
+            apartment: {
+                name: 'Многоквартирный дом',
+                type: 'residential',
+                cost: 80000,
+                maintenance: 800,
+                residents: 20,
+                taxMultiplier: 80,
+                icon: '🏢',
+                color: '#32CD32'
+            },
+            cottage: {
+                name: 'Элитный коттедж',
+                type: 'residential',
+                cost: 100000,
+                maintenance: 500,
+                residents: 2,
+                taxMultiplier: 500,
+                icon: '🏡',
+                color: '#32CD32'
+            },
+            // Службы
+            police: {
+                name: 'Полицейский участок',
+                type: 'service',
+                cost: 100000,
+                maintenance: 2000,
+                happinessBonus: 10,
+                icon: '🚔',
+                color: '#9C27B0'
+            },
+            hospital: {
+                name: 'Больница',
+                type: 'service',
+                cost: 150000,
+                maintenance: 3000,
+                happinessBonus: 15,
+                icon: '🏥',
+                color: '#9C27B0'
+            },
+            fire_station: {
+                name: 'Пожарная часть',
+                type: 'service',
+                cost: 120000,
+                maintenance: 2500,
+                happinessBonus: 5,
+                icon: '🚒',
+                color: '#9C27B0'
+            }
+        };
+
+        // ==================== СОСТОЯНИЕ ИГРЫ ====================
+        let gameState = {
+            money: CONFIG.START_MONEY,
+            month: 1,
+            day: 1,
+            grid: [], // 2D массив ячеек
+            buildings: [], // Список построенных зданий
+            resources: { iron: 0 }
+        };
+
+        // Переменные интерфейса
+        let selectedBuilding = null;
+        let selectedBuildingInfo = null;
+        let isDrawingRoad = false;
+        let canvas, ctx;
+        let zoom = 1;
+        let offsetX = 0, offsetY = 0;
+        let isDragging = false;
+        let dragStartX, dragStartY;
+        let gameInterval = null;
+        let dayInterval = null;
+
+        // ==================== ИНИЦИАЛИЗАЦИЯ ====================
+        document.addEventListener('DOMContentLoaded', () => {
+            canvas = document.getElementById('game-canvas');
+            ctx = canvas.getContext('2d');
+            
+            // Проверка сохранения
+            if (localStorage.getItem('cityGame')) {
+                document.getElementById('btn-continue').disabled = false;
+            }
+
+            // Обработчики вкладок меню
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+            });
+
+            // Обработчики элементов строительства
+            document.querySelectorAll('.build-item').forEach(item => {
+                item.addEventListener('click', () => selectBuilding(item));
+            });
+
+            // Обработчики canvas
+            setupCanvasEvents();
+        });
+
+        // ==================== УПРАВЛЕНИЕ ИГРОЙ ====================
+        
+        // Начать новую игру
+        function startNewGame() {
+            gameState = {
+                money: CONFIG.START_MONEY,
+                month: 1,
+                day: 1,
+                grid: [],
+                buildings: [],
+                resources: { iron: 0 }
+            };
+
+            // Инициализация сетки
+            for (let y = 0; y < CONFIG.GRID_HEIGHT; y++) {
+                gameState.grid[y] = [];
+                for (let x = 0; x < CONFIG.GRID_WIDTH; x++) {
+                    gameState.grid[y][x] = null;
+                }
+            }
+
+            startGame();
+        }
+
+        // Загрузить игру
+        function loadGame() {
+            const saved = localStorage.getItem('cityGame');
+            if (saved) {
+                try {
+                    gameState = JSON.parse(saved);
+                    startGame();
+                    showNotification('Игра загружена!', 'success');
+                } catch (e) {
+                    showNotification('Ошибка загрузки!', 'error');
+                }
+            }
+        }
+
+        // Запустить игру
+        function startGame() {
+            document.getElementById('title-screen').classList.add('hidden');
+            document.getElementById('game-container').classList.add('active');
+            
+            resizeCanvas();
+            window.addEventListener('resize', resizeCanvas);
+            
+            updateUI();
+            render();
+            
+            // Запуск игрового времени
+            startGameTime();
+        }
+
+        // Сохранить игру
+        function saveGame() {
+            localStorage.setItem('cityGame', JSON.stringify(gameState));
+            showNotification('Игра сохранена!', 'success');
+        }
+
+        // Вернуться в меню
+        function returnToMenu() {
+            if (confirm('Вернуться в меню? Несохранённый прогресс будет потерян.')) {
+                stopGameTime();
+                document.getElementById('game-container').classList.remove('active');
+                document.getElementById('title-screen').classList.remove('hidden');
+                
+                if (localStorage.getItem('cityGame')) {
+                    document.getElementById('btn-continue').disabled = false;
+                }
+            }
+        }
+
+        // ==================== ЛОГИКА ВРЕМЕНИ ====================
+        
+        function startGameTime() {
+            // Таймер дней (каждые 6 секунд = 1 день)
+            dayInterval = setInterval(() => {
+                gameState.day++;
+                if (gameState.day > 30) {
+                    gameState.day = 1;
+                    processMonth();
+                }
+                updateUI();
+            }, CONFIG.DAY_DURATION);
+        }
+
+        function stopGameTime() {
+            if (dayInterval) clearInterval(dayInterval);
+        }
+
+        // Обработка конца месяца
+        function processMonth() {
+            const report = calculateMonthlyReport();
+            
+            // Применяем изменения
+            gameState.money += report.total;
+            gameState.month++;
+
+            // Показываем отчёт
+            showMonthlyReport(report);
+            
+            updateUI();
+        }
+
+        // ==================== РАСЧЁТ ЭКОНОМИКИ ====================
+        
+        function calculateMonthlyReport() {
+            let income = {
+                industrial: 0,
+                commercial: 0,
+                taxes: 0,
+                resources: 0
+            };
+            let expenses = {
+                maintenance: 0
+            };
+
+            gameState.buildings.forEach(building => {
+                const data = BUILDINGS[building.type];
+                
+                // Расходы на обслуживание
+                expenses.maintenance += data.maintenance;
+
+                // Доходы
+                if (data.type === 'industrial') {
+                    if (data.income) income.industrial += data.income;
+                    if (data.production) {
+                        for (let res in data.production) {
+                            const amount = data.production[res];
+                            income.resources += amount * 100; // $100 за единицу ресурса
+                        }
+                    }
+                } else if (data.type === 'commercial') {
+                    income.commercial += data.income;
+                } else if (data.type === 'residential') {
+                    const happiness = calculateHappiness(building);
+                    const tax = Math.floor(happiness * data.taxMultiplier / 100) * data.residents;
+                    income.taxes += tax;
+                }
+            });
+
+            const totalIncome = income.industrial + income.commercial + income.taxes + income.resources;
+            const totalExpenses = expenses.maintenance;
+
+            return {
+                income,
+                expenses,
+                totalIncome,
+                totalExpenses,
+                total: totalIncome - totalExpenses
+            };
+        }
+
+        // Расчёт счастья для жилого здания
+        function calculateHappiness(building) {
+            let happiness = 50; // Базовое счастье
+
+            // Проверяем службы в радиусе
+            gameState.buildings.forEach(b => {
+                const data = BUILDINGS[b.type];
+                if (data.type === 'service' && data.happinessBonus) {
+                    const distance = Math.max(
+                        Math.abs(b.x - building.x),
+                        Math.abs(b.y - building.y)
+                    );
+                    if (distance <= CONFIG.SERVICE_RADIUS) {
+                        happiness += data.happinessBonus;
+                    }
+                }
+            });
+
+            return Math.min(100, happiness);
+        }
+
+        // ==================== МЕНЮ СТРОИТЕЛЬСТВА ====================
+        
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.tab === tabName);
+            });
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.toggle('active', content.id === 'tab-' + tabName);
+            });
+            
+            // Сброс выбора при смене вкладки
+            selectedBuilding = null;
+            document.querySelectorAll('.build-item').forEach(item => {
+                item.classList.remove('selected');
+            });
+        }
+
+        function selectBuilding(item) {
+            document.querySelectorAll('.build-item').forEach(i => i.classList.remove('selected'));
+            item.classList.add('selected');
+            selectedBuilding = item.dataset.building;
+            
+            showNotification(`Выбрано: ${BUILDINGS[selectedBuilding].name}`, 'info');
+        }
+
+        // ==================== CANVAS И ОТРИСОВКА ====================
+        
+        function resizeCanvas() {
+            const container = document.getElementById('game-canvas-container');
+            canvas.width = container.clientWidth;
+            canvas.height = container.clientHeight;
+            render();
+        }
+
+        function setupCanvasEvents() {
+            canvas.addEventListener('wheel', handleZoom);
+            canvas.addEventListener('mousedown', handleMouseDown);
+            canvas.addEventListener('mousemove', handleMouseMove);
+            canvas.addEventListener('mouseup', handleMouseUp);
+            canvas.addEventListener('mouseleave', handleMouseUp);
+            canvas.addEventListener('click', handleClick);
+            canvas.addEventListener('contextmenu', e => e.preventDefault());
+        }
+
+        function handleZoom(e) {
+            e.preventDefault();
+            const delta = e.deltaY > 0 ? -0.1 : 0.1;
+            const newZoom = Math.max(0.5, Math.min(2, zoom + delta));
+            
+            // Зум к позиции курсора
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+            
+            const worldX = (mouseX - offsetX) / zoom;
+            const worldY = (mouseY - offsetY) / zoom;
+            
+            zoom = newZoom;
+            
+            offsetX = mouseX - worldX * zoom;
+            offsetY = mouseY - worldY * zoom;
+            
+            document.getElementById('zoom-info').textContent = 
+                `Зум: ${Math.round(zoom * 100)}% | Колесо мыши для масштаба`;
+            
+            render();
+        }
+
+        function handleMouseDown(e) {
+            if (e.button === 2 || e.button === 1) {
+                // Правая/средняя кнопка - перетаскивание
+                isDragging = true;
+                dragStartX = e.clientX - offsetX;
+                dragStartY = e.clientY - offsetY;
+                canvas.style.cursor = 'grabbing';
+            } else if (e.button === 0 && selectedBuilding === 'road') {
+                isDrawingRoad = true;
+                placeBuilding(e);
+            }
+        }
+
+        function handleMouseMove(e) {
+            if (isDragging) {
+                offsetX = e.clientX - dragStartX;
+                offsetY = e.clientY - dragStartY;
+                render();
+            } else if (isDrawingRoad) {
+                placeBuilding(e);
+            } else {
+                // Подсветка ячейки под курсором
+                render();
+                highlightCell(e);
+            }
+        }
+
+        function handleMouseUp(e) {
+            isDragging = false;
+            isDrawingRoad = false;
+            canvas.style.cursor = 'crosshair';
+        }
+
+        function handleClick(e) {
+            if (isDragging) return;
+            
+            const cell = getCellFromMouse(e);
+            if (!cell) return;
+
+            const existingBuilding = gameState.grid[cell.y]?.[cell.x];
+            
+            if (existingBuilding && !selectedBuilding) {
+                // Показать информацию о здании
+                showBuildingInfo(existingBuilding, e);
+            } else if (selectedBuilding && !existingBuilding) {
+                // Построить здание
+                placeBuilding(e);
+            }
+        }
+
+        function getCellFromMouse(e) {
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+            
+            const worldX = (mouseX - offsetX) / zoom;
+            const worldY = (mouseY - offsetY) / zoom;
+            
+            const cellX = Math.floor(worldX / CONFIG.CELL_SIZE);
+            const cellY = Math.floor(worldY / CONFIG.CELL_SIZE);
+            
+            if (cellX >= 0 && cellX < CONFIG.GRID_WIDTH && 
+                cellY >= 0 && cellY < CONFIG.GRID_HEIGHT) {
+                return { x: cellX, y: cellY };
+            }
+            return null;
+        }
+
+        function placeBuilding(e) {
+            if (!selectedBuilding) return;
+            
+            const cell = getCellFromMouse(e);
+            if (!cell) return;
+
+            const buildingData = BUILDINGS[selectedBuilding];
+            
+            // Проверка: ячейка свободна?
+            if (gameState.grid[cell.y][cell.x]) {
+                if (!isDrawingRoad) {
+                    showNotification('Ячейка занята!', 'error');
+                }
+                return;
+            }
+
+            // Проверка: достаточно денег?
+            if (gameState.money < buildingData.cost) {
+                showNotification('Недостаточно денег!', 'error');
+                return;
+            }
+
+            // Проверка: рядом есть дорога? (кроме самих дорог)
+            if (buildingData.type !== 'road' && !hasAdjacentRoad(cell.x, cell.y)) {
+                showNotification('Здание должно быть рядом с дорогой!', 'warning');
+                return;
+            }
+
+            // Строим!
+            gameState.money -= buildingData.cost;
+            
+            const building = {
+                type: selectedBuilding,
+                x: cell.x,
+                y: cell.y,
+                id: Date.now() + Math.random()
+            };
+            
+            gameState.grid[cell.y][cell.x] = building;
+            gameState.buildings.push(building);
+            
+            updateUI();
+            render();
+            
+            if (!isDrawingRoad) {
+                showNotification(`${buildingData.name} построен!`, 'success');
+            }
+        }
+
+        function hasAdjacentRoad(x, y) {
+            const directions = [[0, -1], [0, 1], [-1, 0], [1, 0]];
+            for (let [dx, dy] of directions) {
+                const nx = x + dx;
+                const ny = y + dy;
+                if (nx >= 0 && nx < CONFIG.GRID_WIDTH && 
+                    ny >= 0 && ny < CONFIG.GRID_HEIGHT) {
+                    const cell = gameState.grid[ny][nx];
+                    if (cell && BUILDINGS[cell.type].type === 'road') {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        function highlightCell(e) {
+            if (!selectedBuilding) return;
+            
+            const cell = getCellFromMouse(e);
+            if (!cell) return;
+
+            const x = cell.x * CONFIG.CELL_SIZE * zoom + offsetX;
+            const y = cell.y * CONFIG.CELL_SIZE * zoom + offsetY;
+            const size = CONFIG.CELL_SIZE * zoom;
+
+            ctx.strokeStyle = gameState.grid[cell.y][cell.x] ? '#f44336' : '#4CAF50';
+            ctx.lineWidth = 3;
+            ctx.strokeRect(x, y, size, size);
+        }
+
+        function render() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Фон
+            ctx.fillStyle = '#e8e4d9';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Сетка
+            ctx.strokeStyle = '#ccc';
+            ctx.lineWidth = 1;
+
+            for (let y = 0; y <= CONFIG.GRID_HEIGHT; y++) {
+                const py = y * CONFIG.CELL_SIZE * zoom + offsetY;
+                ctx.beginPath();
+                ctx.moveTo(offsetX, py);
+                ctx.lineTo(CONFIG.GRID_WIDTH * CONFIG.CELL_SIZE * zoom + offsetX, py);
+                ctx.stroke();
+            }
+
+            for (let x = 0; x <= CONFIG.GRID_WIDTH; x++) {
+                const px = x * CONFIG.CELL_SIZE * zoom + offsetX;
+                ctx.beginPath();
+                ctx.moveTo(px, offsetY);
+                ctx.lineTo(px, CONFIG.GRID_HEIGHT * CONFIG.CELL_SIZE * zoom + offsetY);
+                ctx.stroke();
+            }
+
+            // Здания
+            gameState.buildings.forEach(building => {
+                const data = BUILDINGS[building.type];
+                const x = building.x * CONFIG.CELL_SIZE * zoom + offsetX;
+                const y = building.y * CONFIG.CELL_SIZE * zoom + offsetY;
+                const size = CONFIG.CELL_SIZE * zoom;
+
+                // Фон ячейки
+                ctx.fillStyle = data.color;
+                ctx.fillRect(x + 2, y + 2, size - 4, size - 4);
+
+                // Иконка
+                ctx.font = `${size * 0.5}px Arial`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(data.icon, x + size / 2, y + size / 2);
+            });
+
+            // Радиусы служб (при выборе службы)
+            if (selectedBuilding && BUILDINGS[selectedBuilding].type === 'service') {
+                gameState.buildings.forEach(b => {
+                    if (BUILDINGS[b.type].type === 'service') {
+                        drawServiceRadius(b);
+                    }
+                });
+            }
+        }
+
+        function drawServiceRadius(building) {
+            const data = BUILDINGS[building.type];
+            const centerX = (building.x + 0.5) * CONFIG.CELL_SIZE * zoom + offsetX;
+            const centerY = (building.y + 0.5) * CONFIG.CELL_SIZE * zoom + offsetY;
+            const radius = (CONFIG.SERVICE_RADIUS + 0.5) * CONFIG.CELL_SIZE * zoom;
+
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(156, 39, 176, 0.1)';
+            ctx.fill();
+            ctx.strokeStyle = 'rgba(156, 39, 176, 0.5)';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+        }
+
+        // ==================== ИНТЕРФЕЙС ====================
+        
+        function updateUI() {
+            // Баланс
+            const balanceEl = document.getElementById('balance-display');
+            balanceEl.textContent = '$' + gameState.money.toLocaleString();
+            balanceEl.classList.toggle('negative', gameState.money < 0);
+
+            // Месяц и день
+            document.getElementById('month-display').textContent = `Месяц ${gameState.month}`;
+            document.getElementById('day-display').textContent = `(День ${gameState.day})`;
+
+            // Население
+            let population = 0;
+            gameState.buildings.forEach(b => {
+                const data = BUILDINGS[b.type];
+                if (data.residents) population += data.residents;
+            });
+            document.getElementById('population-display').textContent = population.toLocaleString();
+        }
+
+        function showNotification(message, type = 'info') {
+            const container = document.getElementById('notifications');
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.textContent = message;
+            container.appendChild(notification);
+
+            setTimeout(() => notification.remove(), 3000);
+        }
+
+        function showBuildingInfo(building, e) {
+            selectedBuildingInfo = building;
+            const data = BUILDINGS[building.type];
+            const infoPanel = document.getElementById('building-info');
+            
+            document.getElementById('info-title').textContent = data.icon + ' ' + data.name;
+            
+            let content = `
+                <div class="info-row">
+                    <span class="info-label">Тип:</span>
+                    <span class="info-value">${getTypeName(data.type)}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Обслуживание:</span>
+                    <span class="info-value negative">-$${data.maintenance.toLocaleString()}/мес</span>
+                </div>
+            `;
+
+            if (data.income) {
+                content += `
+                    <div class="info-row">
+                        <span class="info-label">Доход:</span>
+                        <span class="info-value positive">+$${data.income.toLocaleString()}/мес</span>
+                    </div>
+                `;
+            }
+
+            if (data.production) {
+                for (let res in data.production) {
+                    content += `
+                        <div class="info-row">
+                            <span class="info-label">Производство:</span>
+                            <span class="info-value positive">+${data.production[res]} ${res}/мес</span>
+                        </div>
+                    `;
+                }
+            }
+
+            if (data.residents) {
+                const happiness = calculateHappiness(building);
+                const tax = Math.floor(happiness * data.taxMultiplier / 100) * data.residents;
+                content += `
+                    <div class="info-row">
+                        <span class="info-label">Жители:</span>
+                        <span class="info-value">${data.residents}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Счастье:</span>
+                        <span class="info-value">${happiness}/100</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Налоги:</span>
+                        <span class="info-value positive">+$${tax.toLocaleString()}/мес</span>
+                    </div>
+                `;
+            }
+
+            if (data.happinessBonus) {
+                content += `
+                    <div class="info-row">
+                        <span class="info-label">Бонус счастья:</span>
+                        <span class="info-value positive">+${data.happinessBonus}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Радиус:</span>
+                        <span class="info-value">${CONFIG.SERVICE_RADIUS} клеток</span>
+                    </div>
+                `;
+            }
+
+            document.getElementById('info-content').innerHTML = content;
+            
+            // Позиционирование
+            infoPanel.style.left = Math.min(e.clientX + 10, window.innerWidth - 280) + 'px';
+            infoPanel.style.top = Math.min(e.clientY + 10, window.innerHeight - 300) + 'px';
+            infoPanel.classList.add('visible');
+        }
+
+        function closeBuildingInfo() {
+            document.getElementById('building-info').classList.remove('visible');
+            selectedBuildingInfo = null;
+        }
+
+        function demolishBuilding() {
+            if (!selectedBuildingInfo) return;
+            
+            const building = selectedBuildingInfo;
+            const data = BUILDINGS[building.type];
+            
+            // Возврат 50% стоимости
+            const refund = Math.floor(data.cost * 0.5);
+            gameState.money += refund;
+            
+            // Удаление из сетки и списка
+            gameState.grid[building.y][building.x] = null;
+            gameState.buildings = gameState.buildings.filter(b => b.id !== building.id);
+            
+            closeBuildingInfo();
+            updateUI();
+            render();
+            
+            showNotification(`${data.name} снесён. Возврат: $${refund.toLocaleString()}`, 'info');
+        }
+
+        function getTypeName(type) {
+            const names = {
+                road: 'Дорога',
+                industrial: 'Промышленность',
+                commercial: 'Коммерция',
+                residential: 'Жилая зона',
+                service: 'Служба'
+            };
+            return names[type] || type;
+        }
+
+        // ==================== МЕСЯЧНЫЙ ОТЧЁТ ====================
+        
+        function showMonthlyReport(report) {
+            document.getElementById('report-title').textContent = 
+                `📊 Отчёт за месяц ${gameState.month - 1}`;
+
+            document.getElementById('report-income').innerHTML = `
+                <div class="info-row">
+                    <span class="info-label">Промышленность:</span>
+                    <span class="info-value positive">+$${report.income.industrial.toLocaleString()}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Коммерция:</span>
+                    <span class="info-value positive">+$${report.income.commercial.toLocaleString()}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Налоги:</span>
+                    <span class="info-value positive">+$${report.income.taxes.toLocaleString()}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Продажа ресурсов:</span>
+                    <span class="info-value positive">+$${report.income.resources.toLocaleString()}</span>
+                </div>
+            `;
+
+            document.getElementById('report-expenses').innerHTML = `
+                <div class="info-row">
+                    <span class="info-label">Обслуживание:</span>
+                    <span class="info-value negative">-$${report.expenses.maintenance.toLocaleString()}</span>
+                </div>
+            `;
+
+            const totalEl = document.getElementById('report-total');
+            totalEl.textContent = (report.total >= 0 ? '+' : '') + '$' + report.total.toLocaleString();
+            totalEl.className = 'info-value ' + (report.total >= 0 ? 'positive' : 'negative');
+
+            document.getElementById('monthly-report').classList.add('visible');
+        }
+
+        function closeReport() {
+            document.getElementById('monthly-report').classList.remove('visible');
+        }
+
+        // Закрытие панелей при клике вне
+        document.addEventListener('click', (e) => {
+            const infoPanel = document.getElementById('building-info');
+            if (infoPanel.classList.contains('visible') && 
+                !infoPanel.contains(e.target) && 
+                e.target.tagName === 'CANVAS') {
+                // Не закрываем сразу, только если клик не на здание
+                const cell = getCellFromMouse(e);
+                if (cell && !gameState.grid[cell.y]?.[cell.x]) {
+                    closeBuildingInfo();
+                }
+            }
+        });
+    </script>
+</body>
+</html>

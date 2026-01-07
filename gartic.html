@@ -1,0 +1,929 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Gartic Lite: Сломанный Телефон</title>
+    <style>
+        :root {
+            --bg-color: #2c3e50;
+            --app-bg: #ecf0f1;
+            --primary: #8e44ad;
+            --primary-dark: #6c3483;
+            --accent: #f39c12;
+            --danger: #e74c3c;
+            --text-main: #2c3e50;
+            --radius: 16px;
+            --shadow: 0 8px 20px rgba(0,0,0,0.15);
+        }
+
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        /* --- Main App Container (Mobile Simulator on PC) --- */
+        #app {
+            width: 100%;
+            height: 100%;
+            max-width: 480px; /* Limits width on PC */
+            background-color: var(--app-bg);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            box-shadow: var(--shadow);
+        }
+
+        @media (min-width: 481px) {
+            #app {
+                height: 90vh;
+                border-radius: var(--radius);
+                border: 8px solid #34495e;
+            }
+        }
+
+        /* --- Screens Management --- */
+        .screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            overflow-y: auto;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+            background: var(--app-bg);
+            z-index: 1;
+        }
+
+        .screen.active {
+            opacity: 1;
+            pointer-events: all;
+            z-index: 10;
+        }
+
+        .center-xy {
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* --- Typography & Elements --- */
+        h1, h2, h3 {
+            color: var(--text-main);
+            text-align: center;
+            margin: 0 0 15px 0;
+        }
+
+        p {
+            color: #7f8c8d;
+            text-align: center;
+            line-height: 1.5;
+        }
+
+        .card {
+            background: white;
+            border-radius: var(--radius);
+            padding: 20px;
+            width: 100%;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            margin-bottom: 15px;
+        }
+
+        /* --- Forms & Buttons --- */
+        input[type="text"] {
+            width: 100%;
+            padding: 14px;
+            border: 2px solid #bdc3c7;
+            border-radius: 12px;
+            font-size: 16px;
+            outline: none;
+            transition: 0.2s;
+        }
+        input[type="text"]:focus {
+            border-color: var(--primary);
+        }
+
+        button {
+            width: 100%;
+            padding: 16px;
+            border: none;
+            border-radius: 30px;
+            font-size: 18px;
+            font-weight: bold;
+            color: white;
+            background-color: var(--primary);
+            cursor: pointer;
+            box-shadow: 0 4px 0 var(--primary-dark);
+            transition: transform 0.1s;
+            margin-top: 10px;
+        }
+        button:active {
+            transform: translateY(4px);
+            box-shadow: none;
+        }
+        button:disabled {
+            background-color: #bdc3c7;
+            box-shadow: none;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-secondary {
+            background-color: var(--accent);
+            box-shadow: 0 4px 0 #d35400;
+        }
+        .btn-danger {
+            background-color: var(--danger);
+            box-shadow: 0 4px 0 #c0392b;
+        }
+        .btn-ghost {
+            background: transparent;
+            color: var(--primary);
+            box-shadow: none;
+            border: 2px solid var(--primary);
+        }
+        .btn-icon {
+            width: 44px;
+            height: 44px;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 12px;
+            font-size: 20px;
+            margin: 0;
+        }
+
+        /* --- Player List --- */
+        .player-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+            animation: slideIn 0.3s ease;
+        }
+        @keyframes slideIn { from { transform: translateX(-20px); opacity: 0; } to { transform: translateX(0); opacity: 1; }}
+
+        /* --- Canvas Area --- */
+        #canvas-wrapper {
+            width: 100%;
+            aspect-ratio: 1;
+            background: #fff;
+            border-radius: var(--radius);
+            box-shadow: 0 0 15px rgba(0,0,0,0.1);
+            position: relative;
+            overflow: hidden;
+            touch-action: none; /* Critical for mobile drawing */
+            cursor: crosshair;
+            margin-bottom: 10px;
+        }
+        canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        /* --- Tools UI --- */
+        .tools-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            width: 100%;
+        }
+        .tool-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .colors-scroll {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            padding: 5px;
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        .colors-scroll::-webkit-scrollbar { display: none; }
+
+        .swatch {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border: 3px solid white;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            flex-shrink: 0;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+        .swatch.active {
+            transform: scale(1.15);
+            border-color: #333;
+        }
+
+        .range-wrap {
+            flex-grow: 1;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: white;
+            padding: 5px 10px;
+            border-radius: 20px;
+        }
+        input[type=range] {
+            width: 100%;
+            accent-color: var(--primary);
+        }
+
+        /* --- Utility Classes --- */
+        .avatar {
+            width: 80px;
+            height: 80px;
+            background: #fff;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+            margin-bottom: 10px;
+            border: 4px solid var(--accent);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        
+        .prompt-box {
+            background: #fff8e1;
+            border: 2px dashed var(--accent);
+            padding: 15px;
+            border-radius: 12px;
+            margin-bottom: 15px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+
+        /* Results */
+        .result-img {
+            width: 100%;
+            border-radius: 8px;
+            border: 2px solid #eee;
+        }
+        .result-txt {
+            font-size: 1.4em;
+            color: var(--primary);
+            text-align: center;
+            font-weight: bold;
+            padding: 20px;
+        }
+        .author-badge {
+            display: inline-block;
+            background: #eee;
+            padding: 4px 10px;
+            border-radius: 10px;
+            font-size: 0.8em;
+            color: #555;
+            margin-top: 5px;
+        }
+
+    </style>
+</head>
+<body>
+
+<div id="app">
+    
+    <!-- 1. MENU SCREEN -->
+    <div id="screen-menu" class="screen active center-xy">
+        <div style="font-size: 60px; margin-bottom: 10px;">🖍️☎️</div>
+        <h1 style="font-size: 32px; line-height: 1.2;">Сломанный<br>Телефон</h1>
+        <div class="card">
+            <p>Рисуйте, угадывайте и смейтесь!</p>
+            <p><strong>2-8 Игроков</strong><br>на одном устройстве</p>
+            <button onclick="nav.to('setup')">Начать игру</button>
+        </div>
+    </div>
+
+    <!-- 2. SETUP SCREEN -->
+    <div id="screen-setup" class="screen">
+        <h2>Игроки</h2>
+        <div class="card">
+            <div id="players-container"></div>
+            <button class="btn-ghost" onclick="game.addPlayerInput()">+ Добавить игрока</button>
+        </div>
+        <div style="margin-top: auto;">
+            <button onclick="game.validateStart()" id="btn-start-game">Поехали!</button>
+        </div>
+    </div>
+
+    <!-- 3. INTERSTITIAL (PASS DEVICE) -->
+    <div id="screen-pass" class="screen center-xy" style="background: var(--primary); color: white;">
+        <div class="avatar" id="pass-avatar">👤</div>
+        <h2 style="color: white;">Передай телефон</h2>
+        <h1 id="pass-name" style="font-size: 36px; color: var(--accent); text-shadow: 0 2px 4px rgba(0,0,0,0.3);">Имя</h1>
+        <p style="color: rgba(255,255,255,0.8);">Никому не показывай экран!</p>
+        <button onclick="game.startTurn()" class="btn-secondary" style="margin-top: 30px;">Я готов!</button>
+    </div>
+
+    <!-- 4. WRITE SCREEN -->
+    <div id="screen-write" class="screen">
+        <h2 id="write-title">Задание</h2>
+        
+        <!-- Logic: If round > 0, show drawing to guess -->
+        <div id="guess-area" style="display: none;">
+            <div class="card" style="padding: 10px;">
+                <img id="guess-image" src="" class="result-img">
+            </div>
+            <p>Что здесь нарисовано?</p>
+        </div>
+
+        <!-- Logic: If round 0, show text prompt help -->
+        <div id="prompt-area">
+            <p>Придумай, что нарисовать следующему игроку.</p>
+            <button class="btn-ghost" onclick="game.generateIdea()" style="margin-bottom: 15px; font-size: 14px;">🎲 Случайная идея</button>
+        </div>
+
+        <div class="card">
+            <input type="text" id="input-text" placeholder="Например: Кот Годзилла" autocomplete="off" maxlength="60">
+        </div>
+        
+        <button onclick="game.submitText()">Готово</button>
+    </div>
+
+    <!-- 5. DRAW SCREEN -->
+    <div id="screen-draw" class="screen">
+        <div class="prompt-box">
+            <span style="color: #7f8c8d; font-size: 0.9em;">Нарисуй это:</span><br>
+            <span id="draw-prompt" style="color: var(--primary); font-size: 1.2em;">...</span>
+        </div>
+
+        <div id="canvas-wrapper">
+            <canvas id="canvas"></canvas>
+        </div>
+
+        <div class="tools-panel">
+            <!-- Top Row: Brush Size & Undo/Clear -->
+            <div class="tool-row">
+                <div class="range-wrap">
+                    <span style="font-size:12px">🖌️</span>
+                    <input type="range" id="brush-size" min="2" max="30" value="6">
+                </div>
+                <button class="btn-icon btn-secondary" onclick="drawEngine.undo()" title="Undo">↩️</button>
+                <button class="btn-icon btn-secondary" onclick="drawEngine.toggleFill()" id="btn-bucket" title="Fill">🪣</button>
+                <button class="btn-icon btn-danger" onclick="drawEngine.clear()" title="Clear">🗑️</button>
+            </div>
+            
+            <!-- Bottom Row: Colors -->
+            <div class="colors-scroll" id="palette"></div>
+        </div>
+
+        <button onclick="game.submitDrawing()" style="margin-top: 15px;">Я нарисовал!</button>
+    </div>
+
+    <!-- 6. RESULTS SCREEN -->
+    <div id="screen-results" class="screen center-xy">
+        <h2>Время Историй!</h2>
+        <div class="card">
+            <h3 id="res-owner" style="color: var(--primary);">Альбом Игрока</h3>
+            
+            <div id="res-content" style="min-height: 250px; display: flex; align-items: center; justify-content: center; flex-direction: column;">
+                <!-- Result content injected here -->
+            </div>
+
+            <div style="display: flex; gap: 10px; margin-top: 15px;">
+                <button onclick="slideshow.prev()" class="btn-ghost" id="btn-prev" disabled>⬅️</button>
+                <button onclick="slideshow.next()" id="btn-next">Далее ➡️</button>
+            </div>
+        </div>
+        <button id="btn-home" class="btn-danger" style="display: none; margin-top: 20px;" onclick="location.reload()">В главное меню</button>
+    </div>
+
+</div>
+
+<script>
+/**
+ * ENGINE: Canvas & Drawing Logic
+ * Handles High-DPI, Smooth lines, Flood Fill, Undo
+ */
+const drawEngine = {
+    canvas: document.getElementById('canvas'),
+    ctx: null,
+    isDrawing: false,
+    color: '#000000',
+    size: 6,
+    mode: 'brush', // brush, eraser, fill
+    history: [],
+    step: -1,
+    lastPoint: {x:0, y:0},
+
+    init() {
+        this.ctx = this.canvas.getContext('2d', { willReadFrequently: true });
+        this.resize();
+        window.addEventListener('resize', () => this.resize());
+        
+        // Palette Init
+        const colors = [
+            '#000000', '#555555', '#7f8c8d', '#ffffff', // Grayscale
+            '#e74c3c', '#e67e22', '#f1c40f', // Warm
+            '#2ecc71', '#16a085', '#3498db', '#8e44ad', // Cool
+            '#2c3e50', '#f39c12', '#d35400', '#c0392b' // City/Earth tones
+        ];
+        const pContainer = document.getElementById('palette');
+        pContainer.innerHTML = '';
+        colors.forEach(c => {
+            const div = document.createElement('div');
+            div.className = 'swatch';
+            div.style.backgroundColor = c;
+            if(c === '#000000') div.classList.add('active');
+            div.onclick = () => this.setColor(c, div);
+            pContainer.appendChild(div);
+        });
+
+        // Event Listeners
+        const wrapper = document.getElementById('canvas-wrapper');
+        
+        // Mouse
+        wrapper.addEventListener('mousedown', e => this.start(e));
+        wrapper.addEventListener('mousemove', e => this.move(e));
+        document.addEventListener('mouseup', () => this.end());
+
+        // Touch
+        wrapper.addEventListener('touchstart', e => this.start(e), {passive: false});
+        wrapper.addEventListener('touchmove', e => this.move(e), {passive: false});
+        wrapper.addEventListener('touchend', () => this.end());
+
+        document.getElementById('brush-size').addEventListener('input', e => this.size = parseInt(e.target.value));
+    },
+
+    resize() {
+        const wrapper = document.getElementById('canvas-wrapper');
+        const rect = wrapper.getBoundingClientRect();
+        // High DPI setup
+        const dpr = window.devicePixelRatio || 1;
+        this.canvas.width = rect.width * dpr;
+        this.canvas.height = rect.height * dpr;
+        this.ctx.scale(dpr, dpr);
+        
+        // Reset properties after resize
+        this.ctx.lineCap = 'round';
+        this.ctx.lineJoin = 'round';
+        this.ctx.fillStyle = '#ffffff';
+        // Only fill white if fresh
+        if(this.history.length === 0) this.clear();
+        else this.restoreHistory();
+    },
+
+    getPos(e) {
+        const rect = this.canvas.getBoundingClientRect();
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        return {
+            x: clientX - rect.left,
+            y: clientY - rect.top
+        };
+    },
+
+    start(e) {
+        if(e.cancelable) e.preventDefault(); // Stop scrolling
+        const pos = this.getPos(e);
+
+        if (this.mode === 'fill') {
+            this.fill(pos.x, pos.y, this.color);
+            return;
+        }
+
+        this.isDrawing = true;
+        this.lastPoint = pos;
+        
+        // Draw single dot
+        this.ctx.beginPath();
+        this.ctx.arc(pos.x, pos.y, this.size/2, 0, Math.PI*2);
+        this.ctx.fillStyle = this.color;
+        this.ctx.fill();
+        this.ctx.beginPath(); // Start path for movement
+        this.ctx.moveTo(pos.x, pos.y);
+    },
+
+    move(e) {
+        if (!this.isDrawing) return;
+        if(e.cancelable) e.preventDefault();
+
+        const pos = this.getPos(e);
+        
+        // Quadratic Curve for smoothness
+        const midPoint = {
+            x: this.lastPoint.x + (pos.x - this.lastPoint.x) / 2,
+            y: this.lastPoint.y + (pos.y - this.lastPoint.y) / 2
+        };
+
+        this.ctx.quadraticCurveTo(this.lastPoint.x, this.lastPoint.y, midPoint.x, midPoint.y);
+        this.ctx.lineWidth = this.size;
+        this.ctx.strokeStyle = this.color;
+        this.ctx.stroke();
+        
+        this.lastPoint = pos;
+        this.ctx.beginPath();
+        this.ctx.moveTo(midPoint.x, midPoint.y);
+    },
+
+    end() {
+        if (this.isDrawing) {
+            this.isDrawing = false;
+            this.saveState();
+        }
+    },
+
+    saveState() {
+        this.step++;
+        if (this.step < this.history.length) {
+            this.history.length = this.step; // Truncate redo
+        }
+        // Save raw base64 is expensive but simple for this scale
+        this.history.push(this.canvas.toDataURL());
+    },
+
+    undo() {
+        if (this.step > 0) {
+            this.step--;
+            this.restoreHistory();
+        } else if (this.step === 0) {
+            this.clear();
+        }
+    },
+
+    restoreHistory() {
+        if(this.step < 0) return;
+        const img = new Image();
+        img.src = this.history[this.step];
+        img.onload = () => {
+            this.ctx.save();
+            this.ctx.setTransform(1,0,0,1,0,0); // Reset scale to draw full pixel data
+            this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+            this.ctx.drawImage(img, 0, 0);
+            this.ctx.restore();
+        };
+    },
+
+    clear() {
+        this.ctx.save();
+        this.ctx.setTransform(1,0,0,1,0,0);
+        this.ctx.fillStyle = '#ffffff';
+        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        this.ctx.restore();
+        this.step = -1;
+        this.history = [];
+        this.saveState();
+    },
+
+    setColor(c, el) {
+        this.color = c;
+        this.mode = 'brush';
+        document.querySelectorAll('.swatch').forEach(s => s.classList.remove('active'));
+        el.classList.add('active');
+        document.getElementById('btn-bucket').classList.remove('btn-secondary-active'); // simplified check
+    },
+
+    toggleFill() {
+        this.mode = (this.mode === 'fill') ? 'brush' : 'fill';
+        const btn = document.getElementById('btn-bucket');
+        if (this.mode === 'fill') {
+            btn.style.border = "2px solid #333";
+            btn.style.transform = "scale(0.9)";
+        } else {
+            btn.style.border = "none";
+            btn.style.transform = "none";
+        }
+    },
+
+    // Simple Stack-based Flood Fill
+    fill(startX, startY, colorHex) {
+        // NOTE: This uses raw pixel data. Needs devicePixelRatio adjustment handling.
+        // For simplicity in this constraints, we operate on canvas pixel grid directly.
+        
+        const dpr = window.devicePixelRatio || 1;
+        const x = Math.floor(startX * dpr);
+        const y = Math.floor(startY * dpr);
+        const w = this.canvas.width;
+        const h = this.canvas.height;
+
+        // Convert hex to rgba
+        const r = parseInt(colorHex.slice(1, 3), 16);
+        const g = parseInt(colorHex.slice(3, 5), 16);
+        const b = parseInt(colorHex.slice(5, 7), 16);
+        const a = 255;
+
+        const imgData = this.ctx.getImageData(0, 0, w, h);
+        const data = imgData.data;
+        const startPos = (y * w + x) * 4;
+        
+        const startR = data[startPos];
+        const startG = data[startPos+1];
+        const startB = data[startPos+2];
+        const startA = data[startPos+3];
+
+        if (startR === r && startG === g && startB === b && startA === a) return;
+
+        const stack = [[x, y]];
+        
+        while (stack.length) {
+            const [curX, curY] = stack.pop();
+            const pos = (curY * w + curX) * 4;
+
+            if (curX < 0 || curX >= w || curY < 0 || curY >= h) continue;
+            if (data[pos] === r && data[pos+1] === g && data[pos+2] === b && data[pos+3] === a) continue;
+            
+            // Check match with start color
+            // Using small tolerance for antialiased lines
+            if (Math.abs(data[pos] - startR) < 10 && 
+                Math.abs(data[pos+1] - startG) < 10 && 
+                Math.abs(data[pos+2] - startB) < 10) {
+                
+                data[pos] = r;
+                data[pos+1] = g;
+                data[pos+2] = b;
+                data[pos+3] = a;
+
+                stack.push([curX + 1, curY]);
+                stack.push([curX - 1, curY]);
+                stack.push([curX, curY + 1]);
+                stack.push([curX, curY - 1]);
+            }
+        }
+        this.ctx.putImageData(imgData, 0, 0);
+        this.saveState();
+    }
+};
+
+/**
+ * GAME LOGIC
+ */
+const game = {
+    players: [],
+    books: [],
+    round: 0,
+    turnIndex: 0,
+    
+    prompts: [
+        "Космический Кот", "Грустный Банан", "Город будущего", 
+        "Вечеринка зомби", "Летающий дом", "Злой Тостер",
+        "Киберпанк", "Дракон ест пиццу", "Робот влюбился"
+    ],
+
+    init() {
+        this.addPlayerInput();
+        this.addPlayerInput();
+        drawEngine.init();
+    },
+
+    addPlayerInput() {
+        const c = document.getElementById('players-container');
+        if (c.children.length >= 8) return;
+        const div = document.createElement('div');
+        div.className = 'player-row';
+        div.innerHTML = `
+            <div class="avatar" style="width:40px; height:40px; font-size:20px; border-width:2px; margin:0;">👤</div>
+            <input type="text" placeholder="Имя игрока" class="p-name">
+            ${c.children.length >= 2 ? `<button onclick="this.parentElement.remove()" class="btn-danger btn-icon" style="width:40px; height:40px; margin:0;">✕</button>` : ''}
+        `;
+        c.appendChild(div);
+    },
+
+    validateStart() {
+        const inputs = document.querySelectorAll('.p-name');
+        const p = [];
+        inputs.forEach(i => {
+            if(i.value.trim()) p.push(i.value.trim());
+        });
+
+        if (p.length < 2) {
+            alert("Нужно минимум 2 игрока!");
+            return;
+        }
+
+        this.players = p;
+        this.books = p.map(name => ({ owner: name, pages: [] }));
+        this.round = 0;
+        this.turnIndex = 0;
+        
+        nav.to('pass');
+        this.updatePassScreen();
+    },
+
+    updatePassScreen() {
+        const currentPlayer = this.players[this.turnIndex];
+        const emojis = ['🐶','🐱','🐭','🐹','🐰','🦊','🐻','🐼','🐯','🦁','🐮','🐷'];
+        
+        document.getElementById('pass-name').innerText = currentPlayer;
+        document.getElementById('pass-avatar').innerText = emojis[this.turnIndex % emojis.length];
+        
+        // Safety: Clear inputs/canvas
+        document.getElementById('input-text').value = '';
+        drawEngine.clear();
+    },
+
+    startTurn() {
+        // Determine Logic: 
+        // Round 0: Text (Prompt)
+        // Round Even: Draw
+        // Round Odd: Text (Guess)
+        // Exception: Rotation of books
+        
+        const playerIdx = this.turnIndex;
+        // The book this player receives relies on Round offset
+        const totalP = this.players.length;
+        const bookIdx = (playerIdx - this.round + totalP) % totalP;
+        const book = this.books[bookIdx];
+        
+        const prevPage = book.pages.length > 0 ? book.pages[book.pages.length - 1] : null;
+
+        if (this.round === 0) {
+            // Initial Write
+            this.setupWrite(null, true);
+        } else {
+            if (prevPage.type === 'text') {
+                // Must Draw
+                this.setupDraw(prevPage.content);
+            } else {
+                // Must Guess (Write)
+                this.setupWrite(prevPage.content, false);
+            }
+        }
+    },
+
+    setupWrite(content, isPrompt) {
+        nav.to('write');
+        const guessArea = document.getElementById('guess-area');
+        const promptArea = document.getElementById('prompt-area');
+        const title = document.getElementById('write-title');
+        
+        if (isPrompt) {
+            guessArea.style.display = 'none';
+            promptArea.style.display = 'block';
+            title.innerText = "Придумай задание";
+        } else {
+            guessArea.style.display = 'block';
+            promptArea.style.display = 'none';
+            document.getElementById('guess-image').src = content;
+            title.innerText = "Угадай, что это?";
+        }
+    },
+
+    setupDraw(text) {
+        nav.to('draw');
+        document.getElementById('draw-prompt').innerText = text;
+        // Fix canvas layout on render
+        setTimeout(() => drawEngine.resize(), 100);
+    },
+
+    generateIdea() {
+        const idea = this.prompts[Math.floor(Math.random() * this.prompts.length)];
+        document.getElementById('input-text').value = idea;
+    },
+
+    submitText() {
+        const val = document.getElementById('input-text').value.trim();
+        if (!val) return;
+        this.savePage('text', val);
+    },
+
+    submitDrawing() {
+        const data = drawEngine.canvas.toDataURL('image/png');
+        this.savePage('image', data);
+    },
+
+    savePage(type, content) {
+        const totalP = this.players.length;
+        const bookIdx = (this.turnIndex - this.round + totalP) % totalP;
+        
+        this.books[bookIdx].pages.push({
+            type: type,
+            content: content,
+            author: this.players[this.turnIndex]
+        });
+
+        this.nextTurn();
+    },
+
+    nextTurn() {
+        this.turnIndex++;
+        if (this.turnIndex >= this.players.length) {
+            // End of Round
+            this.turnIndex = 0;
+            this.round++;
+            
+            if (this.round >= this.players.length) {
+                // End of Game
+                slideshow.start();
+                return;
+            }
+        }
+        nav.to('pass');
+        this.updatePassScreen();
+    }
+};
+
+/**
+ * UI NAVIGATION
+ */
+const nav = {
+    to(id) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        document.getElementById('screen-' + id).classList.add('active');
+    }
+};
+
+/**
+ * SLIDESHOW LOGIC
+ */
+const slideshow = {
+    bookIdx: 0,
+    pageIdx: -1,
+
+    start() {
+        nav.to('results');
+        this.bookIdx = 0;
+        this.pageIdx = -1;
+        this.render();
+    },
+
+    render() {
+        const book = game.books[this.bookIdx];
+        const ownerEl = document.getElementById('res-owner');
+        const contentEl = document.getElementById('res-content');
+        const btnNext = document.getElementById('btn-next');
+        const btnPrev = document.getElementById('btn-prev');
+
+        ownerEl.innerText = `История игрока: ${book.owner}`;
+        
+        let html = '';
+
+        if (this.pageIdx === -1) {
+            // Cover
+            html = `<div style="text-align:center; font-size:80px;">📒</div>
+                    <h3>Давайте посмотрим, что получилось!</h3>`;
+            btnPrev.disabled = true;
+        } else if (this.pageIdx < book.pages.length) {
+            // Page Content
+            btnPrev.disabled = false;
+            const p = book.pages[this.pageIdx];
+            
+            if (p.type === 'text') {
+                html = `<div class="result-txt">"${p.content}"</div>
+                        <div class="author-badge">✍️ ${p.author}</div>`;
+            } else {
+                html = `<img src="${p.content}" class="result-img">
+                        <div class="author-badge">🎨 ${p.author}</div>`;
+            }
+        } else {
+            // End of Book
+            html = `<h3>Конец альбома!</h3>`;
+            if (this.bookIdx === game.books.length - 1) {
+                document.getElementById('btn-next').style.display = 'none';
+                document.getElementById('btn-home').style.display = 'block';
+            }
+        }
+        contentEl.innerHTML = html;
+    },
+
+    next() {
+        const book = game.books[this.bookIdx];
+        if (this.pageIdx < book.pages.length) {
+            this.pageIdx++;
+        } else {
+            if (this.bookIdx < game.books.length - 1) {
+                this.bookIdx++;
+                this.pageIdx = -1;
+            }
+        }
+        this.render();
+    },
+
+    prev() {
+        if (this.pageIdx > -1) {
+            this.pageIdx--;
+            this.render();
+        }
+    }
+};
+
+// Start App
+game.init();
+
+</script>
+</body>
+</html>

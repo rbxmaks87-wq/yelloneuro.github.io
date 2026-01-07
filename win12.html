@@ -1,0 +1,1502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Windows 12 Web Edition</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Segoe+UI:wght@300;400;600&display=swap');
+        
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        /* Scrollbars */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(100, 100, 100, 0.5); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(100, 100, 100, 0.8); }
+
+        /* Window Animations */
+        @keyframes popIn {
+            0% { transform: scale(0.9); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .window-open { animation: popIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        
+        /* Glassmorphism */
+        .glass {
+            background: rgba(255, 255, 255, 0.75);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+        .dark .glass {
+            background: rgba(30, 30, 30, 0.75);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+
+        /* Taskbar Positions */
+        .taskbar-bottom { bottom: 0; left: 0; right: 0; height: 3.5rem; flex-direction: row; }
+        .taskbar-top { top: 0; left: 0; right: 0; height: 3.5rem; flex-direction: row; }
+        .taskbar-left { top: 0; bottom: 0; left: 0; width: 3.5rem; flex-direction: column; }
+        .taskbar-right { top: 0; bottom: 0; right: 0; width: 3.5rem; flex-direction: column; }
+
+        /* Icon Grid */
+        .desktop-icon {
+            width: 80px;
+            height: 90px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            transition: background 0.1s;
+        }
+        .desktop-icon:hover { background: rgba(255, 255, 255, 0.2); }
+        .desktop-icon.selected { background: rgba(255, 255, 255, 0.3); border: 1px solid rgba(255, 255, 255, 0.4); }
+
+        /* CRT Effect for Old TV */
+        .crt::before {
+            content: " ";
+            display: block;
+            position: absolute;
+            top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            z-index: 2;
+            background-size: 100% 2px, 3px 100%;
+            pointer-events: none;
+        }
+
+        /* Boot Loader */
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* Snake Game Grid */
+        #snake-board { display: grid; grid-template-columns: repeat(20, 1fr); gap: 1px; }
+        .snake-cell { width: 100%; aspect-ratio: 1; background: #333; }
+        .snake-body { background: #4ade80; }
+        .snake-food { background: #ef4444; }
+
+    </style>
+</head>
+<body class="bg-gray-200 h-screen w-screen overflow-hidden text-sm transition-colors duration-300">
+
+    <!-- BOOT SCREEN -->
+    <div id="boot-screen" class="fixed inset-0 bg-black z-50 flex flex-col items-center justify-center text-white">
+        <div class="text-4xl font-bold mb-8">Windows 12</div>
+        <div class="loader"></div>
+        <div class="mt-4 text-gray-400">Loading OS...</div>
+    </div>
+
+    <!-- LOCK SCREEN -->
+    <div id="lock-screen" class="hidden fixed inset-0 z-40 bg-cover bg-center flex flex-col items-center justify-center text-white backdrop-blur-sm transition-all duration-500" style="background-image: url('https://images.unsplash.com/photo-1506744038136-46273834b3fb?ixlib=rb-1.2.1&auto=format&fit=crop&w=1950&q=80');">
+        <div class="text-6xl font-light mb-2" id="lock-time">12:00</div>
+        <div class="text-xl mb-12" id="lock-date">Monday, January 1</div>
+        <div id="login-container" class="flex flex-col items-center gap-4 p-8 rounded-2xl bg-black/30 backdrop-blur-md cursor-pointer hover:bg-black/40 transition">
+            <div class="w-24 h-24 rounded-full bg-blue-500 flex items-center justify-center text-3xl font-bold">U</div>
+            <div class="text-xl font-semibold">User</div>
+            <button onclick="bootToDesktop()" class="px-6 py-2 bg-white/20 rounded-full hover:bg-white/30 transition">Sign In</button>
+        </div>
+        <!-- Multiple users placeholder -->
+        <div class="flex gap-4 mt-4">
+             <div class="w-10 h-10 rounded-full bg-purple-500 flex items-center justify-center text-xs cursor-pointer opacity-70 hover:opacity-100">Mom</div>
+             <div class="w-10 h-10 rounded-full bg-green-500 flex items-center justify-center text-xs cursor-pointer opacity-70 hover:opacity-100">Dad</div>
+        </div>
+    </div>
+
+    <!-- BSOD -->
+    <div id="bsod" class="hidden fixed inset-0 z-[100] bg-blue-800 text-white p-20 font-mono">
+        <div class="text-9xl mb-8">:(</div>
+        <div class="text-3xl mb-8">Your PC ran into a problem and needs to restart.</div>
+        <div class="text-xl">Stop Code: CRITICAL_PROCESS_DIED</div>
+        <div class="mt-8 text-sm">Restarting in <span id="bsod-timer">5</span>...</div>
+    </div>
+
+    <!-- DESKTOP LAYER -->
+    <div id="desktop" class="relative w-full h-full bg-cover bg-center overflow-hidden" style="background-image: url('https://images.unsplash.com/photo-1477346611705-65d1883cee1e?ixlib=rb-1.2.1&auto=format&fit=crop&w=1950&q=80');">
+        
+        <!-- Desktop Icons Container -->
+        <div id="desktop-icons" class="absolute inset-0 p-2 flex flex-col flex-wrap content-start gap-2 h-[calc(100%-3.5rem)]">
+            <!-- Icons injected by JS -->
+        </div>
+
+        <!-- Windows Container -->
+        <div id="windows-container" class="absolute inset-0 pointer-events-none">
+            <!-- Windows injected by JS -->
+        </div>
+
+        <!-- Start Menu -->
+        <div id="start-menu" class="hidden absolute bottom-16 left-1/2 -translate-x-1/2 w-[600px] h-[700px] glass rounded-xl shadow-2xl p-6 flex-col z-30 transition-all duration-200 transform scale-95 opacity-0">
+            <div class="mb-4 relative">
+                <i class="fas fa-search absolute left-3 top-3 text-gray-500"></i>
+                <input type="text" placeholder="Search for apps, files, and web..." class="w-full bg-gray-100/50 rounded-full py-2 pl-10 pr-4 outline-none focus:ring-2 ring-blue-500">
+            </div>
+            <div class="text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Pinned</div>
+            <div class="grid grid-cols-6 gap-4 mb-6" id="start-menu-grid">
+                <!-- App grid items -->
+            </div>
+            <div class="text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Recommended</div>
+            <div class="flex-1 overflow-y-auto" id="start-menu-rec">
+                <!-- Recent files -->
+            </div>
+            <div class="mt-auto pt-4 border-t border-gray-200/20 flex justify-between items-center">
+                <div class="flex items-center gap-2 cursor-pointer hover:bg-black/5 p-2 rounded-lg">
+                    <div class="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white">U</div>
+                    <span class="font-medium">User</span>
+                </div>
+                <button onclick="location.reload()" class="p-2 hover:bg-black/5 rounded-full"><i class="fas fa-power-off"></i></button>
+            </div>
+        </div>
+
+        <!-- Context Menu -->
+        <div id="context-menu" class="hidden fixed bg-white/90 backdrop-blur shadow-xl rounded-lg w-48 py-1 z-50 text-sm border border-gray-200/50">
+            <!-- Menu items injected by JS -->
+        </div>
+
+    </div>
+
+    <!-- TASKBAR -->
+    <div id="taskbar" class="absolute glass z-30 flex items-center justify-between px-4 transition-all duration-300 taskbar-bottom">
+        <!-- Start & Widgets -->
+        <div class="flex items-center gap-1">
+             <div class="p-2 hover:bg-white/20 rounded-md cursor-pointer transition" id="weather-widget">
+                 <span class="text-xs font-bold">22°C</span> ☁️
+             </div>
+        </div>
+
+        <!-- Center Apps -->
+        <div class="flex items-center gap-2 h-full absolute left-1/2 -translate-x-1/2" id="taskbar-apps">
+            <button onclick="toggleStartMenu()" class="w-10 h-10 hover:bg-white/20 rounded-md flex items-center justify-center text-2xl text-blue-500 transition hover:scale-105 active:scale-95">
+                <i class="fab fa-windows"></i>
+            </button>
+            <!-- Taskbar icons -->
+        </div>
+
+        <!-- System Tray -->
+        <div class="flex items-center gap-2 h-full">
+            <div class="flex items-center gap-3 px-2 py-1 hover:bg-white/20 rounded-md cursor-pointer" onclick="openApp('settings')">
+                <i class="fas fa-wifi text-xs"></i>
+                <i class="fas fa-volume-up text-xs"></i>
+                <i class="fas fa-battery-three-quarters text-xs"></i>
+            </div>
+            <div class="text-right px-2 hover:bg-white/20 rounded-md cursor-pointer" onclick="toggleCalendar()">
+                <div class="text-xs font-medium" id="clock-time">12:00</div>
+                <div class="text-[10px]" id="clock-date">1/1/2024</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SCRIPTS -->
+    <script>
+        // --- SYSTEM STATE & CONFIG ---
+        const sys = {
+            theme: 'light',
+            bg: 'url(https://images.unsplash.com/photo-1477346611705-65d1883cee1e?ixlib=rb-1.2.1&auto=format&fit=crop&w=1950&q=80)',
+            taskbarPos: 'bottom', // top, left, right
+            startAlign: 'center', // left
+            volume: 50,
+            brightness: 100,
+            wifi: true,
+            windows: [],
+            zIndex: 100,
+            clipboard: null
+        };
+
+        // --- FILE SYSTEM (Virtual) ---
+        const fs = {
+            root: {
+                Desktop: {
+                    "Welcome.txt": { type: 'file', content: "Welcome to Windows 12 Web Edition!\nTry drag and drop, creating folders, and using apps." },
+                    "Photos": { type: 'folder', items: {} },
+                    "Codes.txt": { type: 'file', content: "WIN12-FREE-GIFT\nSECRET-CODE-99\nHELLO-WORLD" }
+                },
+                Documents: {
+                    "Project.py": { type: 'file', content: "print('Hello Windows 12')\n# Run this in Python App" }
+                },
+                Pictures: {},
+                Music: {},
+                Videos: {},
+                RecycleBin: {}
+            }
+        };
+
+        // Helper to traverse paths
+        function getDir(path) {
+            let current = fs.root;
+            if (path === '/') return current;
+            const parts = path.split('/').filter(p => p);
+            for (let p of parts) {
+                if (!current[p]) current[p] = { type: 'folder', items: {} }; // Auto create if missing for simplicity
+                if (current[p].type === 'folder') current = current[p].items;
+                else return null; 
+            }
+            return current;
+        }
+
+        // --- APP REGISTRY ---
+        const apps = {
+            "notepad": { title: "Notepad", icon: "fa-file-alt", color: "text-blue-400", action: openNotepad },
+            "paint": { title: "Paint", icon: "fa-palette", color: "text-purple-400", action: openPaint },
+            "browser": { title: "Edge", icon: "fa-globe", color: "text-blue-600", action: openBrowser },
+            "settings": { title: "Settings", icon: "fa-cog", color: "text-gray-500", action: openSettings },
+            "explorer": { title: "This PC", icon: "fa-laptop", color: "text-blue-500", action: () => openExplorer('/') },
+            "camera": { title: "Camera", icon: "fa-camera", color: "text-red-500", action: openCamera },
+            "youtube": { title: "YouTube", icon: "fa-play-circle", color: "text-red-600", action: openYouTube },
+            "minecraft": { title: "Minecraft", icon: "fa-cube", color: "text-green-600", action: openMinecraft },
+            "terminal": { title: "Python", icon: "fa-code", color: "text-yellow-500", action: openPython },
+            "calculator": { title: "Calc", icon: "fa-calculator", color: "text-gray-600", action: openCalculator },
+            "trash": { title: "Recycle Bin", icon: "fa-trash", color: "text-gray-500", action: openTrash },
+            "chat": { title: "Chat AI", icon: "fa-robot", color: "text-teal-500", action: openAI },
+            "tv": { title: "TV", icon: "fa-tv", color: "text-black", action: openTV },
+            "games": { title: "Games", icon: "fa-gamepad", color: "text-indigo-500", action: openGames },
+            "telegram": { title: "Telegram", icon: "fa-paper-plane", color: "text-blue-400", action: openTelegram },
+            "whatsapp": { title: "WhatsApp", icon: "fa-whatsapp", color: "text-green-500", action: openWhatsApp },
+            "discord": { title: "Discord", icon: "fa-discord", color: "text-indigo-600", action: openDiscord },
+            "wincodes": { title: "Win Codes", icon: "fa-gift", color: "text-pink-500", action: openWinCodes },
+            "taskmanager": { title: "Task Mgr", icon: "fa-tasks", color: "text-cyan-600", action: openTaskManager },
+            "translate": { title: "Translate", icon: "fa-language", color: "text-blue-700", action: openTranslator },
+            "recorder": { title: "Recorder", icon: "fa-microphone", color: "text-red-500", action: openRecorder },
+            "yandex": { title: "Yandex Games", icon: "fa-gamepad", color: "text-red-600", action: openYandexGames },
+        };
+
+        // --- BOOT SEQUENCE ---
+        window.onload = () => {
+            updateClock();
+            setInterval(updateClock, 1000);
+            renderDesktopIcons();
+            renderTaskbarApps();
+            
+            setTimeout(() => {
+                document.getElementById('boot-screen').style.display = 'none';
+                document.getElementById('lock-screen').style.display = 'flex';
+            }, 2500); // Simulate boot time
+        };
+
+        function bootToDesktop() {
+            document.getElementById('lock-screen').style.opacity = '0';
+            setTimeout(() => {
+                document.getElementById('lock-screen').style.display = 'none';
+                playStartupSound();
+            }, 500);
+        }
+
+        function playStartupSound() {
+            // Simulated sound context
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.frequency.setValueAtTime(440, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(880, audioCtx.currentTime + 0.5);
+            gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 1);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 1);
+        }
+
+        // --- WINDOW MANAGER ---
+        class Window {
+            constructor(title, appKey, contentFunc) {
+                this.id = 'win-' + Math.random().toString(36).substr(2, 9);
+                this.appKey = appKey;
+                this.minimized = false;
+                this.maximized = false;
+                
+                // DOM Creation
+                this.el = document.createElement('div');
+                this.el.className = 'absolute bg-white dark:bg-gray-800 rounded-lg shadow-2xl flex flex-col overflow-hidden pointer-events-auto border border-gray-300 dark:border-gray-700 window-open';
+                this.el.style.width = '700px';
+                this.el.style.height = '500px';
+                this.el.style.top = '100px';
+                this.el.style.left = '100px';
+                this.el.style.zIndex = ++sys.zIndex;
+
+                // Title Bar
+                const header = document.createElement('div');
+                header.className = 'h-8 bg-gray-100 dark:bg-gray-900 flex items-center justify-between px-3 select-none';
+                header.innerHTML = `
+                    <div class="flex items-center gap-2">
+                        <i class="fas ${apps[appKey]?.icon || 'fa-window-maximize'}"></i>
+                        <span class="text-xs font-semibold">${title}</span>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <button class="hover:bg-gray-200 w-6 h-6 rounded flex items-center justify-center" onclick="minWindow('${this.id}')">_</button>
+                        <button class="hover:bg-gray-200 w-6 h-6 rounded flex items-center justify-center" onclick="maxWindow('${this.id}')">□</button>
+                        <button class="hover:bg-red-500 hover:text-white w-6 h-6 rounded flex items-center justify-center" onclick="closeWindow('${this.id}')">✕</button>
+                    </div>
+                `;
+                
+                // Content Area
+                const body = document.createElement('div');
+                body.className = 'flex-1 overflow-auto bg-white dark:bg-gray-800 relative';
+                body.appendChild(contentFunc(this));
+
+                this.el.appendChild(header);
+                this.el.appendChild(body);
+
+                // Drag Logic
+                let isDragging = false;
+                let startX, startY, initLeft, initTop;
+
+                header.addEventListener('mousedown', (e) => {
+                    if(e.target.tagName === 'BUTTON') return;
+                    isDragging = true;
+                    startX = e.clientX;
+                    startY = e.clientY;
+                    initLeft = this.el.offsetLeft;
+                    initTop = this.el.offsetTop;
+                    this.focus();
+                });
+
+                window.addEventListener('mousemove', (e) => {
+                    if (!isDragging) return;
+                    if (this.maximized) return; 
+                    this.el.style.left = (initLeft + e.clientX - startX) + 'px';
+                    this.el.style.top = (initTop + e.clientY - startY) + 'px';
+                });
+
+                window.addEventListener('mouseup', () => isDragging = false);
+                this.el.addEventListener('mousedown', () => this.focus());
+
+                // Resizing logic (simple CSS resize for now, custom JS for edge cases)
+                this.el.style.resize = 'both';
+
+                document.getElementById('windows-container').appendChild(this.el);
+                sys.windows.push(this);
+                renderTaskbarApps();
+            }
+
+            focus() {
+                this.el.style.zIndex = ++sys.zIndex;
+            }
+        }
+
+        function closeWindow(id) {
+            const w = sys.windows.find(x => x.id === id);
+            if (w) {
+                w.el.remove();
+                sys.windows = sys.windows.filter(x => x.id !== id);
+                renderTaskbarApps();
+            }
+        }
+
+        function minWindow(id) {
+            const w = sys.windows.find(x => x.id === id);
+            if (w) {
+                w.minimized = true;
+                w.el.style.display = 'none';
+                renderTaskbarApps();
+            }
+        }
+
+        function maxWindow(id) {
+            const w = sys.windows.find(x => x.id === id);
+            if (w) {
+                if (w.maximized) {
+                    w.el.style.width = '700px';
+                    w.el.style.height = '500px';
+                    w.el.style.top = '100px';
+                    w.el.style.left = '100px';
+                    w.maximized = false;
+                } else {
+                    w.el.style.width = '100%';
+                    w.el.style.height = 'calc(100% - 3.5rem)';
+                    w.el.style.top = sys.taskbarPos === 'top' ? '3.5rem' : '0';
+                    w.el.style.left = '0';
+                    w.maximized = true;
+                }
+            }
+        }
+
+        function restoreWindow(id) {
+            const w = sys.windows.find(x => x.id === id);
+            if (w) {
+                w.minimized = false;
+                w.el.style.display = 'flex';
+                w.focus();
+                renderTaskbarApps();
+            }
+        }
+
+        // --- APP IMPLEMENTATIONS ---
+
+        function openNotepad(win) {
+            const div = document.createElement('div');
+            div.className = 'h-full flex flex-col';
+            div.innerHTML = `
+                <div class="border-b p-1 flex gap-2 text-xs bg-gray-50">
+                    <button class="hover:bg-gray-200 px-2 py-1 rounded" onclick="document.execCommand('bold')"><b>B</b></button>
+                    <button class="hover:bg-gray-200 px-2 py-1 rounded" onclick="document.execCommand('italic')"><i>I</i></button>
+                    <button class="hover:bg-gray-200 px-2 py-1 rounded" onclick="document.execCommand('underline')"><u>U</u></button>
+                    <select onchange="document.execCommand('fontSize', false, this.value)" class="border rounded">
+                        <option value="3">Normal</option>
+                        <option value="5">Large</option>
+                        <option value="7">Huge</option>
+                    </select>
+                </div>
+                <div contenteditable="true" class="flex-1 p-4 outline-none font-mono text-sm" style="white-space: pre-wrap;">Type here...</div>
+            `;
+            return div;
+        }
+
+        function openPaint(win) {
+            const div = document.createElement('div');
+            div.className = 'h-full flex flex-col';
+            div.innerHTML = `
+                <div class="h-10 bg-gray-100 flex items-center gap-2 px-2 border-b">
+                    <input type="color" id="paintColor-${win.id}" value="#000000">
+                    <input type="range" id="paintSize-${win.id}" min="1" max="20" value="5" class="w-24">
+                    <button onclick="clearCanvas('${win.id}')" class="px-2 py-1 bg-red-100 rounded text-xs">Clear</button>
+                </div>
+                <div class="flex-1 bg-white relative overflow-hidden">
+                    <canvas id="canvas-${win.id}" class="cursor-crosshair w-full h-full"></canvas>
+                </div>
+            `;
+            setTimeout(() => initCanvas(win.id), 100);
+            return div;
+        }
+
+        function initCanvas(id) {
+            const canvas = document.getElementById(`canvas-${id}`);
+            const ctx = canvas.getContext('2d');
+            const parent = canvas.parentElement;
+            canvas.width = parent.offsetWidth;
+            canvas.height = parent.offsetHeight;
+            
+            let painting = false;
+            function startPosition(e) { painting = true; draw(e); }
+            function finishedPosition() { painting = false; ctx.beginPath(); }
+            function draw(e) {
+                if (!painting) return;
+                const rect = canvas.getBoundingClientRect();
+                ctx.lineWidth = document.getElementById(`paintSize-${id}`).value;
+                ctx.lineCap = 'round';
+                ctx.strokeStyle = document.getElementById(`paintColor-${id}`).value;
+                ctx.lineTo(e.clientX - rect.left, e.clientY - rect.top);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
+            }
+            canvas.addEventListener('mousedown', startPosition);
+            canvas.addEventListener('mouseup', finishedPosition);
+            canvas.addEventListener('mousemove', draw);
+            window['clearCanvas' + id] = () => ctx.clearRect(0,0, canvas.width, canvas.height);
+        }
+
+        function clearCanvas(winId) { window['clearCanvas' + winId](); }
+
+        function openSettings(win) {
+            const div = document.createElement('div');
+            div.className = 'p-6 bg-gray-50 h-full overflow-y-auto';
+            div.innerHTML = `
+                <h2 class="text-2xl mb-6">Settings</h2>
+                
+                <div class="mb-6">
+                    <h3 class="font-bold mb-2">Personalization</h3>
+                    <div class="flex gap-4">
+                        <button onclick="changeTheme('light')" class="px-4 py-2 bg-white border rounded hover:shadow">Light</button>
+                        <button onclick="changeTheme('dark')" class="px-4 py-2 bg-gray-800 text-white border rounded hover:shadow">Dark</button>
+                    </div>
+                </div>
+
+                <div class="mb-6">
+                    <h3 class="font-bold mb-2">Taskbar Position</h3>
+                    <div class="flex gap-2">
+                        <button onclick="moveTaskbar('bottom')" class="p-2 bg-blue-100 rounded">Bottom</button>
+                        <button onclick="moveTaskbar('top')" class="p-2 bg-blue-100 rounded">Top</button>
+                        <button onclick="moveTaskbar('left')" class="p-2 bg-blue-100 rounded">Left</button>
+                        <button onclick="moveTaskbar('right')" class="p-2 bg-blue-100 rounded">Right</button>
+                    </div>
+                </div>
+
+                <div class="mb-6">
+                    <h3 class="font-bold mb-2">System</h3>
+                    <div class="flex items-center gap-4 p-4 bg-white rounded border">
+                        <i class="fas fa-wifi text-blue-500"></i>
+                        <div class="flex-1">Wi-Fi</div>
+                        <input type="checkbox" checked class="toggle">
+                    </div>
+                </div>
+
+                <div class="mb-6">
+                     <button onclick="triggerBSOD()" class="bg-red-600 text-white px-4 py-2 rounded">Test Crash (BSOD)</button>
+                </div>
+            `;
+            return div;
+        }
+
+        function openBrowser(win) {
+            const div = document.createElement('div');
+            div.className = 'flex flex-col h-full';
+            div.innerHTML = `
+                <div class="h-10 bg-gray-100 flex items-center gap-2 px-2 border-b">
+                    <button class="text-gray-500 hover:bg-gray-200 w-8 h-8 rounded">←</button>
+                    <button class="text-gray-500 hover:bg-gray-200 w-8 h-8 rounded">→</button>
+                    <button class="text-gray-500 hover:bg-gray-200 w-8 h-8 rounded">↻</button>
+                    <input type="text" value="https://google.com" class="flex-1 bg-white border rounded px-3 py-1 text-sm outline-none focus:ring-1 focus:ring-blue-500">
+                </div>
+                <div class="flex-1 bg-white flex items-center justify-center text-gray-400">
+                    <iframe src="about:blank" class="w-full h-full border-0"></iframe>
+                    <!-- Real iframes usually blocked, so we mock or use safe urls -->
+                </div>
+            `;
+            const input = div.querySelector('input');
+            const iframe = div.querySelector('iframe');
+            
+            input.addEventListener('keydown', (e) => {
+                if(e.key === 'Enter') {
+                    // Simulation of browser behavior
+                    let url = input.value;
+                    if(!url.startsWith('http')) url = 'https://' + url;
+                    // Because of X-Frame-Options, most sites won't load. We'll simulate loading.
+                    iframe.srcdoc = `<div style="display:flex;align-items:center;justify-content:center;height:100%;font-family:sans-serif;flex-direction:column;">
+                        <h1 style="font-size:3rem;color:#333;">Browser Simulation</h1>
+                        <p>Navigating to: <b>${url}</b></p>
+                        <p style="color:red;margin-top:10px;">Note: Real websites cannot be embedded due to security policies.</p>
+                    </div>`;
+                }
+            });
+            return div;
+        }
+        
+        function openPython(win) {
+            const div = document.createElement('div');
+            div.className = 'flex flex-col h-full bg-[#1e1e1e] text-gray-300 font-mono';
+            div.innerHTML = `
+                <div class="flex-1 flex flex-col">
+                    <div class="bg-[#252526] p-2 text-xs flex justify-between">
+                        <span>main.py</span>
+                        <button onclick="runPython('${win.id}')" class="text-green-500 hover:text-green-400">▶ Run</button>
+                    </div>
+                    <textarea id="py-code-${win.id}" class="flex-1 bg-[#1e1e1e] text-white p-4 outline-none resize-none border-none" spellcheck="false">print("Hello World!")\nx = 10\nprint(x * 5)</textarea>
+                </div>
+                <div class="h-1/3 border-t border-gray-700 bg-[#1e1e1e] p-2 overflow-auto" id="py-out-${win.id}">
+                    <div class="text-xs text-gray-500">Output:</div>
+                </div>
+            `;
+            return div;
+        }
+
+        function runPython(id) {
+            const code = document.getElementById(`py-code-${id}`).value;
+            const out = document.getElementById(`py-out-${id}`);
+            out.innerHTML += `<div class="text-green-500">>>> Running...</div>`;
+            
+            // Simple mock interpreter
+            try {
+                // We map print to a local function
+                const logs = [];
+                const mockPrint = (...args) => logs.push(args.join(' '));
+                
+                // Dangerous but functionally requested for simulation
+                // Wrap in scope
+                const f = new Function('print', code);
+                f(mockPrint);
+                
+                logs.forEach(l => {
+                    out.innerHTML += `<div>${l}</div>`;
+                });
+            } catch (e) {
+                out.innerHTML += `<div class="text-red-500">Error: ${e.message}</div>`;
+            }
+            out.scrollTop = out.scrollHeight;
+        }
+
+        // --- SYSTEM UTILS ---
+
+        function updateClock() {
+            const now = new Date();
+            const time = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            const date = now.toLocaleDateString();
+            document.getElementById('clock-time').innerText = time;
+            document.getElementById('clock-date').innerText = date;
+            if(document.getElementById('lock-time')) {
+                document.getElementById('lock-time').innerText = time;
+                document.getElementById('lock-date').innerText = now.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
+            }
+        }
+
+        function toggleStartMenu() {
+            const menu = document.getElementById('start-menu');
+            const isOpen = !menu.classList.contains('hidden');
+            
+            if (isOpen) {
+                menu.classList.remove('opacity-100', 'scale-100');
+                menu.classList.add('opacity-0', 'scale-95');
+                setTimeout(() => menu.classList.add('hidden'), 200);
+            } else {
+                menu.classList.remove('hidden');
+                // Trigger reflow
+                void menu.offsetWidth;
+                menu.classList.remove('opacity-0', 'scale-95');
+                menu.classList.add('opacity-100', 'scale-100');
+                renderStartApps();
+            }
+        }
+
+        function renderDesktopIcons() {
+            const c = document.getElementById('desktop-icons');
+            c.innerHTML = '';
+            for(let key in fs.root.Desktop) {
+                const item = fs.root.Desktop[key];
+                const el = document.createElement('div');
+                el.className = 'desktop-icon text-white drop-shadow-md cursor-pointer';
+                el.innerHTML = `
+                    <div class="text-4xl mb-1">${getIconForType(item)}</div>
+                    <div class="text-xs text-center break-all leading-tight drop-shadow-lg">${key}</div>
+                `;
+                el.onclick = () => {
+                    document.querySelectorAll('.desktop-icon').forEach(i => i.classList.remove('selected'));
+                    el.classList.add('selected');
+                };
+                el.ondblclick = () => openFile('Desktop', key);
+                c.appendChild(el);
+            }
+        }
+
+        function getIconForType(item) {
+            if(item.type === 'folder') return '📁';
+            if(item.content) return '📄';
+            return '❓';
+        }
+
+        function renderTaskbarApps() {
+            const c = document.getElementById('taskbar-apps');
+            // Keep start button
+            const startBtn = c.firstElementChild;
+            c.innerHTML = '';
+            c.appendChild(startBtn);
+
+            // Pinned apps
+            const pinned = ['browser', 'explorer'];
+            pinned.forEach(app => {
+                const btn = document.createElement('div');
+                btn.className = 'w-10 h-10 hover:bg-white/20 rounded-md flex items-center justify-center text-xl transition cursor-pointer ' + apps[app].color;
+                btn.innerHTML = `<i class="fas ${apps[app].icon}"></i>`;
+                btn.onclick = apps[app].action;
+                c.appendChild(btn);
+            });
+
+            // Running apps
+            sys.windows.forEach(win => {
+                const btn = document.createElement('div');
+                btn.className = 'w-10 h-10 bg-white/30 rounded-md flex items-center justify-center text-xl transition cursor-pointer border-b-2 border-blue-400 relative';
+                const appInfo = apps[win.appKey] || {icon:'fa-window-maximize', color:'text-gray-500'};
+                btn.innerHTML = `<i class="fas ${appInfo.icon} ${appInfo.color}"></i>`;
+                if(win.minimized) btn.classList.add('opacity-50');
+                btn.onclick = () => {
+                    if(win.minimized) restoreWindow(win.id);
+                    else minWindow(win.id);
+                };
+                c.appendChild(btn);
+            });
+        }
+        
+        function renderStartApps() {
+            const grid = document.getElementById('start-menu-grid');
+            grid.innerHTML = '';
+            Object.keys(apps).forEach(key => {
+                const app = apps[key];
+                const el = document.createElement('div');
+                el.className = 'flex flex-col items-center gap-2 p-2 hover:bg-white/50 rounded-lg cursor-pointer transition';
+                el.innerHTML = `
+                    <div class="w-10 h-10 flex items-center justify-center text-2xl ${app.color} bg-white rounded shadow-sm"><i class="fas ${app.icon}"></i></div>
+                    <div class="text-[10px] font-medium text-center text-gray-700">${app.title}</div>
+                `;
+                el.onclick = () => {
+                    toggleStartMenu();
+                    app.action();
+                };
+                grid.appendChild(el);
+            });
+        }
+
+        // --- CORE ACTIONS ---
+        function openApp(key) {
+            if(apps[key]) apps[key].action();
+        }
+
+        function openFile(pathName, fileName) {
+            const file = fs.root[pathName][fileName];
+            if(file.type === 'folder') openExplorer(pathName + '/' + fileName);
+            else if(fileName.endsWith('.txt')) {
+                const w = new Window(fileName, 'notepad', openNotepad);
+                // Pre-fill content
+                setTimeout(() => w.el.querySelector('[contenteditable]').innerText = file.content, 100);
+            }
+            // Add other file handlers
+        }
+
+        function openExplorer(pathStr) {
+            new Window('Explorer', 'explorer', (win) => {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'flex flex-col h-full bg-white';
+                
+                // Address Bar & Nav
+                const topBar = document.createElement('div');
+                topBar.className = 'flex items-center gap-2 p-2 border-b bg-gray-50';
+                topBar.innerHTML = `
+                    <button class="text-gray-500 hover:bg-gray-200 px-2 rounded" onclick="navigateExplorer('${win.id}', 'up')"><i class="fas fa-arrow-up"></i></button>
+                    <div class="flex-1 bg-white border px-2 py-1 text-sm rounded flex items-center">
+                        <i class="fas fa-folder text-yellow-500 mr-2"></i>
+                        <span id="path-${win.id}">${pathStr}</span>
+                    </div>
+                    <div class="text-xs text-gray-400" id="count-${win.id}">0 items</div>
+                `;
+                
+                // Content Area
+                const content = document.createElement('div');
+                content.id = `content-${win.id}`;
+                content.className = 'flex-1 p-2 grid grid-cols-4 md:grid-cols-6 auto-rows-min gap-2 overflow-y-auto content-start';
+                
+                wrapper.appendChild(topBar);
+                wrapper.appendChild(content);
+
+                // Initialize state on the window element
+                win.currentPath = pathStr;
+                setTimeout(() => renderExplorerContent(win), 50);
+
+                return wrapper;
+            });
+        }
+
+        function renderExplorerContent(win) {
+            const container = document.getElementById(`content-${win.id}`);
+            const pathDisplay = document.getElementById(`path-${win.id}`);
+            const countDisplay = document.getElementById(`count-${win.id}`);
+            
+            if(!container) return;
+            
+            container.innerHTML = '';
+            pathDisplay.innerText = win.currentPath;
+            
+            const dir = getDir(win.currentPath);
+            if (!dir || dir.type !== 'folder') {
+                container.innerHTML = '<div class="col-span-full text-center text-red-500">Folder not found</div>';
+                return;
+            }
+
+            const items = dir.items || dir; // Handle root special case if needed
+            const keys = Object.keys(items);
+            countDisplay.innerText = `${keys.length} items`;
+
+            keys.forEach(key => {
+                const item = items[key];
+                const el = document.createElement('div');
+                el.className = 'flex flex-col items-center p-2 hover:bg-blue-50 border border-transparent hover:border-blue-100 rounded cursor-pointer group';
+                el.innerHTML = `
+                    <div class="text-3xl mb-1 group-hover:scale-110 transition text-yellow-500">${item.type === 'folder' ? '📁' : (key.endsWith('.png') ? '🖼️' : '📄')}</div>
+                    <div class="text-xs text-center break-all w-full truncate">${key}</div>
+                `;
+                el.ondblclick = () => {
+                    if (item.type === 'folder') {
+                        win.currentPath = win.currentPath === '/' ? win.currentPath + key : win.currentPath + '/' + key;
+                        renderExplorerContent(win);
+                    } else {
+                        openFile(win.currentPath, key);
+                    }
+                };
+                container.appendChild(el);
+            });
+        }
+
+        function navigateExplorer(winId, action) {
+            const win = sys.windows.find(w => w.id === winId);
+            if (!win) return;
+            
+            if (action === 'up') {
+                if (win.currentPath === '/') return;
+                const parts = win.currentPath.split('/');
+                parts.pop();
+                win.currentPath = parts.join('/') || '/';
+                renderExplorerContent(win);
+            }
+        }
+
+        // --- GAME LOGIC ---
+        function launchGame(game) {
+            if (game === 'snake') openSnake();
+            if (game === 'clicker') openClicker();
+        }
+
+        function openSnake() {
+            new Window("Snake", "games", (win) => {
+                const div = document.createElement('div');
+                div.className = "flex flex-col h-full bg-gray-800 items-center justify-center p-4 outline-none";
+                div.tabIndex = 0; // Make focusable for keys
+                div.innerHTML = `
+                    <div class="text-white mb-2">Score: <span id="snake-score-${win.id}">0</span></div>
+                    <canvas id="snake-canvas-${win.id}" width="400" height="400" class="bg-black border border-gray-600"></canvas>
+                    <div class="text-xs text-gray-500 mt-2">Use Arrow Keys</div>
+                `;
+                
+                setTimeout(() => initSnake(win.id, div), 100);
+                return div;
+            });
+        }
+
+        function initSnake(id, container) {
+            const canvas = document.getElementById(`snake-canvas-${id}`);
+            const ctx = canvas.getContext('2d');
+            let score = 0;
+            const box = 20;
+            let snake = [{x: 9 * box, y: 10 * box}];
+            let food = { x: Math.floor(Math.random()*19+1) * box, y: Math.floor(Math.random()*19+1) * box };
+            let d;
+            
+            container.addEventListener('keydown', (e) => {
+                if(e.keyCode == 37 && d != "RIGHT") d = "LEFT";
+                else if(e.keyCode == 38 && d != "DOWN") d = "UP";
+                else if(e.keyCode == 39 && d != "LEFT") d = "RIGHT";
+                else if(e.keyCode == 40 && d != "UP") d = "DOWN";
+            });
+            container.focus();
+
+            const game = setInterval(() => {
+                if(!document.getElementById(`snake-canvas-${id}`)) { clearInterval(game); return; } // Stop if closed
+
+                ctx.fillStyle = "black";
+                ctx.fillRect(0, 0, 400, 400);
+
+                for(let i = 0; i < snake.length; i++){
+                    ctx.fillStyle = (i == 0) ? "green" : "white";
+                    ctx.fillRect(snake[i].x, snake[i].y, box, box);
+                    ctx.strokeStyle = "red";
+                    ctx.strokeRect(snake[i].x, snake[i].y, box, box);
+                }
+
+                ctx.fillStyle = "red";
+                ctx.fillRect(food.x, food.y, box, box);
+
+                let snakeX = snake[0].x;
+                let snakeY = snake[0].y;
+
+                if(d == "LEFT") snakeX -= box;
+                if(d == "UP") snakeY -= box;
+                if(d == "RIGHT") snakeX += box;
+                if(d == "DOWN") snakeY += box;
+
+                if(snakeX == food.x && snakeY == food.y){
+                    score++;
+                    document.getElementById(`snake-score-${id}`).innerText = score;
+                    food = { x: Math.floor(Math.random()*19+1) * box, y: Math.floor(Math.random()*19+1) * box };
+                } else {
+                    snake.pop();
+                }
+
+                let newHead = { x : snakeX, y : snakeY };
+
+                if(snakeX < 0 || snakeX > 380 || snakeY < 0 || snakeY > 380 || collision(newHead, snake)){
+                    clearInterval(game);
+                    alert('Game Over! Score: ' + score);
+                }
+
+                snake.unshift(newHead);
+            }, 100);
+
+            function collision(head, array){
+                for(let i = 0; i < array.length; i++){
+                    if(head.x == array[i].x && head.y == array[i].y){
+                        return true;
+                    }
+                }
+                return false;
+            }
+        }
+
+        function openClicker() {
+            new Window("Clicker", "games", (win) => {
+                const d = document.createElement('div');
+                d.className = "flex flex-col items-center justify-center h-full bg-gradient-to-b from-yellow-200 to-orange-300";
+                d.innerHTML = `
+                    <div class="text-4xl font-bold mb-4" id="clicker-score-${win.id}">0</div>
+                    <button class="w-32 h-32 rounded-full bg-orange-500 shadow-xl active:scale-95 transition text-white font-bold text-xl border-4 border-orange-600" onclick="incrementClicker('${win.id}')">CLICK!</button>
+                    <div class="mt-4 text-sm text-gray-700">Level 1</div>
+                `;
+                return d;
+            });
+        }
+
+        function incrementClicker(id) {
+            const el = document.getElementById(`clicker-score-${id}`);
+            let val = parseInt(el.innerText);
+            el.innerText = val + 1;
+        }
+
+        // --- SOCIAL APPS ---
+        function openTelegram(win) {
+            new Window("Telegram", "telegram", () => {
+                const d = document.createElement('div');
+                d.className = "flex h-full bg-white";
+                d.innerHTML = `
+                    <div class="w-1/3 border-r bg-gray-50 overflow-y-auto">
+                        <div class="p-2 border-b"><input placeholder="Search" class="w-full p-1 border rounded bg-gray-100"></div>
+                        <div class="p-3 hover:bg-white cursor-pointer border-b flex gap-2 items-center">
+                            <div class="w-10 h-10 rounded-full bg-blue-500 text-white flex items-center justify-center">M</div>
+                            <div><div class="font-bold text-sm">Mom</div><div class="text-xs text-gray-500">Hello?</div></div>
+                        </div>
+                        <div class="p-3 hover:bg-white cursor-pointer border-b flex gap-2 items-center">
+                             <div class="w-10 h-10 rounded-full bg-green-500 text-white flex items-center justify-center">D</div>
+                             <div><div class="font-bold text-sm">Dad</div><div class="text-xs text-gray-500">Ok.</div></div>
+                        </div>
+                         <div class="p-3 hover:bg-white cursor-pointer border-b flex gap-2 items-center">
+                             <div class="w-10 h-10 rounded-full bg-blue-400 text-white flex items-center justify-center"><i class="fas fa-robot"></i></div>
+                             <div><div class="font-bold text-sm">Bot Father</div><div class="text-xs text-gray-500">/start</div></div>
+                        </div>
+                    </div>
+                    <div class="flex-1 flex flex-col bg-[#0e1621] text-white">
+                        <div class="p-3 border-b border-gray-700 font-bold">Mom</div>
+                        <div class="flex-1 p-4 overflow-y-auto space-y-2">
+                             <div class="self-start bg-[#182533] p-2 rounded max-w-xs">Hi mom!</div>
+                             <div class="self-start bg-[#182533] p-2 rounded max-w-xs mt-1">How are you?</div>
+                             <div class="self-end bg-[#2b5278] p-2 rounded max-w-xs ml-auto">I'm fine son.</div>
+                        </div>
+                        <div class="p-2 bg-[#17212b] flex gap-2">
+                            <input class="flex-1 bg-black/20 p-2 rounded text-white" placeholder="Message...">
+                            <button class="text-blue-400"><i class="fas fa-paper-plane"></i></button>
+                        </div>
+                    </div>
+                `;
+                return d;
+            });
+        }
+
+        function openWhatsApp() {
+            new Window("WhatsApp", "whatsapp", () => {
+                const d = document.createElement('div');
+                d.className = "flex h-full bg-[#e5ddd5]";
+                d.innerHTML = `
+                    <div class="w-1/3 bg-white border-r flex flex-col">
+                        <div class="bg-[#00a884] p-3 text-white flex justify-between items-center">
+                            <i class="fas fa-user-circle text-2xl"></i>
+                            <div class="flex gap-4"><i class="fas fa-circle-notch"></i><i class="fas fa-comment-alt"></i><i class="fas fa-ellipsis-v"></i></div>
+                        </div>
+                        <div class="p-2 bg-white"><input placeholder="Search or start new chat" class="w-full bg-gray-100 p-2 rounded-lg text-sm"></div>
+                        <div class="flex-1 overflow-y-auto">
+                            <div class="p-3 hover:bg-gray-100 cursor-pointer flex gap-3 border-b">
+                                <div class="w-12 h-12 rounded-full bg-gray-300 flex items-center justify-center"><i class="fas fa-users text-gray-500"></i></div>
+                                <div><div class="font-bold">Family Group</div><div class="text-xs text-gray-500">Photo sent</div></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex-1 flex flex-col relative">
+                        <div class="bg-[#f0f2f5] p-3 border-b flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-full bg-gray-300"></div>
+                            <span>Family Group</span>
+                        </div>
+                        <div class="flex-1 p-4 overflow-y-auto" style="background-image: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png'); opacity: 0.9;">
+                             <div class="bg-white p-2 rounded shadow text-sm max-w-xs mb-2">Hello everyone!</div>
+                        </div>
+                        <div class="p-2 bg-[#f0f2f5] flex items-center gap-2">
+                            <i class="far fa-smile text-gray-500 text-xl"></i>
+                            <i class="fas fa-paperclip text-gray-500 text-xl"></i>
+                            <input class="flex-1 p-2 rounded-lg border-none focus:ring-0" placeholder="Type a message">
+                            <i class="fas fa-microphone text-gray-500 text-xl"></i>
+                        </div>
+                    </div>
+                `;
+                return d;
+            });
+        }
+
+        function openDiscord() {
+             new Window("Discord", "discord", () => {
+                const d = document.createElement('div');
+                d.className = "flex h-full bg-[#36393f] text-gray-200 font-sans";
+                d.innerHTML = `
+                    <div class="w-16 bg-[#202225] flex flex-col items-center py-4 gap-4 overflow-y-auto">
+                        <div class="w-12 h-12 bg-[#5865F2] rounded-2xl flex items-center justify-center text-white cursor-pointer hover:rounded-xl transition-all"><i class="fab fa-discord text-xl"></i></div>
+                        <div class="w-12 h-12 bg-[#36393f] rounded-full flex items-center justify-center hover:bg-green-500 cursor-pointer transition-all hover:rounded-xl"><i class="fas fa-plus"></i></div>
+                    </div>
+                    <div class="w-60 bg-[#2f3136] flex flex-col">
+                        <div class="p-3 shadow-sm font-bold border-b border-[#202225] hover:bg-[#34373c] cursor-pointer">General Server <i class="fas fa-chevron-down float-right text-xs mt-1"></i></div>
+                        <div class="p-2 flex-1 overflow-y-auto">
+                             <div class="text-xs font-bold text-gray-400 uppercase mb-2 px-2">Text Channels</div>
+                             <div class="px-2 py-1 bg-[#393c43] text-white rounded cursor-pointer mb-1"><i class="fas fa-hashtag text-gray-400 mr-1"></i> general</div>
+                             <div class="px-2 py-1 text-gray-400 hover:bg-[#34373c] rounded cursor-pointer"><i class="fas fa-hashtag text-gray-400 mr-1"></i> memes</div>
+                        </div>
+                         <div class="p-2 bg-[#292b2f] flex items-center gap-2">
+                            <div class="w-8 h-8 rounded-full bg-red-500 relative"><div class="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-[#292b2f]"></div></div>
+                            <div class="text-sm font-bold">User <div class="text-xs text-gray-400 font-normal">#1234</div></div>
+                        </div>
+                    </div>
+                    <div class="flex-1 flex flex-col bg-[#36393f]">
+                         <div class="p-3 shadow-sm border-b border-[#202225] font-bold"><i class="fas fa-hashtag text-gray-400 mr-2"></i>general</div>
+                         <div class="flex-1 p-4 overflow-y-auto space-y-4">
+                             <div class="flex gap-3">
+                                 <div class="w-10 h-10 rounded-full bg-yellow-500 flex-shrink-0"></div>
+                                 <div>
+                                     <div class="flex items-baseline gap-2"><span class="font-bold text-white hover:underline cursor-pointer">Friend</span> <span class="text-xs text-gray-400">Today at 12:42 PM</span></div>
+                                     <div class="text-gray-300">Wanna play?</div>
+                                 </div>
+                             </div>
+                         </div>
+                         <div class="p-4 bg-[#36393f]">
+                             <div class="bg-[#40444b] p-2 rounded-lg flex items-center gap-2">
+                                 <i class="fas fa-plus-circle text-gray-400 cursor-pointer"></i>
+                                 <input class="bg-transparent flex-1 outline-none text-white" placeholder="Message #general">
+                                 <div class="flex gap-2 text-gray-400">
+                                     <i class="fas fa-gift cursor-pointer"></i>
+                                     <i class="fas fa-sticky-note cursor-pointer"></i>
+                                     <i class="fas fa-smile cursor-pointer"></i>
+                                 </div>
+                             </div>
+                         </div>
+                    </div>
+                `;
+                return d;
+            });
+        }
+
+        function openWinCodes() {
+             new Window("Win Codes", "wincodes", (win) => {
+                const d = document.createElement('div');
+                d.className = "flex flex-col items-center justify-center h-full bg-gradient-to-r from-purple-500 to-pink-500 text-white";
+                d.innerHTML = `
+                    <h1 class="text-3xl font-bold mb-4">Redeem Codes</h1>
+                    <input id="code-in-${win.id}" type="text" placeholder="Enter Code..." class="text-black px-4 py-2 rounded-full w-64 outline-none mb-4 shadow-lg text-center font-bold uppercase">
+                    <button onclick="checkCode('${win.id}')" class="px-6 py-2 bg-white text-purple-600 font-bold rounded-full hover:bg-gray-100 shadow-xl transition transform hover:scale-105">Redeem</button>
+                    <div id="code-msg-${win.id}" class="mt-4 font-bold h-6"></div>
+                    <div class="mt-8 text-xs opacity-75">Try: HELLO-WORLD, SECRET-99</div>
+                `;
+                return d;
+            });
+        }
+
+        function checkCode(id) {
+            const inp = document.getElementById(`code-in-${id}`);
+            const msg = document.getElementById(`code-msg-${id}`);
+            const code = inp.value.toUpperCase();
+            
+            if(code === 'HELLO-WORLD') {
+                msg.innerText = "Code Redeemed! Created 'Gift.txt' on Desktop.";
+                fs.root.Desktop['Gift.txt'] = { type: 'file', content: "You redeemed HELLO-WORLD!" };
+                renderDesktopIcons();
+            } else if (code === 'SECRET-99') {
+                msg.innerText = "Code Redeemed! unlocked God Mode (fake).";
+            } else {
+                msg.innerText = "Invalid Code.";
+                msg.classList.add('animate-pulse');
+            }
+            inp.value = '';
+        }
+
+        // --- ENHANCED AI ---
+        // Overwrite the previous openAI to support commands
+        apps.chat.action = function openAIExpanded() {
+             new Window("AI Chat Assistant", "chat", (win) => {
+                const d = document.createElement('div');
+                d.className = "flex flex-col h-full";
+                d.innerHTML = `
+                    <div class="flex-1 bg-gray-50 p-4 overflow-y-auto space-y-2" id="ai-chat-${win.id}">
+                        <div class="bg-blue-100 p-2 rounded-lg rounded-tl-none self-start max-w-[80%] text-sm">
+                            I am Alice (AI). I can create files for you.<br>Try: "create folder MyFolder" or "create file test.txt"
+                        </div>
+                    </div>
+                    <div class="p-2 border-t bg-white flex gap-2">
+                        <input type="text" id="ai-in-${win.id}" class="flex-1 border rounded px-2 outline-none focus:border-blue-500" placeholder="Command..." onkeydown="if(event.key==='Enter') aiSend('${win.id}')">
+                        <button onclick="aiSend('${win.id}')" class="bg-blue-500 text-white px-4 rounded hover:bg-blue-600">Send</button>
+                    </div>
+                `;
+                return d;
+            });
+        }
+
+        function aiSend(id) {
+            const inp = document.getElementById(`ai-in-${id}`);
+            const chat = document.getElementById(`ai-chat-${id}`);
+            const text = inp.value.trim();
+            if(!text) return;
+
+            // User msg
+            chat.innerHTML += `<div class="bg-gray-200 p-2 rounded-lg rounded-tr-none self-end ml-auto max-w-[80%] text-sm">${text}</div>`;
+            inp.value = '';
+
+            // Logic
+            setTimeout(() => {
+                let response = "I didn't understand that.";
+                const lower = text.toLowerCase();
+                
+                if(lower.startsWith('create folder ')) {
+                    const name = text.substring(14).trim();
+                    if(name) {
+                        fs.root.Desktop[name] = { type: 'folder', items: {} };
+                        renderDesktopIcons();
+                        response = `Created folder "${name}" on Desktop.`;
+                    }
+                } else if (lower.startsWith('create file ')) {
+                    const name = text.substring(12).trim();
+                    if(name) {
+                        fs.root.Desktop[name] = { type: 'file', content: "" };
+                        renderDesktopIcons();
+                        response = `Created file "${name}" on Desktop.`;
+                    }
+                } else if (lower.includes('hello') || lower.includes('hi')) {
+                    response = "Hello! How can I help you with Windows 12?";
+                } else if (lower.includes('joke')) {
+                    response = "Why did the computer go to the doctor? Because it had a virus!";
+                }
+
+                chat.innerHTML += `<div class="bg-blue-100 p-2 rounded-lg rounded-tl-none self-start max-w-[80%] text-sm">${response}</div>`;
+                chat.scrollTop = chat.scrollHeight;
+            }, 500);
+        }
+
+        // --- UTILITY APPS ---
+        function openTaskManager() {
+             new Window("Task Manager", "taskmanager", (win) => {
+                const d = document.createElement('div');
+                d.className = "flex flex-col h-full bg-white text-sm";
+                d.innerHTML = `
+                    <div class="flex border-b bg-gray-50 font-bold">
+                        <div class="flex-1 p-2 border-r">Task</div>
+                        <div class="w-20 p-2 border-r">Status</div>
+                        <div class="w-24 p-2">Action</div>
+                    </div>
+                    <div class="flex-1 overflow-y-auto" id="tm-list-${win.id}"></div>
+                    <div class="p-2 border-t bg-gray-100 text-xs flex justify-between">
+                        <span id="tm-count-${win.id}">0 processes</span>
+                        <span>CPU: ${Math.floor(Math.random()*20)}%</span>
+                    </div>
+                `;
+                
+                function update() {
+                    if(!document.getElementById(`tm-list-${win.id}`)) return; // Stop if closed
+                    const list = document.getElementById(`tm-list-${win.id}`);
+                    list.innerHTML = '';
+                    document.getElementById(`tm-count-${win.id}`).innerText = sys.windows.length + ' processes';
+                    
+                    sys.windows.forEach(w => {
+                        const row = document.createElement('div');
+                        row.className = "flex border-b items-center hover:bg-blue-50";
+                        const appName = apps[w.appKey]?.title || "Window";
+                        row.innerHTML = `
+                            <div class="flex-1 p-2 flex items-center gap-2">
+                                <i class="fas ${apps[w.appKey]?.icon || 'fa-window-maximize'}"></i> ${appName}
+                            </div>
+                            <div class="w-20 p-2 ${w.minimized ? 'text-gray-400' : 'text-green-600'}">${w.minimized ? 'Sleeping' : 'Running'}</div>
+                            <div class="w-24 p-2"><button onclick="closeWindow('${w.id}')" class="bg-red-500 text-white px-2 rounded text-xs">End Task</button></div>
+                        `;
+                        list.appendChild(row);
+                    });
+                }
+                
+                update();
+                const iv = setInterval(update, 1000);
+                // Attach interval ID to window to clear it later? 
+                // Currently checking element existence in interval loop is enough.
+                return d;
+            });
+        }
+
+        function openTranslator() {
+             new Window("Translator", "translate", () => {
+                const d = document.createElement('div');
+                d.className = "flex flex-col h-full bg-white p-4 gap-4";
+                d.innerHTML = `
+                    <div class="flex gap-4">
+                        <select class="border p-2 rounded flex-1"><option>English</option><option>Russian</option><option>Spanish</option></select>
+                        <i class="fas fa-exchange-alt self-center text-gray-400"></i>
+                        <select class="border p-2 rounded flex-1"><option>Russian</option><option>English</option><option>Spanish</option></select>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4 flex-1">
+                        <textarea class="border p-4 rounded resize-none focus:ring-2 outline-none" placeholder="Enter text..."></textarea>
+                        <div class="bg-gray-100 p-4 rounded border text-gray-700">Translation will appear here...</div>
+                    </div>
+                    <button class="bg-blue-600 text-white py-2 rounded font-bold shadow hover:bg-blue-700">Translate</button>
+                `;
+                return d;
+            });
+        }
+
+        function openRecorder() {
+             new Window("Voice Recorder", "recorder", (win) => {
+                const d = document.createElement('div');
+                d.className = "flex flex-col items-center justify-center h-full bg-[#1e1e1e] text-white";
+                d.innerHTML = `
+                    <div class="text-6xl font-light mb-8" id="rec-time-${win.id}">00:00</div>
+                    <button id="rec-btn-${win.id}" class="w-20 h-20 rounded-full bg-red-500 hover:bg-red-600 flex items-center justify-center text-2xl transition shadow-lg ring-4 ring-red-900" onclick="toggleRecord('${win.id}')">
+                        <i class="fas fa-microphone"></i>
+                    </button>
+                    <div class="mt-8 text-gray-400 text-sm">Recordings saved to Music</div>
+                `;
+                return d;
+            });
+        }
+        
+        let recording = false;
+        let recInterval;
+        function toggleRecord(id) {
+            const btn = document.getElementById(`rec-btn-${id}`);
+            const time = document.getElementById(`rec-time-${id}`);
+            
+            if(!recording) {
+                recording = true;
+                btn.classList.add('animate-pulse');
+                let sec = 0;
+                recInterval = setInterval(() => {
+                    sec++;
+                    const m = Math.floor(sec/60).toString().padStart(2,'0');
+                    const s = (sec%60).toString().padStart(2,'0');
+                    if(time) time.innerText = `${m}:${s}`;
+                }, 1000);
+            } else {
+                recording = false;
+                clearInterval(recInterval);
+                btn.classList.remove('animate-pulse');
+                // Mock save
+                fs.root.Music[`Recording_${Date.now()}.mp3`] = { type: 'file', content: "Audio Data" };
+                alert("Recording saved.");
+                if(time) time.innerText = "00:00";
+            }
+        }
+
+        function openYandexGames() {
+             new Window("Yandex Games", "yandex", () => {
+                const d = document.createElement('div');
+                d.className = "h-full flex flex-col bg-white";
+                d.innerHTML = `
+                    <div class="bg-yellow-400 p-4 font-bold text-xl flex items-center gap-2"><span class="bg-red-600 text-white px-1">Ya</span> Games</div>
+                    <div class="flex-1 overflow-y-auto p-4 grid grid-cols-2 md:grid-cols-3 gap-4 bg-gray-100">
+                        <div class="aspect-square bg-white rounded-xl shadow p-2 flex flex-col cursor-pointer hover:shadow-lg transition">
+                            <img src="https://via.placeholder.com/150/FF0000/FFFFFF?text=Race" class="rounded-lg mb-2 flex-1 object-cover">
+                            <span class="font-bold text-sm">Super Race 3D</span>
+                        </div>
+                         <div class="aspect-square bg-white rounded-xl shadow p-2 flex flex-col cursor-pointer hover:shadow-lg transition">
+                            <img src="https://via.placeholder.com/150/00FF00/000000?text=Puzzle" class="rounded-lg mb-2 flex-1 object-cover">
+                            <span class="font-bold text-sm">Magic Puzzle</span>
+                        </div>
+                        <div class="aspect-square bg-white rounded-xl shadow p-2 flex flex-col cursor-pointer hover:shadow-lg transition">
+                            <img src="https://via.placeholder.com/150/0000FF/FFFFFF?text=Tower" class="rounded-lg mb-2 flex-1 object-cover">
+                            <span class="font-bold text-sm">Tower Defense</span>
+                        </div>
+                    </div>
+                `;
+                return d;
+            });
+        }
+
+        function openCamera(win) {
+            const div = document.createElement('div');
+            div.className = 'bg-black h-full flex flex-col items-center justify-center relative';
+            div.innerHTML = `
+                <video id="cam-${win.id}" autoplay class="h-full w-full object-cover"></video>
+                <button class="absolute bottom-4 w-12 h-12 bg-white rounded-full border-4 border-gray-300 hover:bg-gray-200 transition" onclick="snap('${win.id}')"></button>
+            `;
+            // Simple Gum
+            navigator.mediaDevices.getUserMedia({ video: true })
+                .then(stream => {
+                    const vid = div.querySelector('video');
+                    vid.srcObject = stream;
+                    win.stream = stream; // store to stop later
+                })
+                .catch(e => div.innerHTML = '<div class="text-white">Camera not available</div>');
+            
+            // Cleanup on close
+            const originalClose = document.querySelector(`button[onclick="closeWindow('${win.id}')"]`);
+            // This is a bit hacky due to dynamic html strings, better to use proper event binding in real app
+            return div;
+        }
+
+        function openYouTube(win) {
+            new Window("YouTube", "youtube", () => {
+                const d = document.createElement('div');
+                d.className = "flex flex-col h-full bg-[#0f0f0f] text-white";
+                
+                // Header
+                const header = document.createElement('div');
+                header.className = "h-14 flex items-center px-4 bg-[#0f0f0f] border-b border-[#272727]";
+                header.innerHTML = '<i class="fab fa-youtube text-red-600 text-2xl mr-1"></i> <span class="font-bold tracking-tighter">YouTube</span><div class="flex-1 mx-8"><input placeholder="Search" class="bg-[#121212] border border-[#303030] px-3 py-1 rounded-full w-full max-w-md"></div>';
+                d.appendChild(header);
+
+                // Content
+                const content = document.createElement('div');
+                content.className = "flex-1 overflow-y-auto p-4 grid grid-cols-1 md:grid-cols-2 gap-4";
+                
+                const videos = [
+                    { title: "Big Buck Bunny", url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4" },
+                    { title: "Elephant Dream", url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4" },
+                    { title: "For Bigger Blazes", url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4" },
+                    { title: "For Bigger Escapes", url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4" }
+                ];
+
+                videos.forEach(v => {
+                    const el = document.createElement('div');
+                    el.className = "flex flex-col gap-2 cursor-pointer group";
+                    el.innerHTML = `
+                        <div class="aspect-video bg-gray-800 rounded-lg overflow-hidden relative">
+                            <video src="${v.url}" class="w-full h-full object-cover"></video>
+                            <div class="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition flex items-center justify-center"><i class="fas fa-play text-white opacity-0 group-hover:opacity-100 text-4xl drop-shadow-lg"></i></div>
+                        </div>
+                        <div>
+                            <div class="font-bold text-sm line-clamp-2">${v.title}</div>
+                            <div class="text-xs text-gray-400">Windows 12 Official • 1M views</div>
+                        </div>
+                    `;
+                    el.onclick = () => {
+                        // Play in a cinema mode overlay or maximize
+                        const vid = el.querySelector('video');
+                        if (vid.paused) vid.play(); else vid.pause();
+                    };
+                    content.appendChild(el);
+                });
+                
+                d.appendChild(content);
+                return d;
+            });
+        }
+
+        function openMinecraft() {
+            new Window("Minecraft Classic", "minecraft", (win) => {
+                const d = document.createElement('div');
+                d.innerHTML = `<div class="w-full h-full bg-blue-300 flex items-center justify-center text-white font-bold text-2xl shadow-inner">
+                    Minecraft Canvas Area
+                    <br><span class="text-sm">(Placeholder for Canvas Game)</span>
+                </div>`;
+                return d;
+            });
+        }
+
+        function openTrash() {
+             new Window("Recycle Bin", "trash", () => {
+                const d = document.createElement('div');
+                d.className = "p-4";
+                d.innerHTML = "<div class='text-gray-500'>Recycle Bin is empty. <button class='text-blue-500' onclick='this.parentElement.innerHTML=\"Cleaned!\"'>Empty Bin</button></div>";
+                return d;
+            });
+        }
+        
+        function openCalculator(win) {
+            const d = document.createElement('div');
+            d.className = "h-full bg-gray-100 p-2 flex flex-col";
+            d.innerHTML = `
+                <input type="text" id="calc-disp-${win.id}" class="w-full text-right text-2xl p-2 mb-2 bg-white rounded shadow-inner" readonly>
+                <div class="grid grid-cols-4 gap-1 flex-1">
+                    <button class="bg-white hover:bg-gray-50 rounded shadow" onclick="calcIn('${win.id}', '7')">7</button>
+                    <button class="bg-white hover:bg-gray-50 rounded shadow" onclick="calcIn('${win.id}', '8')">8</button>
+                    <button class="bg-white hover:bg-gray-50 rounded shadow" onclick="calcIn('${win.id}', '9')">9</button>
+                    <button class="bg-orange-100 hover:bg-orange-200 rounded shadow" onclick="calcIn('${win.id}', '/')">/</button>
+                    
+                    <button class="bg-white hover:bg-gray-50 rounded shadow" onclick="calcIn('${win.id}', '4')">4</button>
+                    <button class="bg-white hover:bg-gray-50 rounded shadow" onclick="calcIn('${win.id}', '5')">5</button>
+                    <button class="bg-white hover:bg-gray-50 rounded shadow" onclick="calcIn('${win.id}', '6')">6</button>
+                    <button class="bg-orange-100 hover:bg-orange-200 rounded shadow" onclick="calcIn('${win.id}', '*')">*</button>
+                    
+                    <button class="bg-white hover:bg-gray-50 rounded shadow" onclick="calcIn('${win.id}', '1')">1</button>
+                    <button class="bg-white hover:bg-gray-50 rounded shadow" onclick="calcIn('${win.id}', '2')">2</button>
+                    <button class="bg-white hover:bg-gray-50 rounded shadow" onclick="calcIn('${win.id}', '3')">3</button>
+                    <button class="bg-orange-100 hover:bg-orange-200 rounded shadow" onclick="calcIn('${win.id}', '-')">-</button>
+                    
+                    <button class="bg-white hover:bg-gray-50 rounded shadow" onclick="calcIn('${win.id}', '0')">0</button>
+                    <button class="bg-white hover:bg-gray-50 rounded shadow" onclick="calcIn('${win.id}', '.')">.</button>
+                    <button class="bg-green-100 hover:bg-green-200 rounded shadow col-span-1" onclick="calcEval('${win.id}')">=</button>
+                    <button class="bg-orange-100 hover:bg-orange-200 rounded shadow" onclick="calcIn('${win.id}', '+')">+</button>
+                </div>
+            `;
+            return d;
+        }
+        
+        function calcIn(id, v) { document.getElementById('calc-disp-'+id).value += v; }
+        function calcEval(id) { 
+            try { 
+                const f = document.getElementById('calc-disp-'+id); 
+                f.value = eval(f.value); 
+            } catch(e) { 
+                document.getElementById('calc-disp-'+id).value = 'Error'; 
+            }
+        }
+
+        function openAI() {
+             new Window("AI Chat Assistant", "chat", () => {
+                const d = document.createElement('div');
+                d.className = "flex flex-col h-full";
+                d.innerHTML = `
+                    <div class="flex-1 bg-gray-50 p-4 overflow-y-auto" id="ai-chat">
+                        <div class="bg-blue-100 p-2 rounded-lg rounded-tl-none self-start mb-2 max-w-[80%]">
+                            Hello! I am your AI assistant in Windows 12. I can help you create files or answer questions.
+                        </div>
+                    </div>
+                    <div class="p-2 border-t bg-white flex gap-2">
+                        <input type="text" class="flex-1 border rounded px-2" placeholder="Ask AI...">
+                        <button class="bg-blue-500 text-white px-4 rounded">Send</button>
+                    </div>
+                `;
+                return d;
+            });
+        }
+
+        function openTV() {
+            new Window("Windows TV", "tv", () => {
+                const d = document.createElement('div');
+                d.className = "bg-black h-full flex flex-col";
+                d.innerHTML = `
+                    <div class="flex-1 relative bg-black">
+                        <video id="tv-screen" src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4" class="w-full h-full object-contain" loop controls></video>
+                        <div class="absolute top-4 right-4 text-white/50 font-mono text-xl font-bold">LIVE</div>
+                    </div>
+                    <div class="h-16 bg-gray-900 flex items-center px-4 gap-4 overflow-x-auto">
+                        <div class="text-white font-bold whitespace-nowrap px-4 py-2 bg-blue-600 rounded cursor-pointer">CH 1: Movies</div>
+                        <div class="text-gray-400 font-bold whitespace-nowrap px-4 py-2 hover:bg-gray-800 rounded cursor-pointer" onclick="document.getElementById('tv-screen').src='https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4';document.getElementById('tv-screen').play()">CH 2: Anime</div>
+                        <div class="text-gray-400 font-bold whitespace-nowrap px-4 py-2 hover:bg-gray-800 rounded cursor-pointer" onclick="document.getElementById('tv-screen').src='https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/VolkswagenGTIReview.mp4';document.getElementById('tv-screen').play()">CH 3: Auto</div>
+                    </div>
+                `;
+                return d;
+            });
+        }
+        
+        function openGames() {
+             new Window("Games Hub", "games", () => {
+                const d = document.createElement('div');
+                d.className = "grid grid-cols-3 gap-4 p-4 bg-gray-900 h-full overflow-y-auto";
+                d.innerHTML = `
+                    <div class="bg-green-600 aspect-square rounded flex items-center justify-center text-white font-bold cursor-pointer hover:scale-105 transition" onclick="launchGame('snake')">Snake</div>
+                    <div class="bg-yellow-600 aspect-square rounded flex items-center justify-center text-white font-bold cursor-pointer hover:scale-105 transition" onclick="launchGame('clicker')">Clicker</div>
+                    <div class="bg-red-600 aspect-square rounded flex items-center justify-center text-white font-bold cursor-pointer hover:scale-105 transition">Roblox (Sim)</div>
+                `;
+                return d;
+            });
+        }
+
+        // --- GLOBAL FUNCS ---
+        function changeTheme(t) {
+            sys.theme = t;
+            if(t==='dark') document.documentElement.classList.add('dark');
+            else document.documentElement.classList.remove('dark');
+        }
+
+        function moveTaskbar(pos) {
+            sys.taskbarPos = pos;
+            const tb = document.getElementById('taskbar');
+            tb.className = `absolute glass z-30 flex items-center justify-between px-4 transition-all duration-300 taskbar-${pos}`;
+        }
+
+        function triggerBSOD() {
+            document.getElementById('bsod').style.display = 'block';
+            let t = 5;
+            const iv = setInterval(() => {
+                t--;
+                document.getElementById('bsod-timer').innerText = t;
+                if(t<=0) {
+                    clearInterval(iv);
+                    location.reload();
+                }
+            }, 1000);
+        }
+
+    </script>
+</body>
+</html>

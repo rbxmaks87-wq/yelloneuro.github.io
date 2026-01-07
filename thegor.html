@@ -1,0 +1,2550 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Civilization - Browser Edition</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #0a0a0f;
+            color: #e0d5c0;
+            overflow: hidden;
+            user-select: none;
+        }
+        #gameContainer { position: relative; width: 100vw; height: 100vh; }
+        #gameCanvas { display: block; }
+        
+        /* Main Menu */
+        #mainMenu {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        #mainMenu.hidden { display: none; }
+        .menu-title {
+            font-size: 4rem;
+            font-weight: bold;
+            color: #ffd700;
+            text-shadow: 0 0 30px rgba(255, 215, 0, 0.5);
+            margin-bottom: 0.5rem;
+            letter-spacing: 0.3rem;
+        }
+        .menu-subtitle {
+            font-size: 1.2rem;
+            color: #a0a0a0;
+            margin-bottom: 3rem;
+        }
+        .menu-btn {
+            width: 280px;
+            padding: 15px 30px;
+            margin: 8px;
+            font-size: 1.1rem;
+            background: linear-gradient(180deg, #3a3a5c 0%, #2a2a4c 100%);
+            border: 2px solid #5a5a7a;
+            color: #e0d5c0;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        .menu-btn:hover {
+            background: linear-gradient(180deg, #4a4a6c 0%, #3a3a5c 100%);
+            border-color: #ffd700;
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+            transform: scale(1.02);
+        }
+        
+        /* Setup Panel */
+        #setupPanel {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(20, 20, 40, 0.98);
+            border: 2px solid #5a5a7a;
+            padding: 30px;
+            border-radius: 10px;
+            z-index: 1001;
+            min-width: 500px;
+        }
+        #setupPanel.hidden { display: none; }
+        .setup-title { font-size: 1.8rem; color: #ffd700; margin-bottom: 20px; text-align: center; }
+        .setup-row { margin: 15px 0; display: flex; align-items: center; justify-content: space-between; }
+        .setup-label { font-size: 1rem; color: #c0c0c0; }
+        .setup-select {
+            padding: 8px 15px;
+            background: #2a2a4c;
+            border: 1px solid #5a5a7a;
+            color: #e0d5c0;
+            font-size: 1rem;
+            min-width: 200px;
+        }
+        
+        /* Settings Panel */
+        #settingsPanel {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(20, 20, 40, 0.98);
+            border: 2px solid #5a5a7a;
+            padding: 25px;
+            border-radius: 10px;
+            z-index: 1002;
+            min-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        #settingsPanel.hidden { display: none; }
+        .settings-tabs { display: flex; border-bottom: 2px solid #5a5a7a; margin-bottom: 20px; }
+        .settings-tab {
+            padding: 12px 25px;
+            background: transparent;
+            border: none;
+            color: #a0a0a0;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.3s;
+        }
+        .settings-tab.active { color: #ffd700; border-bottom: 2px solid #ffd700; margin-bottom: -2px; }
+        .settings-tab:hover { color: #ffd700; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .setting-group { margin: 15px 0; }
+        .setting-group label { display: block; margin-bottom: 8px; color: #c0c0c0; }
+        .setting-group input[type="range"] { width: 100%; }
+        .setting-group select, .setting-group input[type="text"] {
+            width: 100%;
+            padding: 8px;
+            background: #2a2a4c;
+            border: 1px solid #5a5a7a;
+            color: #e0d5c0;
+        }
+        .setting-row { display: flex; justify-content: space-between; align-items: center; margin: 10px 0; }
+        .toggle-switch {
+            width: 50px; height: 26px;
+            background: #3a3a5c;
+            border-radius: 13px;
+            position: relative;
+            cursor: pointer;
+        }
+        .toggle-switch.active { background: #4a7a4a; }
+        .toggle-switch::after {
+            content: '';
+            position: absolute;
+            width: 22px; height: 22px;
+            background: #e0d5c0;
+            border-radius: 50%;
+            top: 2px; left: 2px;
+            transition: 0.3s;
+        }
+        .toggle-switch.active::after { left: 26px; }
+        .hotkey-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #3a3a5c; }
+        .hotkey-btn {
+            padding: 5px 15px;
+            background: #3a3a5c;
+            border: 1px solid #5a5a7a;
+            color: #e0d5c0;
+            cursor: pointer;
+            min-width: 80px;
+        }
+        
+        /* HUD */
+        #hud { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
+        #hud.hidden { display: none; }
+        #hud > * { pointer-events: auto; }
+        
+        /* Top Bar */
+        #topBar {
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 50px;
+            background: linear-gradient(180deg, rgba(30, 30, 50, 0.95) 0%, rgba(20, 20, 40, 0.9) 100%);
+            border-bottom: 2px solid #5a5a7a;
+            display: flex;
+            align-items: center;
+            padding: 0 15px;
+        }
+        .civ-emblem {
+            width: 40px; height: 40px;
+            background: linear-gradient(135deg, #ffd700, #ff8c00);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            margin-right: 15px;
+        }
+        .resource-display {
+            display: flex;
+            align-items: center;
+            margin: 0 15px;
+            padding: 5px 12px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 5px;
+        }
+        .resource-icon { font-size: 1.2rem; margin-right: 8px; }
+        .resource-value { font-size: 1rem; color: #ffd700; }
+        .resource-change { font-size: 0.8rem; color: #7a7; margin-left: 5px; }
+        #turnCounter {
+            margin-left: auto;
+            font-size: 1.1rem;
+            color: #c0c0c0;
+        }
+        #endTurnBtn {
+            padding: 8px 25px;
+            margin-left: 15px;
+            background: linear-gradient(180deg, #5a7a3a 0%, #4a6a2a 100%);
+            border: 2px solid #7a9a5a;
+            color: #fff;
+            font-size: 1rem;
+            cursor: pointer;
+            text-transform: uppercase;
+        }
+        #endTurnBtn:hover { background: linear-gradient(180deg, #6a8a4a 0%, #5a7a3a 100%); }
+        #speedControls { margin-left: 15px; display: flex; gap: 5px; }
+        .speed-btn {
+            padding: 5px 10px;
+            background: #3a3a5c;
+            border: 1px solid #5a5a7a;
+            color: #a0a0a0;
+            cursor: pointer;
+        }
+        .speed-btn.active { background: #5a5a7c; color: #ffd700; }
+        
+        /* Left Panel */
+        #leftPanel {
+            position: absolute;
+            left: 0;
+            top: 60px;
+            width: 280px;
+            background: rgba(20, 20, 40, 0.9);
+            border-right: 2px solid #5a5a7a;
+            padding: 15px;
+            max-height: calc(100% - 120px);
+            overflow-y: auto;
+        }
+        .panel-section { margin-bottom: 20px; }
+        .panel-title {
+            font-size: 1rem;
+            color: #ffd700;
+            border-bottom: 1px solid #5a5a7a;
+            padding-bottom: 8px;
+            margin-bottom: 10px;
+        }
+        .action-btn {
+            width: 100%;
+            padding: 10px;
+            margin: 5px 0;
+            background: linear-gradient(180deg, #3a3a5c 0%, #2a2a4c 100%);
+            border: 1px solid #5a5a7a;
+            color: #e0d5c0;
+            cursor: pointer;
+            text-align: left;
+            display: flex;
+            align-items: center;
+        }
+        .action-btn:hover { border-color: #ffd700; }
+        .action-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .action-icon { margin-right: 10px; font-size: 1.2rem; }
+        
+        /* Right Panel */
+        #rightPanel {
+            position: absolute;
+            right: 0;
+            top: 60px;
+            width: 280px;
+            background: rgba(20, 20, 40, 0.9);
+            border-left: 2px solid #5a5a7a;
+            padding: 15px;
+            max-height: calc(100% - 120px);
+            overflow-y: auto;
+        }
+        .diplo-item {
+            display: flex;
+            align-items: center;
+            padding: 8px;
+            margin: 5px 0;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 5px;
+        }
+        .diplo-emblem {
+            width: 30px; height: 30px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+        .diplo-status { font-size: 0.8rem; margin-left: auto; }
+        .diplo-status.peace { color: #7a7; }
+        .diplo-status.war { color: #a55; }
+        
+        /* Bottom Bar */
+        #bottomBar {
+            position: absolute;
+            bottom: 0; left: 0; right: 0;
+            height: 60px;
+            background: linear-gradient(0deg, rgba(30, 30, 50, 0.95) 0%, rgba(20, 20, 40, 0.9) 100%);
+            border-top: 2px solid #5a5a7a;
+            display: flex;
+            align-items: center;
+            padding: 0 15px;
+        }
+        #minimap {
+            width: 150px; height: 50px;
+            background: #1a1a2e;
+            border: 1px solid #5a5a7a;
+            border-radius: 5px;
+        }
+        #notifications {
+            flex: 1;
+            margin: 0 20px;
+            display: flex;
+            gap: 10px;
+            overflow-x: auto;
+        }
+        .notification {
+            padding: 8px 15px;
+            background: rgba(100, 100, 50, 0.3);
+            border: 1px solid #7a7a5a;
+            border-radius: 5px;
+            white-space: nowrap;
+            font-size: 0.9rem;
+        }
+        #quickActions { display: flex; gap: 10px; }
+        .quick-btn {
+            padding: 10px 15px;
+            background: #3a3a5c;
+            border: 1px solid #5a5a7a;
+            color: #c0c0c0;
+            cursor: pointer;
+        }
+        .quick-btn:hover { border-color: #ffd700; color: #ffd700; }
+        
+        /* Selection Info Panel */
+        #selectionPanel {
+            position: absolute;
+            bottom: 70px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(20, 20, 40, 0.95);
+            border: 2px solid #5a5a7a;
+            padding: 15px 25px;
+            border-radius: 10px;
+            min-width: 300px;
+            text-align: center;
+        }
+        #selectionPanel.hidden { display: none; }
+        .selection-title { font-size: 1.2rem; color: #ffd700; margin-bottom: 10px; }
+        .selection-stats { display: flex; justify-content: center; gap: 20px; margin: 10px 0; }
+        .stat-item { text-align: center; }
+        .stat-value { font-size: 1.3rem; color: #fff; }
+        .stat-label { font-size: 0.8rem; color: #a0a0a0; }
+        .selection-actions { display: flex; gap: 10px; justify-content: center; margin-top: 10px; }
+        
+        /* Tech Tree Panel */
+        #techTreePanel {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(15, 15, 35, 0.98);
+            border: 2px solid #5a5a7a;
+            padding: 25px;
+            border-radius: 10px;
+            z-index: 1003;
+            width: 80%;
+            max-width: 1000px;
+            max-height: 80vh;
+            overflow: auto;
+        }
+        #techTreePanel.hidden { display: none; }
+        .tech-era { margin-bottom: 25px; }
+        .era-title { font-size: 1.3rem; color: #ffd700; margin-bottom: 15px; border-bottom: 1px solid #5a5a7a; padding-bottom: 5px; }
+        .tech-grid { display: flex; flex-wrap: wrap; gap: 10px; }
+        .tech-item {
+            padding: 12px 18px;
+            background: #2a2a4c;
+            border: 2px solid #5a5a7a;
+            border-radius: 5px;
+            cursor: pointer;
+            min-width: 140px;
+            text-align: center;
+        }
+        .tech-item.researched { background: #3a5a3a; border-color: #5a8a5a; }
+        .tech-item.current { background: #5a5a3a; border-color: #9a9a5a; animation: pulse 1.5s infinite; }
+        .tech-item.available:hover { border-color: #ffd700; }
+        .tech-item.locked { opacity: 0.5; cursor: not-allowed; }
+        .tech-name { font-size: 0.9rem; color: #e0d5c0; }
+        .tech-cost { font-size: 0.8rem; color: #7af; margin-top: 5px; }
+        @keyframes pulse { 0%, 100% { box-shadow: 0 0 5px #ffd700; } 50% { box-shadow: 0 0 20px #ffd700; } }
+        
+        /* City Panel */
+        #cityPanel {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(15, 15, 35, 0.98);
+            border: 2px solid #5a5a7a;
+            padding: 25px;
+            border-radius: 10px;
+            z-index: 1003;
+            min-width: 600px;
+        }
+        #cityPanel.hidden { display: none; }
+        .city-header { display: flex; align-items: center; margin-bottom: 20px; }
+        .city-name { font-size: 1.5rem; color: #ffd700; flex: 1; }
+        .city-pop { font-size: 1.2rem; color: #c0c0c0; }
+        .city-yields { display: flex; gap: 20px; margin-bottom: 20px; padding: 15px; background: rgba(0,0,0,0.3); border-radius: 5px; }
+        .yield-item { text-align: center; }
+        .yield-icon { font-size: 1.5rem; }
+        .yield-value { font-size: 1.1rem; color: #fff; }
+        .production-section { margin-top: 20px; }
+        .production-queue { display: flex; gap: 10px; margin-bottom: 15px; }
+        .queue-item { padding: 10px; background: #3a3a5c; border: 1px solid #5a5a7a; border-radius: 5px; }
+        .build-options { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+        .build-option {
+            padding: 12px;
+            background: #2a2a4c;
+            border: 2px solid #5a5a7a;
+            border-radius: 5px;
+            cursor: pointer;
+            text-align: center;
+        }
+        .build-option:hover { border-color: #ffd700; }
+        .build-option.disabled { opacity: 0.5; cursor: not-allowed; }
+        .build-name { font-size: 0.9rem; }
+        .build-cost { font-size: 0.8rem; color: #fa5; }
+        
+        /* Close Button */
+        .close-btn {
+            position: absolute;
+            top: 10px; right: 15px;
+            font-size: 1.5rem;
+            color: #a0a0a0;
+            cursor: pointer;
+            background: none;
+            border: none;
+        }
+        .close-btn:hover { color: #ffd700; }
+        
+        /* Pause Menu */
+        #pauseMenu {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(20, 20, 40, 0.98);
+            border: 2px solid #5a5a7a;
+            padding: 30px;
+            border-radius: 10px;
+            z-index: 1005;
+            text-align: center;
+        }
+        #pauseMenu.hidden { display: none; }
+        
+        /* Tooltips */
+        .tooltip {
+            position: absolute;
+            background: rgba(10, 10, 30, 0.95);
+            border: 1px solid #5a5a7a;
+            padding: 10px 15px;
+            border-radius: 5px;
+            font-size: 0.9rem;
+            max-width: 250px;
+            z-index: 2000;
+            pointer-events: none;
+        }
+        
+        /* Victory Screen */
+        #victoryScreen {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+        #victoryScreen.hidden { display: none; }
+        .victory-title {
+            font-size: 3rem;
+            color: #ffd700;
+            text-shadow: 0 0 30px rgba(255, 215, 0, 0.5);
+            margin-bottom: 20px;
+        }
+        .victory-type { font-size: 1.5rem; color: #c0c0c0; margin-bottom: 30px; }
+        
+        /* Loading Screen */
+        #loadingScreen {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: #0a0a0f;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 3000;
+        }
+        #loadingScreen.hidden { display: none; }
+        .loading-text { font-size: 1.5rem; color: #ffd700; margin-bottom: 20px; }
+        .loading-bar {
+            width: 300px; height: 10px;
+            background: #2a2a4c;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        .loading-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ffd700, #ff8c00);
+            width: 0%;
+            transition: width 0.3s;
+        }
+        
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #1a1a2e; }
+        ::-webkit-scrollbar-thumb { background: #5a5a7a; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #7a7a9a; }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <canvas id="gameCanvas"></canvas>
+        
+        <!-- Loading Screen -->
+        <div id="loadingScreen">
+            <div class="loading-text">Loading Civilization...</div>
+            <div class="loading-bar"><div class="loading-fill" id="loadingFill"></div></div>
+        </div>
+        
+        <!-- Main Menu -->
+        <div id="mainMenu" class="hidden">
+            <h1 class="menu-title">CIVILIZATION</h1>
+            <p class="menu-subtitle">Browser Edition</p>
+            <button class="menu-btn" onclick="showSetup()">New Game</button>
+            <button class="menu-btn" onclick="loadGame()">Load Game</button>
+            <button class="menu-btn" onclick="showTutorial()">Tutorial</button>
+            <button class="menu-btn" onclick="showSettings()">Settings</button>
+            <button class="menu-btn" onclick="showCredits()">Credits</button>
+        </div>
+        
+        <!-- Game Setup -->
+        <div id="setupPanel" class="hidden">
+            <button class="close-btn" onclick="hideSetup()">×</button>
+            <h2 class="setup-title">New Game Setup</h2>
+            <div class="setup-row">
+                <span class="setup-label">Civilization</span>
+                <select class="setup-select" id="civSelect">
+                    <option value="rome">Rome - Trajan</option>
+                    <option value="greece">Greece - Pericles</option>
+                    <option value="egypt">Egypt - Cleopatra</option>
+                    <option value="china">China - Qin Shi Huang</option>
+                    <option value="england">England - Victoria</option>
+                    <option value="japan">Japan - Hojo Tokimune</option>
+                </select>
+            </div>
+            <div class="setup-row">
+                <span class="setup-label">Map Size</span>
+                <select class="setup-select" id="mapSizeSelect">
+                    <option value="tiny">Tiny (40 tiles)</option>
+                    <option value="small" selected>Small (60 tiles)</option>
+                    <option value="standard">Standard (80 tiles)</option>
+                    <option value="large">Large (120 tiles)</option>
+                </select>
+            </div>
+            <div class="setup-row">
+                <span class="setup-label">Difficulty</span>
+                <select class="setup-select" id="difficultySelect">
+                    <option value="settler">Settler</option>
+                    <option value="chieftain">Chieftain</option>
+                    <option value="warlord" selected>Warlord</option>
+                    <option value="prince">Prince</option>
+                    <option value="king">King</option>
+                    <option value="emperor">Emperor</option>
+                    <option value="deity">Deity</option>
+                </select>
+            </div>
+            <div class="setup-row">
+                <span class="setup-label">AI Opponents</span>
+                <select class="setup-select" id="aiCountSelect">
+                    <option value="1">1</option>
+                    <option value="2" selected>2</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                </select>
+            </div>
+            <div class="setup-row">
+                <span class="setup-label">Game Speed</span>
+                <select class="setup-select" id="gameSpeedSelect">
+                    <option value="quick">Quick</option>
+                    <option value="standard" selected>Standard</option>
+                    <option value="epic">Epic</option>
+                    <option value="marathon">Marathon</option>
+                </select>
+            </div>
+            <button class="menu-btn" style="margin-top: 20px;" onclick="startGame()">Start Game</button>
+        </div>
+        
+        <!-- Settings Panel -->
+        <div id="settingsPanel" class="hidden">
+            <button class="close-btn" onclick="hideSettings()">×</button>
+            <h2 class="setup-title">Settings</h2>
+            <div class="settings-tabs">
+                <button class="settings-tab active" onclick="switchSettingsTab('display')">Display</button>
+                <button class="settings-tab" onclick="switchSettingsTab('audio')">Audio</button>
+                <button class="settings-tab" onclick="switchSettingsTab('graphics')">Graphics</button>
+                <button class="settings-tab" onclick="switchSettingsTab('controls')">Controls</button>
+            </div>
+            
+            <!-- Display Tab -->
+            <div id="tab-display" class="tab-content active">
+                <div class="setting-group">
+                    <label>Resolution</label>
+                    <select id="setting-resolution" onchange="updateSetting('resolution', this.value)">
+                        <option value="auto">Auto</option>
+                        <option value="1280x720">1280×720</option>
+                        <option value="1920x1080">1920×1080</option>
+                        <option value="2560x1440">2560×1440</option>
+                    </select>
+                </div>
+                <div class="setting-group">
+                    <label>Aspect Ratio</label>
+                    <select id="setting-aspectRatio" onchange="updateSetting('aspectRatio', this.value)">
+                        <option value="16:9">16:9</option>
+                        <option value="21:9">21:9 (Ultrawide)</option>
+                    </select>
+                </div>
+                <div class="setting-group">
+                    <label>UI Scale: <span id="uiScaleValue">100%</span></label>
+                    <input type="range" min="75" max="150" value="100" id="setting-uiScale" onchange="updateSetting('uiScale', this.value)">
+                </div>
+                <div class="setting-row">
+                    <span>Fullscreen</span>
+                    <div class="toggle-switch" id="setting-fullscreen" onclick="toggleSetting('fullscreen')"></div>
+                </div>
+                <div class="setting-row">
+                    <span>V-Sync</span>
+                    <div class="toggle-switch active" id="setting-vsync" onclick="toggleSetting('vsync')"></div>
+                </div>
+                <div class="setting-group">
+                    <label>FOV: <span id="fovValue">75°</span></label>
+                    <input type="range" min="60" max="90" value="75" id="setting-fov" onchange="updateSetting('fov', this.value)">
+                </div>
+            </div>
+            
+            <!-- Audio Tab -->
+            <div id="tab-audio" class="tab-content">
+                <div class="setting-group">
+                    <label>Master Volume: <span id="masterVolValue">80%</span></label>
+                    <input type="range" min="0" max="100" value="80" id="setting-masterVol" onchange="updateSetting('masterVol', this.value)">
+                </div>
+                <div class="setting-group">
+                    <label>Music Volume: <span id="musicVolValue">70%</span></label>
+                    <input type="range" min="0" max="100" value="70" id="setting-musicVol" onchange="updateSetting('musicVol', this.value)">
+                </div>
+                <div class="setting-group">
+                    <label>SFX Volume: <span id="sfxVolValue">80%</span></label>
+                    <input type="range" min="0" max="100" value="80" id="setting-sfxVol" onchange="updateSetting('sfxVol', this.value)">
+                </div>
+                <div class="setting-group">
+                    <label>Voice Volume: <span id="voiceVolValue">90%</span></label>
+                    <input type="range" min="0" max="100" value="90" id="setting-voiceVol" onchange="updateSetting('voiceVol', this.value)">
+                </div>
+                <div class="setting-row">
+                    <span>Mute When Inactive</span>
+                    <div class="toggle-switch active" id="setting-muteInactive" onclick="toggleSetting('muteInactive')"></div>
+                </div>
+            </div>
+            
+            <!-- Graphics Tab -->
+            <div id="tab-graphics" class="tab-content">
+                <div class="setting-group">
+                    <label>Quality Preset</label>
+                    <select id="setting-quality" onchange="updateSetting('quality', this.value)">
+                        <option value="low">Low</option>
+                        <option value="medium">Medium</option>
+                        <option value="high" selected>High</option>
+                        <option value="ultra">Ultra</option>
+                    </select>
+                </div>
+                <div class="setting-group">
+                    <label>Shadows</label>
+                    <select id="setting-shadows" onchange="updateSetting('shadows', this.value)">
+                        <option value="off">Off</option>
+                        <option value="low">Low</option>
+                        <option value="medium">Medium</option>
+                        <option value="high" selected>High</option>
+                    </select>
+                </div>
+                <div class="setting-group">
+                    <label>Post-Processing</label>
+                    <select id="setting-postProcess" onchange="updateSetting('postProcess', this.value)">
+                        <option value="off">Off</option>
+                        <option value="basic">Basic (SSAO)</option>
+                        <option value="ultra" selected>Ultra (Bloom+SSAO)</option>
+                    </select>
+                </div>
+                <div class="setting-group">
+                    <label>LOD Bias: <span id="lodValue">0</span></label>
+                    <input type="range" min="-1" max="2" value="0" id="setting-lod" onchange="updateSetting('lod', this.value)">
+                </div>
+                <div class="setting-group">
+                    <label>Texture Filtering</label>
+                    <select id="setting-texFilter" onchange="updateSetting('texFilter', this.value)">
+                        <option value="bilinear">Bilinear</option>
+                        <option value="trilinear">Trilinear</option>
+                        <option value="aniso" selected>Anisotropic (4x)</option>
+                    </select>
+                </div>
+                <div class="setting-group">
+                    <label>Particle Density: <span id="particleValue">100%</span></label>
+                    <input type="range" min="25" max="200" value="100" id="setting-particles" onchange="updateSetting('particles', this.value)">
+                </div>
+                <div class="setting-group">
+                    <label>Water Reflections</label>
+                    <select id="setting-water" onchange="updateSetting('water', this.value)">
+                        <option value="off">Off</option>
+                        <option value="plane" selected>Plane</option>
+                        <option value="raytraced">Ray-Traced (Simulated)</option>
+                    </select>
+                </div>
+                <div class="setting-group">
+                    <label>Anti-Aliasing</label>
+                    <select id="setting-aa" onchange="updateSetting('aa', this.value)">
+                        <option value="off">Off</option>
+                        <option value="fxaa" selected>FXAA</option>
+                        <option value="smaa">SMAA</option>
+                    </select>
+                </div>
+            </div>
+            
+            <!-- Controls Tab -->
+            <div id="tab-controls" class="tab-content">
+                <div class="panel-section">
+                    <div class="panel-title">Camera Controls</div>
+                    <div class="hotkey-row"><span>Pan</span><span>WASD / Arrow Keys</span></div>
+                    <div class="hotkey-row"><span>Zoom</span><span>Mouse Wheel / +/-</span></div>
+                    <div class="hotkey-row"><span>Rotate</span><span>RMB + Drag</span></div>
+                </div>
+                <div class="panel-section">
+                    <div class="panel-title">Unit Orders</div>
+                    <div class="hotkey-row"><span>Move</span><span>Left Click</span></div>
+                    <div class="hotkey-row"><span>Attack</span><span>Right Click</span></div>
+                    <div class="hotkey-row"><span>Queue Orders</span><span>Shift + Click</span></div>
+                </div>
+                <div class="panel-section">
+                    <div class="panel-title">Hotkeys</div>
+                    <div class="hotkey-row"><span>End Turn</span><button class="hotkey-btn" onclick="remapKey('endTurn')">T</button></div>
+                    <div class="hotkey-row"><span>City Menu</span><button class="hotkey-btn" onclick="remapKey('cityMenu')">C</button></div>
+                    <div class="hotkey-row"><span>Tech Tree</span><button class="hotkey-btn" onclick="remapKey('techTree')">K</button></div>
+                    <div class="hotkey-row"><span>Log Panel</span><button class="hotkey-btn" onclick="remapKey('logPanel')">L</button></div>
+                    <div class="hotkey-row"><span>Pause Menu</span><button class="hotkey-btn" onclick="remapKey('pause')">Esc</button></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- HUD -->
+        <div id="hud" class="hidden">
+            <!-- Top Bar -->
+            <div id="topBar">
+                <div class="civ-emblem" id="playerEmblem">🏛</div>
+                <div class="resource-display">
+                    <span class="resource-icon">🪙</span>
+                    <span class="resource-value" id="goldValue">0</span>
+                    <span class="resource-change" id="goldChange">+0</span>
+                </div>
+                <div class="resource-display">
+                    <span class="resource-icon">🔬</span>
+                    <span class="resource-value" id="scienceValue">0</span>
+                    <span class="resource-change" id="scienceChange">+0</span>
+                </div>
+                <div class="resource-display">
+                    <span class="resource-icon">🎭</span>
+                    <span class="resource-value" id="cultureValue">0</span>
+                    <span class="resource-change" id="cultureChange">+0</span>
+                </div>
+                <div class="resource-display">
+                    <span class="resource-icon">⛪</span>
+                    <span class="resource-value" id="faithValue">0</span>
+                    <span class="resource-change" id="faithChange">+0</span>
+                </div>
+                <div id="turnCounter">Turn: <span id="turnNumber">1</span></div>
+                <div id="speedControls">
+                    <button class="speed-btn active" onclick="setGameSpeed(1)">×1</button>
+                    <button class="speed-btn" onclick="setGameSpeed(2)">×2</button>
+                    <button class="speed-btn" onclick="setGameSpeed(3)">×3</button>
+                </div>
+                <button id="endTurnBtn" onclick="endTurn()">End Turn</button>
+            </div>
+            
+            <!-- Left Panel -->
+            <div id="leftPanel">
+                <div class="panel-section">
+                    <div class="panel-title">Actions</div>
+                    <button class="action-btn" onclick="showTechTree()">
+                        <span class="action-icon">🔬</span> Technology
+                    </button>
+                    <button class="action-btn" onclick="showCivicTree()">
+                        <span class="action-icon">📜</span> Civics
+                    </button>
+                    <button class="action-btn" onclick="toggleReligion()">
+                        <span class="action-icon">⛪</span> Religion
+                    </button>
+                    <button class="action-btn" onclick="toggleGreatPeople()">
+                        <span class="action-icon">👤</span> Great People
+                    </button>
+                </div>
+                <div class="panel-section" id="unitActionsPanel">
+                    <div class="panel-title">Unit Orders</div>
+                    <div id="unitActions"></div>
+                </div>
+            </div>
+            
+            <!-- Right Panel -->
+            <div id="rightPanel">
+                <div class="panel-section">
+                    <div class="panel-title">Diplomacy</div>
+                    <div id="diplomacyList"></div>
+                </div>
+                <div class="panel-section">
+                    <div class="panel-title">Resources</div>
+                    <div id="resourcesList"></div>
+                </div>
+            </div>
+            
+            <!-- Bottom Bar -->
+            <div id="bottomBar">
+                <canvas id="minimap" width="150" height="50"></canvas>
+                <div id="notifications"></div>
+                <div id="quickActions">
+                    <button class="quick-btn" onclick="quickSave()">💾</button>
+                    <button class="quick-btn" onclick="showSettings()">⚙</button>
+                    <button class="quick-btn" onclick="showPauseMenu()">⏸</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Selection Panel -->
+        <div id="selectionPanel" class="hidden">
+            <div class="selection-title" id="selectionTitle">Warrior</div>
+            <div class="selection-stats" id="selectionStats"></div>
+            <div class="selection-actions" id="selectionActions"></div>
+        </div>
+        
+        <!-- Tech Tree Panel -->
+        <div id="techTreePanel" class="hidden">
+            <button class="close-btn" onclick="hideTechTree()">×</button>
+            <h2 class="setup-title">Technology Tree</h2>
+            <div id="techTreeContent"></div>
+        </div>
+        
+        <!-- City Panel -->
+        <div id="cityPanel" class="hidden">
+            <button class="close-btn" onclick="hideCityPanel()">×</button>
+            <div class="city-header">
+                <span class="city-name" id="cityName">City Name</span>
+                <span class="city-pop">Population: <span id="cityPop">1</span></span>
+            </div>
+            <div class="city-yields" id="cityYields"></div>
+            <div class="production-section">
+                <div class="panel-title">Production Queue</div>
+                <div class="production-queue" id="productionQueue"></div>
+                <div class="panel-title">Build</div>
+                <div class="build-options" id="buildOptions"></div>
+            </div>
+        </div>
+        
+        <!-- Pause Menu -->
+        <div id="pauseMenu" class="hidden">
+            <h2 class="setup-title">Game Paused</h2>
+            <button class="menu-btn" onclick="hidePauseMenu()">Resume</button>
+            <button class="menu-btn" onclick="quickSave()">Save Game</button>
+            <button class="menu-btn" onclick="showSettings()">Settings</button>
+            <button class="menu-btn" onclick="returnToMenu()">Main Menu</button>
+        </div>
+        
+        <!-- Victory Screen -->
+        <div id="victoryScreen" class="hidden">
+            <h1 class="victory-title">VICTORY!</h1>
+            <p class="victory-type" id="victoryType">Science Victory</p>
+            <p id="victoryDetails"></p>
+            <button class="menu-btn" onclick="returnToMenu()">Main Menu</button>
+        </div>
+    </div>
+
+    <script>
+// ==================== GAME ENGINE ====================
+const GameState = {
+    settings: {
+        resolution: 'auto',
+        aspectRatio: '16:9',
+        uiScale: 100,
+        fullscreen: false,
+        vsync: true,
+        fov: 75,
+        masterVol: 80,
+        musicVol: 70,
+        sfxVol: 80,
+        voiceVol: 90,
+        muteInactive: true,
+        quality: 'high',
+        shadows: 'high',
+        postProcess: 'ultra',
+        lod: 0,
+        texFilter: 'aniso',
+        particles: 100,
+        water: 'plane',
+        aa: 'fxaa'
+    },
+    hotkeys: {
+        endTurn: 'KeyT',
+        cityMenu: 'KeyC',
+        techTree: 'KeyK',
+        logPanel: 'KeyL',
+        pause: 'Escape'
+    },
+    game: null,
+    inGame: false
+};
+
+// Civilizations Data
+const CIVILIZATIONS = {
+    rome: { name: 'Rome', leader: 'Trajan', color: 0x8B0000, emblem: '🏛', bonus: 'Roads' },
+    greece: { name: 'Greece', leader: 'Pericles', color: 0x4169E1, emblem: '🏺', bonus: 'Culture' },
+    egypt: { name: 'Egypt', leader: 'Cleopatra', color: 0xDAA520, emblem: '🔺', bonus: 'Wonders' },
+    china: { name: 'China', leader: 'Qin Shi Huang', color: 0xFF4500, emblem: '🐉', bonus: 'Production' },
+    england: { name: 'England', leader: 'Victoria', color: 0x800080, emblem: '👑', bonus: 'Naval' },
+    japan: { name: 'Japan', leader: 'Hojo Tokimune', color: 0xDC143C, emblem: '🎌', bonus: 'Combat' }
+};
+
+// Technology Tree
+const TECHNOLOGIES = {
+    ancient: [
+        { id: 'pottery', name: 'Pottery', cost: 25, unlocks: ['granary'] },
+        { id: 'mining', name: 'Mining', cost: 25, unlocks: ['mine', 'quarry'] },
+        { id: 'animalHusbandry', name: 'Animal Husbandry', cost: 25, unlocks: ['pasture', 'scout'] },
+        { id: 'writing', name: 'Writing', cost: 50, unlocks: ['library'], requires: ['pottery'] },
+        { id: 'archery', name: 'Archery', cost: 50, unlocks: ['archer'], requires: ['animalHusbandry'] },
+        { id: 'bronzeWorking', name: 'Bronze Working', cost: 50, unlocks: ['spearman', 'barracks'], requires: ['mining'] },
+        { id: 'wheel', name: 'The Wheel', cost: 50, unlocks: ['chariot', 'waterMill'], requires: ['mining'] },
+        { id: 'masonry', name: 'Masonry', cost: 80, unlocks: ['walls', 'pyramids'], requires: ['mining'] },
+        { id: 'sailing', name: 'Sailing', cost: 50, unlocks: ['galley', 'harbor'] },
+        { id: 'astrology', name: 'Astrology', cost: 50, unlocks: ['holySite', 'stonehenge'] },
+        { id: 'irrigation', name: 'Irrigation', cost: 50, unlocks: ['farm'], requires: ['pottery'] }
+    ],
+    classical: [
+        { id: 'celestialNav', name: 'Celestial Navigation', cost: 120, unlocks: ['lighthouse'], requires: ['sailing', 'astrology'] },
+        { id: 'currency', name: 'Currency', cost: 120, unlocks: ['market'], requires: ['writing'] },
+        { id: 'horsebackRiding', name: 'Horseback Riding', cost: 120, unlocks: ['horseman'], requires: ['animalHusbandry'] },
+        { id: 'ironWorking', name: 'Iron Working', cost: 120, unlocks: ['swordsman'], requires: ['bronzeWorking'] },
+        { id: 'construction', name: 'Construction', cost: 120, unlocks: ['colosseum', 'aqueduct'], requires: ['masonry', 'wheel'] },
+        { id: 'engineering', name: 'Engineering', cost: 120, unlocks: ['catapult'], requires: ['wheel'] },
+        { id: 'mathematics', name: 'Mathematics', cost: 200, unlocks: ['university'], requires: ['writing', 'currency'] }
+    ],
+    medieval: [
+        { id: 'apprenticeship', name: 'Apprenticeship', cost: 275, unlocks: ['workshop'], requires: ['currency', 'horsebackRiding'] },
+        { id: 'stirrups', name: 'Stirrups', cost: 275, unlocks: ['knight'], requires: ['horsebackRiding'] },
+        { id: 'machinery', name: 'Machinery', cost: 275, unlocks: ['crossbowman'], requires: ['ironWorking', 'engineering'] },
+        { id: 'education', name: 'Education', cost: 335, unlocks: ['university'], requires: ['mathematics', 'apprenticeship'] },
+        { id: 'militaryTactics', name: 'Military Tactics', cost: 275, unlocks: ['pikeman'], requires: ['mathematics'] },
+        { id: 'castles', name: 'Castles', cost: 335, unlocks: ['castle'], requires: ['construction'] }
+    ],
+    renaissance: [
+        { id: 'gunpowder', name: 'Gunpowder', cost: 490, unlocks: ['musketman'], requires: ['apprenticeship', 'stirrups'] },
+        { id: 'printing', name: 'Printing', cost: 490, unlocks: ['printingPress'], requires: ['machinery'] },
+        { id: 'banking', name: 'Banking', cost: 490, unlocks: ['bank'], requires: ['education', 'apprenticeship'] },
+        { id: 'astronomy', name: 'Astronomy', cost: 600, unlocks: ['observatory'], requires: ['education'] },
+        { id: 'metalCasting', name: 'Metal Casting', cost: 490, unlocks: ['bombard'], requires: ['gunpowder'] },
+        { id: 'siegeTactics', name: 'Siege Tactics', cost: 490, unlocks: ['starFort'], requires: ['castles'] }
+    ],
+    industrial: [
+        { id: 'industrialization', name: 'Industrialization', cost: 700, unlocks: ['factory'], requires: ['metalCasting'] },
+        { id: 'scientificTheory', name: 'Scientific Theory', cost: 700, unlocks: ['researchLab'], requires: ['astronomy', 'banking'] },
+        { id: 'ballistics', name: 'Ballistics', cost: 700, unlocks: ['artillery'], requires: ['metalCasting'] },
+        { id: 'military', name: 'Military Science', cost: 700, unlocks: ['cavalry'], requires: ['siegeTactics', 'printing'] },
+        { id: 'steamPower', name: 'Steam Power', cost: 805, unlocks: ['ironclad'], requires: ['industrialization'] },
+        { id: 'electricity', name: 'Electricity', cost: 985, unlocks: ['powerPlant'], requires: ['steamPower'] }
+    ],
+    modern: [
+        { id: 'radio', name: 'Radio', cost: 1065, unlocks: ['broadcast'], requires: ['electricity'] },
+        { id: 'combustion', name: 'Combustion', cost: 1065, unlocks: ['tank'], requires: ['steamPower'] },
+        { id: 'flight', name: 'Flight', cost: 1065, unlocks: ['biplane'], requires: ['industrialization', 'scientificTheory'] },
+        { id: 'advFlight', name: 'Advanced Flight', cost: 1250, unlocks: ['fighter'], requires: ['flight', 'radio'] },
+        { id: 'rocketry', name: 'Rocketry', cost: 1250, unlocks: ['rocket'], requires: ['advFlight'] },
+        { id: 'nuclear', name: 'Nuclear Fission', cost: 1400, unlocks: ['nuclearPlant'], requires: ['electricity', 'advFlight'] }
+    ],
+    atomic: [
+        { id: 'computers', name: 'Computers', cost: 1580, unlocks: ['researchCenter'], requires: ['radio', 'nuclear'] },
+        { id: 'nuclearFusion', name: 'Nuclear Fusion', cost: 1580, unlocks: ['fusionPlant'], requires: ['nuclear', 'rocketry'] },
+        { id: 'satellites', name: 'Satellites', cost: 1580, unlocks: ['satellite'], requires: ['rocketry', 'advFlight'] },
+        { id: 'stealth', name: 'Stealth Technology', cost: 1580, unlocks: ['stealthBomber'], requires: ['advFlight', 'computers'] }
+    ],
+    information: [
+        { id: 'internet', name: 'The Internet', cost: 1850, unlocks: ['socialMedia'], requires: ['computers'] },
+        { id: 'nanotechnology', name: 'Nanotechnology', cost: 1850, unlocks: ['gdr'], requires: ['nuclearFusion', 'computers'] },
+        { id: 'offworld', name: 'Offworld Mission', cost: 2200, unlocks: ['marsColony'], requires: ['satellites', 'nanotechnology'] }
+    ]
+};
+
+// Unit Types
+const UNIT_TYPES = {
+    settler: { name: 'Settler', combat: 0, movement: 2, cost: 80, icon: '🏠', actions: ['settle'] },
+    warrior: { name: 'Warrior', combat: 20, movement: 2, cost: 40, icon: '⚔️', actions: ['attack', 'fortify'] },
+    scout: { name: 'Scout', combat: 10, movement: 3, cost: 30, icon: '🔭', actions: ['explore'] },
+    archer: { name: 'Archer', combat: 25, ranged: 25, movement: 2, cost: 50, icon: '🏹', actions: ['attack', 'fortify'] },
+    spearman: { name: 'Spearman', combat: 25, movement: 2, cost: 55, icon: '🗡️', actions: ['attack', 'fortify'] },
+    horseman: { name: 'Horseman', combat: 36, movement: 4, cost: 80, icon: '🐎', actions: ['attack'] },
+    swordsman: { name: 'Swordsman', combat: 35, movement: 2, cost: 90, icon: '🗡️', actions: ['attack', 'fortify'] },
+    knight: { name: 'Knight', combat: 48, movement: 4, cost: 180, icon: '🛡️', actions: ['attack'] },
+    crossbowman: { name: 'Crossbowman', combat: 30, ranged: 40, movement: 2, cost: 180, icon: '🏹', actions: ['attack', 'fortify'] },
+    musketman: { name: 'Musketman', combat: 55, movement: 2, cost: 240, icon: '🔫', actions: ['attack', 'fortify'] },
+    builder: { name: 'Builder', combat: 0, movement: 2, cost: 50, icon: '🔨', actions: ['build'], charges: 3 }
+};
+
+// Building Types
+const BUILDINGS = {
+    monument: { name: 'Monument', cost: 60, yields: { culture: 2 } },
+    granary: { name: 'Granary', cost: 65, yields: { food: 1 }, requires: 'pottery' },
+    library: { name: 'Library', cost: 90, yields: { science: 2 }, requires: 'writing' },
+    barracks: { name: 'Barracks', cost: 90, yields: { xp: 25 }, requires: 'bronzeWorking' },
+    walls: { name: 'Ancient Walls', cost: 80, defense: 50, requires: 'masonry' },
+    market: { name: 'Market', cost: 120, yields: { gold: 3 }, requires: 'currency' },
+    waterMill: { name: 'Water Mill', cost: 80, yields: { food: 1, production: 1 }, requires: 'wheel' },
+    workshop: { name: 'Workshop', cost: 195, yields: { production: 2 }, requires: 'apprenticeship' },
+    university: { name: 'University', cost: 250, yields: { science: 4 }, requires: 'education' },
+    bank: { name: 'Bank', cost: 290, yields: { gold: 5 }, requires: 'banking' },
+    factory: { name: 'Factory', cost: 390, yields: { production: 3 }, requires: 'industrialization' }
+};
+
+// District Types
+const DISTRICTS = {
+    campus: { name: 'Campus', cost: 54, yields: { science: 2 }, icon: '🔬' },
+    holySite: { name: 'Holy Site', cost: 54, yields: { faith: 2 }, icon: '⛪' },
+    theater: { name: 'Theater Square', cost: 54, yields: { culture: 2 }, icon: '🎭' },
+    commercialHub: { name: 'Commercial Hub', cost: 54, yields: { gold: 4 }, icon: '🏦' },
+    industrialZone: { name: 'Industrial Zone', cost: 54, yields: { production: 2 }, icon: '🏭' },
+    harbor: { name: 'Harbor', cost: 54, yields: { food: 1, gold: 2 }, icon: '⚓' },
+    encampment: { name: 'Encampment', cost: 54, yields: { xp: 25 }, icon: '🏕️' }
+};
+
+// Terrain Types
+const TERRAIN = {
+    plains: { name: 'Plains', color: 0x9ACD32, food: 1, production: 1, movement: 1 },
+    grassland: { name: 'Grassland', color: 0x228B22, food: 2, production: 0, movement: 1 },
+    desert: { name: 'Desert', color: 0xEDC9AF, food: 0, production: 0, movement: 1 },
+    tundra: { name: 'Tundra', color: 0xC0C0C0, food: 1, production: 0, movement: 1 },
+    ocean: { name: 'Ocean', color: 0x1E90FF, food: 1, production: 0, movement: 1, isWater: true },
+    coast: { name: 'Coast', color: 0x87CEEB, food: 1, production: 0, movement: 1, isWater: true },
+    mountain: { name: 'Mountain', color: 0x696969, food: 0, production: 0, movement: -1, impassable: true },
+    hills: { name: 'Hills', color: 0x8B7355, food: 0, production: 1, movement: 2, defense: 3 },
+    forest: { name: 'Forest', color: 0x228B22, food: 0, production: 1, movement: 2, defense: 3 }
+};
+
+// ==================== 3D RENDERER ====================
+class CivRenderer {
+    constructor(canvas) {
+        this.canvas = canvas;
+        this.scene = new THREE.Scene();
+        this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+        this.renderer.setSize(window.innerWidth, window.innerHeight);
+        this.renderer.setClearColor(0x1a1a2e);
+        this.renderer.shadowMap.enabled = true;
+        this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        
+        this.tiles = new Map();
+        this.units = new Map();
+        this.cities = new Map();
+        this.selectedObject = null;
+        this.hoveredTile = null;
+        
+        this.setupLighting();
+        this.setupCamera();
+        this.setupRaycaster();
+        
+        window.addEventListener('resize', () => this.onResize());
+    }
+    
+    setupLighting() {
+        // Ambient light
+        const ambient = new THREE.AmbientLight(0x404060, 0.5);
+        this.scene.add(ambient);
+        
+        // Directional sun light
+        this.sunLight = new THREE.DirectionalLight(0xfff5e0, 1.0);
+        this.sunLight.position.set(50, 80, 50);
+        this.sunLight.castShadow = true;
+        this.sunLight.shadow.mapSize.width = 2048;
+        this.sunLight.shadow.mapSize.height = 2048;
+        this.sunLight.shadow.camera.near = 0.5;
+        this.sunLight.shadow.camera.far = 200;
+        this.sunLight.shadow.camera.left = -50;
+        this.sunLight.shadow.camera.right = 50;
+        this.sunLight.shadow.camera.top = 50;
+        this.sunLight.shadow.camera.bottom = -50;
+        this.scene.add(this.sunLight);
+        
+        // Hemisphere light for sky/ground color
+        const hemi = new THREE.HemisphereLight(0x87CEEB, 0x362211, 0.3);
+        this.scene.add(hemi);
+    }
+    
+    setupCamera() {
+        this.camera.position.set(0, 25, 20);
+        this.camera.lookAt(0, 0, 0);
+        
+        this.cameraTarget = new THREE.Vector3(0, 0, 0);
+        this.cameraDistance = 25;
+        this.cameraAngle = Math.PI / 4;
+        this.cameraRotation = 0;
+        
+        this.keys = {};
+        this.isDragging = false;
+        this.lastMouse = { x: 0, y: 0 };
+        
+        window.addEventListener('keydown', (e) => this.keys[e.code] = true);
+        window.addEventListener('keyup', (e) => this.keys[e.code] = false);
+        window.addEventListener('wheel', (e) => this.handleZoom(e));
+        window.addEventListener('mousedown', (e) => this.handleMouseDown(e));
+        window.addEventListener('mouseup', (e) => this.isDragging = false);
+        window.addEventListener('mousemove', (e) => this.handleMouseMove(e));
+    }
+    
+    setupRaycaster() {
+        this.raycaster = new THREE.Raycaster();
+        this.mouse = new THREE.Vector2();
+        
+        this.canvas.addEventListener('click', (e) => this.handleClick(e));
+    }
+    
+    handleZoom(e) {
+        this.cameraDistance += e.deltaY * 0.02;
+        this.cameraDistance = Math.max(10, Math.min(60, this.cameraDistance));
+    }
+    
+    handleMouseDown(e) {
+        if (e.button === 2) {
+            this.isDragging = true;
+            this.lastMouse = { x: e.clientX, y: e.clientY };
+        }
+    }
+    
+    handleMouseMove(e) {
+        if (this.isDragging) {
+            const dx = e.clientX - this.lastMouse.x;
+            this.cameraRotation -= dx * 0.01;
+            this.lastMouse = { x: e.clientX, y: e.clientY };
+        }
+        
+        // Hover detection
+        this.mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+        this.mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+    }
+    
+    handleClick(e) {
+        this.mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+        this.mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+        
+        this.raycaster.setFromCamera(this.mouse, this.camera);
+        const intersects = this.raycaster.intersectObjects(this.scene.children, true);
+        
+        if (intersects.length > 0) {
+            const obj = intersects[0].object;
+            if (obj.userData.tile) {
+                game.selectTile(obj.userData.tile);
+            }
+        }
+    }
+    
+    updateCamera() {
+        const speed = 0.5;
+        if (this.keys['KeyW'] || this.keys['ArrowUp']) this.cameraTarget.z -= speed;
+        if (this.keys['KeyS'] || this.keys['ArrowDown']) this.cameraTarget.z += speed;
+        if (this.keys['KeyA'] || this.keys['ArrowLeft']) this.cameraTarget.x -= speed;
+        if (this.keys['KeyD'] || this.keys['ArrowRight']) this.cameraTarget.x += speed;
+        
+        const x = this.cameraTarget.x + Math.sin(this.cameraRotation) * this.cameraDistance;
+        const z = this.cameraTarget.z + Math.cos(this.cameraRotation) * this.cameraDistance;
+        const y = Math.sin(this.cameraAngle) * this.cameraDistance;
+        
+        this.camera.position.set(x, y, z);
+        this.camera.lookAt(this.cameraTarget);
+    }
+    
+    createHexTile(q, r, terrain) {
+        const size = 1;
+        const height = terrain.impassable ? 0.8 : (terrain.name === 'Hills' ? 0.3 : 0);
+        
+        const geometry = new THREE.CylinderGeometry(size, size, 0.2 + height, 6);
+        const material = new THREE.MeshStandardMaterial({
+            color: terrain.color,
+            roughness: 0.8,
+            metalness: 0.1
+        });
+        
+        const hex = new THREE.Mesh(geometry, material);
+        hex.castShadow = true;
+        hex.receiveShadow = true;
+        
+        // Hex grid positioning
+        const x = size * 1.75 * q;
+        const z = size * 1.5 * (r + (q % 2) * 0.5);
+        hex.position.set(x, height / 2, z);
+        
+        hex.userData.tile = { q, r, terrain };
+        this.tiles.set(`${q},${r}`, hex);
+        this.scene.add(hex);
+        
+        // Add terrain features
+        if (terrain.name === 'Forest') {
+            this.addTree(x, height + 0.1, z);
+        }
+        if (terrain.name === 'Mountain') {
+            this.addMountain(x, 0.5, z);
+        }
+        
+        return hex;
+    }
+    
+    addTree(x, y, z) {
+        const trunk = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.05, 0.08, 0.4, 6),
+            new THREE.MeshStandardMaterial({ color: 0x8B4513 })
+        );
+        trunk.position.set(x + (Math.random() - 0.5) * 0.5, y + 0.2, z + (Math.random() - 0.5) * 0.5);
+        trunk.castShadow = true;
+        
+        const leaves = new THREE.Mesh(
+            new THREE.ConeGeometry(0.25, 0.6, 6),
+            new THREE.MeshStandardMaterial({ color: 0x228B22 })
+        );
+        leaves.position.set(trunk.position.x, y + 0.6, trunk.position.z);
+        leaves.castShadow = true;
+        
+        this.scene.add(trunk);
+        this.scene.add(leaves);
+    }
+    
+    addMountain(x, y, z) {
+        const peak = new THREE.Mesh(
+            new THREE.ConeGeometry(0.6, 1.2, 5),
+            new THREE.MeshStandardMaterial({ color: 0x696969 })
+        );
+        peak.position.set(x, y + 0.6, z);
+        peak.castShadow = true;
+        
+        // Snow cap
+        const snow = new THREE.Mesh(
+            new THREE.ConeGeometry(0.25, 0.3, 5),
+            new THREE.MeshStandardMaterial({ color: 0xFFFFFF })
+        );
+        snow.position.set(x, y + 1.1, z);
+        
+        this.scene.add(peak);
+        this.scene.add(snow);
+    }
+    
+    createUnit(q, r, type, owner) {
+        const size = 0.35;
+        const geometry = new THREE.SphereGeometry(size, 16, 16);
+        const material = new THREE.MeshStandardMaterial({
+            color: owner.color,
+            roughness: 0.5,
+            metalness: 0.3
+        });
+        
+        const unit = new THREE.Mesh(geometry, material);
+        unit.castShadow = true;
+        
+        const tilePos = this.getTilePosition(q, r);
+        unit.position.set(tilePos.x, 0.5, tilePos.z);
+        
+        // Add unit flag
+        const flag = new THREE.Mesh(
+            new THREE.PlaneGeometry(0.3, 0.2),
+            new THREE.MeshBasicMaterial({ color: owner.color, side: THREE.DoubleSide })
+        );
+        flag.position.set(0, 0.5, 0);
+        unit.add(flag);
+        
+        unit.userData.unit = { q, r, type, owner };
+        this.scene.add(unit);
+        
+        return unit;
+    }
+    
+    createCity(q, r, name, owner) {
+        const group = new THREE.Group();
+        
+        // City base
+        const base = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.8, 0.9, 0.15, 8),
+            new THREE.MeshStandardMaterial({ color: 0x3a3a4c })
+        );
+        base.receiveShadow = true;
+        group.add(base);
+        
+        // Main building
+        const building = new THREE.Mesh(
+            new THREE.BoxGeometry(0.4, 0.5, 0.4),
+            new THREE.MeshStandardMaterial({ color: owner.color })
+        );
+        building.position.y = 0.35;
+        building.castShadow = true;
+        group.add(building);
+        
+        // Tower
+        const tower = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.1, 0.12, 0.6, 6),
+            new THREE.MeshStandardMaterial({ color: 0x808080 })
+        );
+        tower.position.set(0.2, 0.4, 0.2);
+        tower.castShadow = true;
+        group.add(tower);
+        
+        // Roof
+        const roof = new THREE.Mesh(
+            new THREE.ConeGeometry(0.12, 0.2, 6),
+            new THREE.MeshStandardMaterial({ color: 0x8B0000 })
+        );
+        roof.position.set(0.2, 0.75, 0.2);
+        group.add(roof);
+        
+        const tilePos = this.getTilePosition(q, r);
+        group.position.set(tilePos.x, 0.1, tilePos.z);
+        
+        group.userData.city = { q, r, name, owner };
+        this.cities.set(`${q},${r}`, group);
+        this.scene.add(group);
+        
+        return group;
+    }
+    
+    getTilePosition(q, r) {
+        const size = 1;
+        return {
+            x: size * 1.75 * q,
+            z: size * 1.5 * (r + (q % 2) * 0.5)
+        };
+    }
+    
+    highlightTile(q, r, color = 0xffff00) {
+        const key = `${q},${r}`;
+        const tile = this.tiles.get(key);
+        if (tile) {
+            tile.material.emissive.setHex(color);
+            tile.material.emissiveIntensity = 0.3;
+        }
+    }
+    
+    clearHighlights() {
+        this.tiles.forEach(tile => {
+            tile.material.emissive.setHex(0x000000);
+            tile.material.emissiveIntensity = 0;
+        });
+    }
+    
+    onResize() {
+        this.camera.aspect = window.innerWidth / window.innerHeight;
+        this.camera.updateProjectionMatrix();
+        this.renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+    
+    render() {
+        this.updateCamera();
+        this.renderer.render(this.scene, this.camera);
+    }
+}
+
+// ==================== GAME LOGIC ====================
+class CivGame {
+    constructor() {
+        this.turn = 1;
+        this.players = [];
+        this.currentPlayerIndex = 0;
+        this.map = [];
+        this.mapSize = { width: 10, height: 8 };
+        this.selectedUnit = null;
+        this.selectedCity = null;
+        this.notifications = [];
+        this.gameSpeed = 1;
+        
+        this.renderer = null;
+    }
+    
+    initialize(config) {
+        this.config = config;
+        this.setupMapSize(config.mapSize);
+        this.generateMap();
+        this.createPlayers(config);
+        this.spawnStartingUnits();
+        
+        this.renderer = new CivRenderer(document.getElementById('gameCanvas'));
+        this.renderMap();
+        this.updateHUD();
+        this.startGameLoop();
+    }
+    
+    setupMapSize(size) {
+        const sizes = {
+            tiny: { width: 8, height: 6 },
+            small: { width: 10, height: 8 },
+            standard: { width: 14, height: 10 },
+            large: { width: 18, height: 14 }
+        };
+        this.mapSize = sizes[size] || sizes.small;
+    }
+    
+    generateMap() {
+        this.map = [];
+        const terrainTypes = Object.keys(TERRAIN);
+        
+        for (let q = 0; q < this.mapSize.width; q++) {
+            this.map[q] = [];
+            for (let r = 0; r < this.mapSize.height; r++) {
+                // Procedural terrain generation
+                const noise = this.simpleNoise(q, r);
+                let terrain;
+                
+                if (noise < 0.2) terrain = 'ocean';
+                else if (noise < 0.3) terrain = 'coast';
+                else if (noise < 0.5) terrain = 'grassland';
+                else if (noise < 0.7) terrain = 'plains';
+                else if (noise < 0.8) terrain = 'hills';
+                else if (noise < 0.9) terrain = 'forest';
+                else terrain = 'mountain';
+                
+                // Edge water
+                if (q === 0 || r === 0 || q === this.mapSize.width - 1 || r === this.mapSize.height - 1) {
+                    terrain = 'ocean';
+                }
+                
+                this.map[q][r] = {
+                    q, r,
+                    terrain: TERRAIN[terrain],
+                    terrainType: terrain,
+                    unit: null,
+                    city: null,
+                    improvement: null,
+                    owner: null,
+                    visible: false,
+                    explored: false
+                };
+            }
+        }
+    }
+    
+    simpleNoise(x, y) {
+        const seed = 12345;
+        const n = Math.sin(x * 12.9898 + y * 78.233 + seed) * 43758.5453;
+        return n - Math.floor(n);
+    }
+    
+    createPlayers(config) {
+        // Human player
+        const playerCiv = CIVILIZATIONS[config.civilization];
+        this.players.push({
+            id: 0,
+            name: playerCiv.name,
+            leader: playerCiv.leader,
+            color: playerCiv.color,
+            emblem: playerCiv.emblem,
+            isAI: false,
+            gold: 0,
+            science: 0,
+            culture: 0,
+            faith: 0,
+            goldPerTurn: 5,
+            sciencePerTurn: 3,
+            culturePerTurn: 2,
+            faithPerTurn: 0,
+            technologies: [],
+            currentTech: null,
+            techProgress: 0,
+            civics: [],
+            currentCivic: null,
+            civicProgress: 0,
+            cities: [],
+            units: [],
+            relations: {},
+            era: 'ancient',
+            score: 0
+        });
+        
+        // AI players
+        const aiCivs = Object.keys(CIVILIZATIONS).filter(c => c !== config.civilization);
+        for (let i = 0; i < config.aiCount; i++) {
+            const civKey = aiCivs[i % aiCivs.length];
+            const civ = CIVILIZATIONS[civKey];
+            this.players.push({
+                id: i + 1,
+                name: civ.name,
+                leader: civ.leader,
+                color: civ.color,
+                emblem: civ.emblem,
+                isAI: true,
+                gold: 0,
+                science: 0,
+                culture: 0,
+                faith: 0,
+                goldPerTurn: 5,
+                sciencePerTurn: 3,
+                culturePerTurn: 2,
+                faithPerTurn: 0,
+                technologies: [],
+                currentTech: null,
+                techProgress: 0,
+                civics: [],
+                cities: [],
+                units: [],
+                relations: {},
+                era: 'ancient',
+                score: 0,
+                personality: ['aggressive', 'diplomatic', 'scientific'][Math.floor(Math.random() * 3)]
+            });
+            
+            // Set initial relations
+            this.players[0].relations[i + 1] = 'neutral';
+            this.players[i + 1].relations[0] = 'neutral';
+        }
+    }
+    
+    spawnStartingUnits() {
+        this.players.forEach((player, index) => {
+            // Find valid spawn location
+            let spawnQ, spawnR;
+            let attempts = 0;
+            do {
+                spawnQ = 2 + Math.floor(Math.random() * (this.mapSize.width - 4));
+                spawnR = 2 + Math.floor(Math.random() * (this.mapSize.height - 4));
+                attempts++;
+            } while (
+                (this.map[spawnQ][spawnR].terrain.isWater || 
+                 this.map[spawnQ][spawnR].terrain.impassable ||
+                 this.map[spawnQ][spawnR].unit) && 
+                attempts < 50
+            );
+            
+            // Spread AI spawns
+            if (index > 0) {
+                spawnQ = (spawnQ + index * 4) % (this.mapSize.width - 2) + 1;
+            }
+            
+            // Create settler
+            this.createUnit(spawnQ, spawnR, 'settler', player);
+            
+            // Create warrior
+            const warriorQ = Math.min(spawnQ + 1, this.mapSize.width - 2);
+            this.createUnit(warriorQ, spawnR, 'warrior', player);
+            
+            // Reveal area for human player
+            if (!player.isAI) {
+                this.revealArea(spawnQ, spawnR, 3);
+            }
+        });
+    }
+    
+    createUnit(q, r, type, owner) {
+        const unitType = UNIT_TYPES[type];
+        const unit = {
+            id: Date.now() + Math.random(),
+            q, r,
+            type,
+            ...unitType,
+            owner,
+            health: 100,
+            movesLeft: unitType.movement,
+            experience: 0,
+            promotions: [],
+            fortified: false
+        };
+        
+        if (this.map[q] && this.map[q][r]) {
+            this.map[q][r].unit = unit;
+        }
+        owner.units.push(unit);
+        
+        return unit;
+    }
+    
+    createCity(q, r, owner, name = null) {
+        const cityNames = {
+            rome: ['Rome', 'Antium', 'Cumae', 'Neapolis', 'Ravenna'],
+            greece: ['Athens', 'Sparta', 'Corinth', 'Thebes', 'Argos'],
+            egypt: ['Alexandria', 'Thebes', 'Memphis', 'Giza', 'Luxor'],
+            china: ['Beijing', 'Shanghai', 'Xian', 'Hangzhou', 'Nanjing'],
+            england: ['London', 'York', 'Nottingham', 'Canterbury', 'Oxford'],
+            japan: ['Kyoto', 'Tokyo', 'Osaka', 'Nagoya', 'Kobe']
+        };
+        
+        const civKey = Object.keys(CIVILIZATIONS).find(k => CIVILIZATIONS[k].name === owner.name);
+        const names = cityNames[civKey] || ['City'];
+        name = name || names[owner.cities.length % names.length];
+        
+        const city = {
+            id: Date.now() + Math.random(),
+            q, r,
+            name,
+            owner,
+            population: 1,
+            food: 0,
+            foodNeeded: 15,
+            production: 0,
+            housing: 3,
+            amenities: 1,
+            buildings: [],
+            districts: [],
+            productionQueue: [],
+            currentProduction: null,
+            productionProgress: 0,
+            defense: 0,
+            health: 200
+        };
+        
+        this.map[q][r].city = city;
+        this.map[q][r].owner = owner;
+        owner.cities.push(city);
+        
+        // Claim surrounding tiles
+        this.claimTiles(q, r, 1, owner);
+        
+        return city;
+    }
+    
+    claimTiles(q, r, radius, owner) {
+        for (let dq = -radius; dq <= radius; dq++) {
+            for (let dr = -radius; dr <= radius; dr++) {
+                const tq = q + dq;
+                const tr = r + dr;
+                if (tq >= 0 && tq < this.mapSize.width && tr >= 0 && tr < this.mapSize.height) {
+                    if (!this.map[tq][tr].owner) {
+                        this.map[tq][tr].owner = owner;
+                    }
+                }
+            }
+        }
+    }
+    
+    revealArea(q, r, radius) {
+        for (let dq = -radius; dq <= radius; dq++) {
+            for (let dr = -radius; dr <= radius; dr++) {
+                const tq = q + dq;
+                const tr = r + dr;
+                if (tq >= 0 && tq < this.mapSize.width && tr >= 0 && tr < this.mapSize.height) {
+                    this.map[tq][tr].visible = true;
+                    this.map[tq][tr].explored = true;
+                }
+            }
+        }
+    }
+    
+    selectTile(tile) {
+        this.renderer.clearHighlights();
+        
+        const mapTile = this.map[tile.q]?.[tile.r];
+        if (!mapTile) return;
+        
+        if (mapTile.unit && mapTile.unit.owner === this.players[0]) {
+            this.selectedUnit = mapTile.unit;
+            this.selectedCity = null;
+            this.showUnitSelection(mapTile.unit);
+            this.showMoveRange(mapTile.unit);
+        } else if (mapTile.city && mapTile.city.owner === this.players[0]) {
+            this.selectedCity = mapTile.city;
+            this.selectedUnit = null;
+            this.openCityPanel(mapTile.city);
+        } else if (this.selectedUnit) {
+            this.moveUnit(this.selectedUnit, tile.q, tile.r);
+        }
+        
+        this.renderer.highlightTile(tile.q, tile.r);
+    }
+    
+    showUnitSelection(unit) {
+        document.getElementById('selectionPanel').classList.remove('hidden');
+        document.getElementById('selectionTitle').textContent = `${unit.icon} ${unit.name}`;
+        
+        const stats = document.getElementById('selectionStats');
+        stats.innerHTML = `
+            <div class="stat-item">
+                <div class="stat-value">${unit.health}%</div>
+                <div class="stat-label">Health</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value">${unit.combat || 0}</div>
+                <div class="stat-label">Combat</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value">${unit.movesLeft}/${unit.movement}</div>
+                <div class="stat-label">Moves</div>
+            </div>
+        `;
+        
+        const actions = document.getElementById('selectionActions');
+        actions.innerHTML = '';
+        
+        if (unit.type === 'settler' && unit.movesLeft > 0) {
+            const btn = document.createElement('button');
+            btn.className = 'action-btn';
+            btn.innerHTML = '🏛 Found City';
+            btn.onclick = () => this.foundCity(unit);
+            actions.appendChild(btn);
+        }
+        
+        if (unit.combat > 0) {
+            const fortifyBtn = document.createElement('button');
+            fortifyBtn.className = 'action-btn';
+            fortifyBtn.innerHTML = unit.fortified ? '🚶 Wake' : '🛡️ Fortify';
+            fortifyBtn.onclick = () => this.toggleFortify(unit);
+            actions.appendChild(fortifyBtn);
+        }
+        
+        if (unit.type === 'builder') {
+            const buildBtn = document.createElement('button');
+            buildBtn.className = 'action-btn';
+            buildBtn.innerHTML = `🔨 Build (${unit.charges || 3})`;
+            buildBtn.onclick = () => this.showBuildOptions(unit);
+            actions.appendChild(buildBtn);
+        }
+    }
+    
+    showMoveRange(unit) {
+        if (unit.movesLeft <= 0) return;
+        
+        for (let dq = -unit.movesLeft; dq <= unit.movesLeft; dq++) {
+            for (let dr = -unit.movesLeft; dr <= unit.movesLeft; dr++) {
+                if (Math.abs(dq) + Math.abs(dr) <= unit.movesLeft) {
+                    const tq = unit.q + dq;
+                    const tr = unit.r + dr;
+                    if (tq >= 0 && tq < this.mapSize.width && tr >= 0 && tr < this.mapSize.height) {
+                        const tile = this.map[tq][tr];
+                        if (!tile.terrain.impassable && !tile.terrain.isWater && !tile.unit) {
+                            this.renderer.highlightTile(tq, tr, 0x00ff00);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    moveUnit(unit, targetQ, targetR) {
+        const tile = this.map[targetQ]?.[targetR];
+        if (!tile || tile.terrain.impassable || tile.terrain.isWater || tile.unit) {
+            return false;
+        }
+        
+        const distance = Math.abs(targetQ - unit.q) + Math.abs(targetR - unit.r);
+        if (distance > unit.movesLeft) return false;
+        
+        // Clear old position
+        if (this.map[unit.q] && this.map[unit.q][unit.r]) {
+            this.map[unit.q][unit.r].unit = null;
+        }
+        
+        // Update position
+        unit.q = targetQ;
+        unit.r = targetR;
+        unit.movesLeft -= Math.max(1, tile.terrain.movement || 1);
+        this.map[targetQ][targetR].unit = unit;
+        
+        // Reveal area
+        if (!unit.owner.isAI) {
+            this.revealArea(targetQ, targetR, 2);
+        }
+        
+        // Update 3D position
+        this.renderUnits();
+        this.updateHUD();
+        
+        if (unit === this.selectedUnit) {
+            this.showUnitSelection(unit);
+            this.renderer.clearHighlights();
+            this.showMoveRange(unit);
+            this.renderer.highlightTile(targetQ, targetR);
+        }
+        
+        return true;
+    }
+    
+    foundCity(unit) {
+        const tile = this.map[unit.q][unit.r];
+        if (tile.city) {
+            this.addNotification('Cannot found city here!');
+            return;
+        }
+        
+        // Remove settler
+        const idx = unit.owner.units.indexOf(unit);
+        if (idx > -1) unit.owner.units.splice(idx, 1);
+        this.map[unit.q][unit.r].unit = null;
+        
+        // Create city
+        const city = this.createCity(unit.q, unit.r, unit.owner);
+        this.renderer.createCity(unit.q, unit.r, city.name, unit.owner);
+        
+        this.addNotification(`${city.name} has been founded!`);
+        this.selectedUnit = null;
+        document.getElementById('selectionPanel').classList.add('hidden');
+        
+        this.updateHUD();
+        this.renderUnits();
+    }
+    
+    toggleFortify(unit) {
+        unit.fortified = !unit.fortified;
+        if (unit.fortified) {
+            unit.movesLeft = 0;
+        }
+        this.showUnitSelection(unit);
+    }
+    
+    openCityPanel(city) {
+        document.getElementById('cityPanel').classList.remove('hidden');
+        document.getElementById('cityName').textContent = city.name;
+        document.getElementById('cityPop').textContent = city.population;
+        
+        // Calculate yields
+        const yields = this.calculateCityYields(city);
+        document.getElementById('cityYields').innerHTML = `
+            <div class="yield-item">
+                <div class="yield-icon">🌾</div>
+                <div class="yield-value">+${yields.food}</div>
+            </div>
+            <div class="yield-item">
+                <div class="yield-icon">⚙️</div>
+                <div class="yield-value">+${yields.production}</div>
+            </div>
+            <div class="yield-item">
+                <div class="yield-icon">🪙</div>
+                <div class="yield-value">+${yields.gold}</div>
+            </div>
+            <div class="yield-item">
+                <div class="yield-icon">🔬</div>
+                <div class="yield-value">+${yields.science}</div>
+            </div>
+            <div class="yield-item">
+                <div class="yield-icon">🎭</div>
+                <div class="yield-value">+${yields.culture}</div>
+            </div>
+        `;
+        
+        // Production queue
+        const queue = document.getElementById('productionQueue');
+        queue.innerHTML = city.currentProduction ? 
+            `<div class="queue-item">${city.currentProduction.name} (${city.productionProgress}/${city.currentProduction.cost})</div>` :
+            '<div class="queue-item">None</div>';
+        
+        // Build options
+        this.updateBuildOptions(city);
+    }
+    
+    calculateCityYields(city) {
+        let yields = { food: 2, production: 1, gold: 2, science: 1, culture: 1 };
+        
+        // Add from worked tiles
+        for (let dq = -2; dq <= 2; dq++) {
+            for (let dr = -2; dr <= 2; dr++) {
+                const tq = city.q + dq;
+                const tr = city.r + dr;
+                if (tq >= 0 && tq < this.mapSize.width && tr >= 0 && tr < this.mapSize.height) {
+                    const tile = this.map[tq][tr];
+                    if (tile.owner === city.owner) {
+                        yields.food += tile.terrain.food || 0;
+                        yields.production += tile.terrain.production || 0;
+                    }
+                }
+            }
+        }
+        
+        // Add from buildings
+        city.buildings.forEach(b => {
+            const building = BUILDINGS[b];
+            if (building?.yields) {
+                Object.keys(building.yields).forEach(k => {
+                    yields[k] = (yields[k] || 0) + building.yields[k];
+                });
+            }
+        });
+        
+        // Population modifier
+        yields.science += city.population;
+        
+        return yields;
+    }
+    
+    updateBuildOptions(city) {
+        const options = document.getElementById('buildOptions');
+        options.innerHTML = '';
+        
+        // Units
+        Object.keys(UNIT_TYPES).forEach(key => {
+            const unit = UNIT_TYPES[key];
+            const btn = document.createElement('div');
+            btn.className = 'build-option';
+            btn.innerHTML = `
+                <div class="build-name">${unit.icon} ${unit.name}</div>
+                <div class="build-cost">⚙️ ${unit.cost}</div>
+            `;
+            btn.onclick = () => this.setProduction(city, { type: 'unit', key, ...unit });
+            options.appendChild(btn);
+        });
+        
+        // Buildings
+        Object.keys(BUILDINGS).forEach(key => {
+            const building = BUILDINGS[key];
+            if (city.buildings.includes(key)) return;
+            
+            const player = this.players[0];
+            const hasReq = !building.requires || player.technologies.includes(building.requires);
+            
+            const btn = document.createElement('div');
+            btn.className = `build-option ${!hasReq ? 'disabled' : ''}`;
+            btn.innerHTML = `
+                <div class="build-name">${building.name}</div>
+                <div class="build-cost">⚙️ ${building.cost}</div>
+            `;
+            if (hasReq) {
+                btn.onclick = () => this.setProduction(city, { type: 'building', key, ...building });
+            }
+            options.appendChild(btn);
+        });
+        
+        // Districts
+        Object.keys(DISTRICTS).forEach(key => {
+            if (city.districts.includes(key)) return;
+            const district = DISTRICTS[key];
+            
+            const btn = document.createElement('div');
+            btn.className = 'build-option';
+            btn.innerHTML = `
+                <div class="build-name">${district.icon} ${district.name}</div>
+                <div class="build-cost">⚙️ ${district.cost}</div>
+            `;
+            btn.onclick = () => this.setProduction(city, { type: 'district', key, ...district });
+            options.appendChild(btn);
+        });
+    }
+    
+    setProduction(city, item) {
+        city.currentProduction = item;
+        city.productionProgress = 0;
+        this.openCityPanel(city);
+        this.addNotification(`${city.name} is now producing ${item.name}`);
+    }
+    
+    hideCityPanel() {
+        document.getElementById('cityPanel').classList.add('hidden');
+        this.selectedCity = null;
+    }
+    
+    endTurn() {
+        // Process current player
+        this.processPlayerTurn(this.players[0]);
+        
+        // Process AI turns
+        for (let i = 1; i < this.players.length; i++) {
+            this.processAITurn(this.players[i]);
+        }
+        
+        // Advance turn
+        this.turn++;
+        
+        // Refresh units
+        this.players.forEach(player => {
+            player.units.forEach(unit => {
+                unit.movesLeft = unit.movement;
+                unit.fortified = false;
+            });
+        });
+        
+        this.updateHUD();
+        this.renderUnits();
+        this.checkVictoryConditions();
+    }
+    
+    processPlayerTurn(player) {
+        // Collect resources
+        player.gold += player.goldPerTurn;
+        player.science += player.sciencePerTurn;
+        player.culture += player.culturePerTurn;
+        player.faith += player.faithPerTurn;
+        
+        // Calculate yields from cities
+        player.cities.forEach(city => {
+            const yields = this.calculateCityYields(city);
+            player.goldPerTurn = yields.gold;
+            player.sciencePerTurn = yields.science;
+            player.culturePerTurn = yields.culture;
+            
+            // Food growth
+            city.food += yields.food - city.population * 2;
+            if (city.food >= city.foodNeeded) {
+                city.population++;
+                city.food = 0;
+                city.foodNeeded = Math.floor(city.foodNeeded * 1.5);
+                this.addNotification(`${city.name} has grown to ${city.population} population!`);
+            }
+            
+            // Production
+            if (city.currentProduction) {
+                city.productionProgress += yields.production;
+                if (city.productionProgress >= city.currentProduction.cost) {
+                    this.completeProduction(city);
+                }
+            }
+        });
+        
+        // Research progress
+        if (player.currentTech) {
+            player.techProgress += player.sciencePerTurn;
+            const tech = this.findTech(player.currentTech);
+            if (tech && player.techProgress >= tech.cost) {
+                player.technologies.push(player.currentTech);
+                this.addNotification(`Research complete: ${tech.name}!`);
+                player.currentTech = null;
+                player.techProgress = 0;
+            }
+        }
+    }
+    
+    completeProduction(city) {
+        const item = city.currentProduction;
+        
+        if (item.type === 'unit') {
+            this.createUnit(city.q, city.r, item.key, city.owner);
+            this.addNotification(`${city.name} has trained a ${item.name}!`);
+        } else if (item.type === 'building') {
+            city.buildings.push(item.key);
+            this.addNotification(`${city.name} has completed ${item.name}!`);
+        } else if (item.type === 'district') {
+            city.districts.push(item.key);
+            this.addNotification(`${city.name} has built ${item.name}!`);
+        }
+        
+        city.currentProduction = null;
+        city.productionProgress = 0;
+        this.renderUnits();
+    }
+    
+    processAITurn(player) {
+        // Simple AI logic
+        player.gold += player.goldPerTurn;
+        player.science += player.sciencePerTurn;
+        
+        // Move units randomly
+        player.units.forEach(unit => {
+            if (unit.type === 'settler' && player.cities.length < 3) {
+                // Try to settle
+                const tile = this.map[unit.q]?.[unit.r];
+                if (tile && !tile.city && !tile.terrain.isWater) {
+                    this.map[unit.q][unit.r].unit = null;
+                    const idx = player.units.indexOf(unit);
+                    if (idx > -1) player.units.splice(idx, 1);
+                    this.createCity(unit.q, unit.r, player);
+                }
+            } else if (unit.movesLeft > 0) {
+                // Random movement
+                const dirs = [[1,0],[-1,0],[0,1],[0,-1]];
+                const dir = dirs[Math.floor(Math.random() * dirs.length)];
+                const newQ = unit.q + dir[0];
+                const newR = unit.r + dir[1];
+                if (newQ >= 0 && newQ < this.mapSize.width && newR >= 0 && newR < this.mapSize.height) {
+                    const tile = this.map[newQ][newR];
+                    if (!tile.terrain.impassable && !tile.terrain.isWater && !tile.unit) {
+                        this.map[unit.q][unit.r].unit = null;
+                        unit.q = newQ;
+                        unit.r = newR;
+                        this.map[newQ][newR].unit = unit;
+                    }
+                }
+            }
+        });
+        
+        // City production
+        player.cities.forEach(city => {
+            const yields = this.calculateCityYields(city);
+            
+            if (!city.currentProduction) {
+                // Choose random production
+                const options = [...Object.keys(UNIT_TYPES), ...Object.keys(BUILDINGS)];
+                const choice = options[Math.floor(Math.random() * options.length)];
+                if (UNIT_TYPES[choice]) {
+                    city.currentProduction = { type: 'unit', key: choice, ...UNIT_TYPES[choice] };
+                } else if (BUILDINGS[choice] && !city.buildings.includes(choice)) {
+                    city.currentProduction = { type: 'building', key: choice, ...BUILDINGS[choice] };
+                }
+            }
+            
+            if (city.currentProduction) {
+                city.productionProgress += yields.production;
+                if (city.productionProgress >= city.currentProduction.cost) {
+                    if (city.currentProduction.type === 'unit') {
+                        this.createUnit(city.q, city.r, city.currentProduction.key, player);
+                    } else {
+                        city.buildings.push(city.currentProduction.key);
+                    }
+                    city.currentProduction = null;
+                    city.productionProgress = 0;
+                }
+            }
+        });
+    }
+    
+    findTech(techId) {
+        for (const era of Object.values(TECHNOLOGIES)) {
+            const tech = era.find(t => t.id === techId);
+            if (tech) return tech;
+        }
+        return null;
+    }
+    
+    checkVictoryConditions() {
+        const player = this.players[0];
+        
+        // Domination: Control all capitals
+        const aiCapitals = this.players.slice(1).filter(p => p.cities.length > 0);
+        if (aiCapitals.length === 0 && player.cities.length > 0 && this.turn > 10) {
+            this.triggerVictory('Domination', 'You have conquered all rival civilizations!');
+            return;
+        }
+        
+        // Science: Research Offworld Mission
+        if (player.technologies.includes('offworld')) {
+            this.triggerVictory('Science', 'You have launched a mission to Mars!');
+            return;
+        }
+        
+        // Score victory at turn 500
+        if (this.turn >= 500) {
+            let maxScore = 0;
+            let winner = null;
+            this.players.forEach(p => {
+                const score = p.cities.length * 100 + p.technologies.length * 20 + p.gold;
+                if (score > maxScore) {
+                    maxScore = score;
+                    winner = p;
+                }
+            });
+            if (winner === player) {
+                this.triggerVictory('Score', `You achieved the highest score: ${maxScore}!`);
+            } else {
+                this.triggerDefeat(`${winner.name} achieved a higher score.`);
+            }
+        }
+    }
+    
+    triggerVictory(type, details) {
+        document.getElementById('victoryScreen').classList.remove('hidden');
+        document.getElementById('victoryType').textContent = `${type} Victory`;
+        document.getElementById('victoryDetails').textContent = details;
+    }
+    
+    triggerDefeat(reason) {
+        document.getElementById('victoryScreen').classList.remove('hidden');
+        document.getElementById('victoryType').textContent = 'Defeat';
+        document.getElementById('victoryDetails').textContent = reason;
+    }
+    
+    addNotification(message) {
+        this.notifications.push(message);
+        if (this.notifications.length > 5) this.notifications.shift();
+        this.updateNotifications();
+    }
+    
+    updateNotifications() {
+        const container = document.getElementById('notifications');
+        container.innerHTML = this.notifications.map(n => 
+            `<div class="notification">${n}</div>`
+        ).join('');
+    }
+    
+    renderMap() {
+        for (let q = 0; q < this.mapSize.width; q++) {
+            for (let r = 0; r < this.mapSize.height; r++) {
+                const tile = this.map[q][r];
+                this.renderer.createHexTile(q, r, tile.terrain);
+            }
+        }
+        
+        // Center camera
+        this.renderer.cameraTarget.x = this.mapSize.width / 2 * 1.75;
+        this.renderer.cameraTarget.z = this.mapSize.height / 2 * 1.5;
+    }
+    
+    renderUnits() {
+        // Clear existing unit meshes
+        this.renderer.scene.children = this.renderer.scene.children.filter(obj => 
+            !obj.userData.unit && !obj.userData.city
+        );
+        
+        // Render all units
+        this.players.forEach(player => {
+            player.units.forEach(unit => {
+                this.renderer.createUnit(unit.q, unit.r, unit.type, player);
+            });
+            player.cities.forEach(city => {
+                if (!this.renderer.cities.has(`${city.q},${city.r}`)) {
+                    this.renderer.createCity(city.q, city.r, city.name, player);
+                }
+            });
+        });
+    }
+    
+    updateHUD() {
+        const player = this.players[0];
+        
+        document.getElementById('goldValue').textContent = Math.floor(player.gold);
+        document.getElementById('goldChange').textContent = `+${player.goldPerTurn}`;
+        document.getElementById('scienceValue').textContent = Math.floor(player.science);
+        document.getElementById('scienceChange').textContent = `+${player.sciencePerTurn}`;
+        document.getElementById('cultureValue').textContent = Math.floor(player.culture);
+        document.getElementById('cultureChange').textContent = `+${player.culturePerTurn}`;
+        document.getElementById('faithValue').textContent = Math.floor(player.faith);
+        document.getElementById('faithChange').textContent = `+${player.faithPerTurn}`;
+        document.getElementById('turnNumber').textContent = this.turn;
+        document.getElementById('playerEmblem').textContent = player.emblem;
+        
+        // Update diplomacy panel
+        const diploList = document.getElementById('diplomacyList');
+        diploList.innerHTML = this.players.slice(1).map(p => `
+            <div class="diplo-item">
+                <div class="diplo-emblem" style="background: #${p.color.toString(16).padStart(6, '0')}">${p.emblem}</div>
+                <div>
+                    <div>${p.name}</div>
+                    <div style="font-size: 0.8rem; color: #a0a0a0">${p.leader}</div>
+                </div>
+                <span class="diplo-status ${player.relations[p.id]}">${player.relations[p.id] || 'Unknown'}</span>
+            </div>
+        `).join('');
+        
+        // Update minimap
+        this.renderMinimap();
+    }
+    
+    renderMinimap() {
+        const canvas = document.getElementById('minimap');
+        const ctx = canvas.getContext('2d');
+        const tileW = canvas.width / this.mapSize.width;
+        const tileH = canvas.height / this.mapSize.height;
+        
+        ctx.fillStyle = '#1a1a2e';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        for (let q = 0; q < this.mapSize.width; q++) {
+            for (let r = 0; r < this.mapSize.height; r++) {
+                const tile = this.map[q][r];
+                if (tile.explored) {
+                    ctx.fillStyle = '#' + tile.terrain.color.toString(16).padStart(6, '0');
+                    ctx.fillRect(q * tileW, r * tileH, tileW - 0.5, tileH - 0.5);
+                    
+                    if (tile.city) {
+                        ctx.fillStyle = '#' + tile.city.owner.color.toString(16).padStart(6, '0');
+                        ctx.beginPath();
+                        ctx.arc(q * tileW + tileW/2, r * tileH + tileH/2, 2, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                }
+            }
+        }
+    }
+    
+    startGameLoop() {
+        const animate = () => {
+            requestAnimationFrame(animate);
+            this.renderer.render();
+        };
+        animate();
+    }
+    
+    saveGame() {
+        const saveData = {
+            turn: this.turn,
+            players: this.players.map(p => ({
+                ...p,
+                units: p.units.map(u => ({ ...u, owner: u.owner.id })),
+                cities: p.cities.map(c => ({ ...c, owner: c.owner.id }))
+            })),
+            map: this.map.map(col => col.map(tile => ({
+                ...tile,
+                unit: tile.unit ? tile.unit.id : null,
+                city: tile.city ? tile.city.id : null,
+                owner: tile.owner ? tile.owner.id : null
+            }))),
+            config: this.config,
+            settings: GameState.settings
+        };
+        
+        localStorage.setItem('civ_save', JSON.stringify(saveData));
+        this.addNotification('Game saved!');
+    }
+}
+
+// ==================== UI FUNCTIONS ====================
+let game = null;
+
+function showLoading() {
+    document.getElementById('loadingScreen').classList.remove('hidden');
+    let progress = 0;
+    const fill = document.getElementById('loadingFill');
+    
+    const interval = setInterval(() => {
+        progress += Math.random() * 15;
+        if (progress >= 100) {
+            progress = 100;
+            clearInterval(interval);
+            setTimeout(() => {
+                document.getElementById('loadingScreen').classList.add('hidden');
+                document.getElementById('mainMenu').classList.remove('hidden');
+            }, 300);
+        }
+        fill.style.width = progress + '%';
+    }, 100);
+}
+
+function showSetup() {
+    document.getElementById('setupPanel').classList.remove('hidden');
+}
+
+function hideSetup() {
+    document.getElementById('setupPanel').classList.add('hidden');
+}
+
+function showSettings() {
+    document.getElementById('settingsPanel').classList.remove('hidden');
+}
+
+function hideSettings() {
+    document.getElementById('settingsPanel').classList.add('hidden');
+}
+
+function switchSettingsTab(tab) {
+    document.querySelectorAll('.settings-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+    
+    event.target.classList.add('active');
+    document.getElementById('tab-' + tab).classList.add('active');
+}
+
+function updateSetting(key, value) {
+    GameState.settings[key] = value;
+    
+    // Update display values
+    if (key === 'uiScale') document.getElementById('uiScaleValue').textContent = value + '%';
+    if (key === 'fov') document.getElementById('fovValue').textContent = value + '°';
+    if (key === 'masterVol') document.getElementById('masterVolValue').textContent = value + '%';
+    if (key === 'musicVol') document.getElementById('musicVolValue').textContent = value + '%';
+    if (key === 'sfxVol') document.getElementById('sfxVolValue').textContent = value + '%';
+    if (key === 'voiceVol') document.getElementById('voiceVolValue').textContent = value + '%';
+    if (key === 'lod') document.getElementById('lodValue').textContent = value;
+    if (key === 'particles') document.getElementById('particleValue').textContent = value + '%';
+    
+    // Apply settings
+    if (game && game.renderer) {
+        if (key === 'fov') {
+            game.renderer.camera.fov = parseInt(value);
+            game.renderer.camera.updateProjectionMatrix();
+        }
+    }
+    
+    localStorage.setItem('civ_settings', JSON.stringify(GameState.settings));
+}
+
+function toggleSetting(key) {
+    const el = document.getElementById('setting-' + key);
+    el.classList.toggle('active');
+    GameState.settings[key] = el.classList.contains('active');
+    
+    if (key === 'fullscreen') {
+        if (GameState.settings.fullscreen) {
+            document.documentElement.requestFullscreen?.();
+        } else {
+            document.exitFullscreen?.();
+        }
+    }
+    
+    localStorage.setItem('civ_settings', JSON.stringify(GameState.settings));
+}
+
+function remapKey(action) {
+    const btn = event.target;
+    btn.textContent = 'Press key...';
+    
+    const handler = (e) => {
+        e.preventDefault();
+        GameState.hotkeys[action] = e.code;
+        btn.textContent = e.key.toUpperCase();
+        window.removeEventListener('keydown', handler);
+        localStorage.setItem('civ_hotkeys', JSON.stringify(GameState.hotkeys));
+    };
+    
+    window.addEventListener('keydown', handler);
+}
+
+function startGame() {
+    const config = {
+        civilization: document.getElementById('civSelect').value,
+        mapSize: document.getElementById('mapSizeSelect').value,
+        difficulty: document.getElementById('difficultySelect').value,
+        aiCount: parseInt(document.getElementById('aiCountSelect').value),
+        gameSpeed: document.getElementById('gameSpeedSelect').value
+    };
+    
+    document.getElementById('mainMenu').classList.add('hidden');
+    document.getElementById('setupPanel').classList.add('hidden');
+    document.getElementById('hud').classList.remove('hidden');
+    
+    game = new CivGame();
+    game.initialize(config);
+    GameState.game = game;
+    GameState.inGame = true;
+}
+
+function loadGame() {
+    const saveData = localStorage.getItem('civ_save');
+    if (!saveData) {
+        alert('No saved game found!');
+        return;
+    }
+    
+    // For now, just start fresh - full load would reconstruct the game state
+    alert('Loading saved games - Starting from last config');
+    const data = JSON.parse(saveData);
+    if (data.config) {
+        startGame();
+    }
+}
+
+function quickSave() {
+    if (game) {
+        game.saveGame();
+    }
+}
+
+function showTechTree() {
+    document.getElementById('techTreePanel').classList.remove('hidden');
+    
+    const content = document.getElementById('techTreeContent');
+    const player = game.players[0];
+    
+    content.innerHTML = Object.entries(TECHNOLOGIES).map(([era, techs]) => `
+        <div class="tech-era">
+            <div class="era-title">${era.charAt(0).toUpperCase() + era.slice(1)} Era</div>
+            <div class="tech-grid">
+                ${techs.map(tech => {
+                    const researched = player.technologies.includes(tech.id);
+                    const current = player.currentTech === tech.id;
+                    const canResearch = !researched && (!tech.requires || tech.requires.every(r => player.technologies.includes(r)));
+                    
+                    return `
+                        <div class="tech-item ${researched ? 'researched' : ''} ${current ? 'current' : ''} ${canResearch ? 'available' : 'locked'}"
+                             onclick="${canResearch && !current ? `selectTech('${tech.id}')` : ''}">
+                            <div class="tech-name">${tech.name}</div>
+                            <div class="tech-cost">🔬 ${tech.cost}</div>
+                            ${current ? `<div style="font-size: 0.7rem; color: #ffd700;">${player.techProgress}/${tech.cost}</div>` : ''}
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+        </div>
+    `).join('');
+}
+
+function selectTech(techId) {
+    if (game) {
+        game.players[0].currentTech = techId;
+        game.players[0].techProgress = 0;
+        game.addNotification(`Now researching: ${game.findTech(techId).name}`);
+        showTechTree();
+    }
+}
+
+function hideTechTree() {
+    document.getElementById('techTreePanel').classList.add('hidden');
+}
+
+function showCivicTree() {
+    game?.addNotification('Civics tree coming soon!');
+}
+
+function toggleReligion() {
+    game?.addNotification('Religion panel coming soon!');
+}
+
+function toggleGreatPeople() {
+    game?.addNotification('Great People panel coming soon!');
+}
+
+function setGameSpeed(speed) {
+    document.querySelectorAll('.speed-btn').forEach((btn, i) => {
+        btn.classList.toggle('active', i === speed - 1);
+    });
+    if (game) game.gameSpeed = speed;
+}
+
+function endTurn() {
+    if (game) game.endTurn();
+}
+
+function showPauseMenu() {
+    document.getElementById('pauseMenu').classList.remove('hidden');
+}
+
+function hidePauseMenu() {
+    document.getElementById('pauseMenu').classList.add('hidden');
+}
+
+function returnToMenu() {
+    if (confirm('Return to main menu? Unsaved progress will be lost.')) {
+        location.reload();
+    }
+}
+
+function showTutorial() {
+    alert('Tutorial:\n\n1. Select your Settler and click to move\n2. Press the "Found City" button to create a city\n3. Build units and buildings from the city panel\n4. Research technologies from the Tech Tree (K)\n5. End your turn to advance the game\n\nControls:\n- WASD: Pan camera\n- Mouse wheel: Zoom\n- Right-click drag: Rotate camera\n- Left click: Select units/cities\n- T: End turn\n- K: Tech tree\n- Esc: Pause menu');
+}
+
+function showCredits() {
+    alert('CIVILIZATION - Browser Edition\n\nA tribute to Sid Meier\'s Civilization series\n\nBuilt with:\n- Three.js for 3D rendering\n- Pure JavaScript game logic\n- CSS for UI styling\n\nThis is a fan project for educational purposes.');
+}
+
+// Keyboard shortcuts
+window.addEventListener('keydown', (e) => {
+    if (!GameState.inGame) return;
+    
+    if (e.code === GameState.hotkeys.endTurn) endTurn();
+    if (e.code === GameState.hotkeys.techTree) showTechTree();
+    if (e.code === GameState.hotkeys.pause) {
+        if (document.getElementById('pauseMenu').classList.contains('hidden')) {
+            showPauseMenu();
+        } else {
+            hidePauseMenu();
+        }
+    }
+});
+
+// Prevent context menu
+window.addEventListener('contextmenu', e => e.preventDefault());
+
+// Load saved settings
+const savedSettings = localStorage.getItem('civ_settings');
+if (savedSettings) {
+    Object.assign(GameState.settings, JSON.parse(savedSettings));
+}
+
+const savedHotkeys = localStorage.getItem('civ_hotkeys');
+if (savedHotkeys) {
+    Object.assign(GameState.hotkeys, JSON.parse(savedHotkeys));
+}
+
+// Initialize
+window.onload = () => showLoading();
+    </script>
+</body>
+</html>

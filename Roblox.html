@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Roblox Web Sim</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap');
+        
+        body {
+            font-family: 'Fredoka', sans-serif;
+            background-color: #f2f4f5;
+            overflow-x: hidden;
+            overscroll-behavior: none; /* Prevent pull-to-refresh on mobile */
+        }
+
+        .roblox-btn {
+            transition: all 0.2s;
+        }
+        .roblox-btn:active {
+            transform: scale(0.95);
+        }
+
+        /* Avatar Preview Styles */
+        .avatar-preview {
+            width: 150px;
+            height: 200px;
+            position: relative;
+            margin: 0 auto;
+        }
+        .av-head {
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            position: absolute;
+            top: 0;
+            left: 50px;
+            z-index: 10;
+        }
+        .av-torso {
+            width: 80px;
+            height: 80px;
+            border-radius: 8px;
+            position: absolute;
+            top: 55px;
+            left: 35px;
+            z-index: 5;
+        }
+        .av-l-arm, .av-r-arm {
+            width: 25px;
+            height: 70px;
+            border-radius: 8px;
+            position: absolute;
+            top: 55px;
+        }
+        .av-l-arm { left: 5px; }
+        .av-r-arm { left: 120px; }
+        
+        .av-l-leg, .av-r-leg {
+            width: 35px;
+            height: 70px;
+            border-radius: 8px;
+            position: absolute;
+            top: 140px;
+        }
+        .av-l-leg { left: 35px; }
+        .av-r-leg { left: 80px; }
+
+        canvas {
+            image-rendering: pixelated;
+        }
+
+        /* Loading Screen */
+        #loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #232527;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            transition: opacity 0.5s ease;
+        }
+        .spinner {
+            width: 50px;
+            height: 50px;
+            background-color: #f2f4f5;
+            border-radius: 12px;
+            animation: rotate 1.5s infinite ease-in-out;
+        }
+        @keyframes rotate {
+            0% { transform: rotate(0deg) scale(1); }
+            50% { transform: rotate(180deg) scale(0.8); }
+            100% { transform: rotate(360deg) scale(1); }
+        }
+
+        /* Touch Controls */
+        .touch-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 20;
+            display: none; /* Hidden by default, shown on small screens/touch */
+        }
+        @media (hover: none) and (pointer: coarse), (max-width: 768px) {
+            .touch-layer {
+                display: block;
+            }
+        }
+
+        .d-pad-container {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            width: 140px;
+            height: 140px;
+            pointer-events: auto;
+        }
+        .d-btn {
+            position: absolute;
+            width: 45px;
+            height: 45px;
+            background: rgba(255, 255, 255, 0.25);
+            border-radius: 50%;
+            border: 1px solid rgba(255,255,255,0.4);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        .d-btn:active { background: rgba(255,255,255,0.5); }
+        .d-up { top: 0; left: 47.5px; }
+        .d-down { bottom: 0; left: 47.5px; }
+        .d-left { top: 47.5px; left: 0; }
+        .d-right { top: 47.5px; right: 0; }
+
+        .action-btn {
+            position: absolute;
+            bottom: 40px;
+            right: 30px;
+            width: 70px;
+            height: 70px;
+            background: rgba(255, 255, 255, 0.25);
+            border-radius: 50%;
+            pointer-events: auto;
+            border: 1px solid rgba(255,255,255,0.4);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-weight: bold;
+            font-size: 14px;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        .action-btn:active { background: rgba(255,255,255,0.5); }
+
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800 select-none">
+
+    <!-- Loading Screen -->
+    <div id="loading-screen">
+        <div class="spinner mb-8 shadow-lg"></div>
+        <h2 class="text-3xl font-extrabold tracking-widest text-gray-200">ROBLOX</h2>
+        <p class="text-gray-500 mt-2 text-sm">Симуляция загрузки...</p>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="bg-gray-900 text-white p-4 shadow-lg sticky top-0 z-50">
+        <div class="container mx-auto flex justify-between items-center">
+            <div class="flex items-center space-x-2 md:space-x-6">
+                <h1 class="text-xl md:text-2xl font-bold cursor-pointer" onclick="app.navigate('home')">ROBLOX-WEB</h1>
+                <div class="hidden md:flex space-x-4">
+                    <button onclick="app.navigate('home')" class="hover:text-gray-300 font-semibold">Игры</button>
+                    <button onclick="app.navigate('avatar')" class="hover:text-gray-300 font-semibold">Аватар</button>
+                    <button onclick="app.navigate('create')" class="hover:text-gray-300 font-semibold">Создать</button>
+                </div>
+            </div>
+            <div class="flex items-center space-x-4">
+                <div class="flex items-center bg-gray-800 px-3 py-1 rounded-full cursor-pointer hover:bg-gray-700" onclick="app.addRobux()">
+                    <span class="text-yellow-400 text-lg mr-1">R$</span>
+                    <span id="robux-display" class="font-bold">0</span>
+                </div>
+                <!-- Mobile Menu Button (Simple) -->
+                <button class="md:hidden text-2xl" onclick="app.toggleMobileMenu()">☰</button>
+                
+                <div class="hidden md:flex w-8 h-8 bg-gray-600 rounded-full items-center justify-center font-bold" id="user-icon">
+                    U
+                </div>
+            </div>
+        </div>
+        <!-- Mobile Menu Dropdown -->
+        <div id="mobile-menu" class="hidden bg-gray-800 p-4 mt-2 md:hidden">
+            <button onclick="app.navigate('home'); app.toggleMobileMenu()" class="block w-full text-left py-2 border-b border-gray-700">Игры</button>
+            <button onclick="app.navigate('avatar'); app.toggleMobileMenu()" class="block w-full text-left py-2 border-b border-gray-700">Аватар</button>
+            <button onclick="app.navigate('create'); app.toggleMobileMenu()" class="block w-full text-left py-2">Создать</button>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main id="app-container" class="container mx-auto p-4 min-h-screen pb-20">
+        <!-- Dynamic Content injected via JS -->
+    </main>
+
+    <!-- Scripts -->
+    <script>
+        // --- Game State & Logic ---
+        const gameState = {
+            robux: 150,
+            view: 'home',
+            username: 'Player1',
+            avatar: {
+                head: '#d4d4d4',
+                torso: '#3b82f6',
+                legs: '#1f2937',
+                arms: '#d4d4d4'
+            },
+            currentGame: null,
+            gameLoopId: null
+        };
+
+        const games = [
+            {
+                id: 'disaster',
+                title: 'Natural Disaster Survival',
+                description: 'Выживи в различных природных катастрофах! Уклоняйся от падающих обломков.',
+                online: 12453,
+                image: 'linear-gradient(135deg, #ef4444 0%, #7f1d1d 100%)',
+                emoji: '🌪️'
+            },
+            {
+                id: 'forest',
+                title: '99 Night of the forest',
+                description: 'Сможешь ли ты пережить 99 ночей в темном лесу? Избегай монстров.',
+                online: 5621,
+                image: 'linear-gradient(135deg, #064e3b 0%, #022c22 100%)',
+                emoji: '🌲'
+            },
+            {
+                id: 'steal',
+                title: 'Steal A brairot',
+                description: 'Проберись через охрану и укради ценный предмет!',
+                online: 893,
+                image: 'linear-gradient(135deg, #fbbf24 0%, #b45309 100%)',
+                emoji: '🦜'
+            }
+        ];
+
+        // --- App Controller ---
+        const app = {
+            init: () => {
+                // Simulate Loading
+                setTimeout(() => {
+                    const loader = document.getElementById('loading-screen');
+                    loader.style.opacity = '0';
+                    setTimeout(() => loader.style.display = 'none', 500);
+                }, 2000);
+
+                app.render();
+                // Simulation of fluctuating online players
+                setInterval(() => {
+                    games.forEach(g => {
+                        g.online += Math.floor(Math.random() * 20) - 10;
+                    });
+                    if(gameState.view === 'home') app.renderHome();
+                }, 5000);
+            },
+
+            toggleMobileMenu: () => {
+                const menu = document.getElementById('mobile-menu');
+                menu.classList.toggle('hidden');
+            },
+
+            navigate: (view, data = null) => {
+                if(gameState.gameLoopId) {
+                    cancelAnimationFrame(gameState.gameLoopId);
+                    gameState.gameLoopId = null;
+                }
+                gameState.view = view;
+                gameState.currentGame = data;
+                app.render();
+            },
+
+            addRobux: () => {
+                gameState.robux += 10;
+                document.getElementById('robux-display').innerText = gameState.robux;
+                alert('Вы купили 10 Робуксов! (Симуляция)');
+            },
+
+            updateAvatar: (part, color) => {
+                gameState.avatar[part] = color;
+                app.renderAvatarPreview();
+            },
+
+            render: () => {
+                const container = document.getElementById('app-container');
+                document.getElementById('robux-display').innerText = gameState.robux;
+                
+                container.innerHTML = '';
+
+                if (gameState.view === 'home') app.renderHome();
+                else if (gameState.view === 'avatar') app.renderAvatarEditor();
+                else if (gameState.view === 'game_lobby') app.renderGameLobby();
+                else if (gameState.view === 'play') app.renderGameCanvas();
+                else if (gameState.view === 'create') app.renderCreateServer();
+            },
+
+            renderHome: () => {
+                const container = document.getElementById('app-container');
+                let html = `
+                    <div class="mb-6">
+                        <h2 class="text-3xl font-bold mb-4 text-gray-800">Рекомендуемые игры</h2>
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                `;
+
+                games.forEach(game => {
+                    html += `
+                        <div class="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition-shadow cursor-pointer" onclick="app.navigate('game_lobby', '${game.id}')">
+                            <div style="height: 160px; background: ${game.image}; display:flex; justify-content:center; align-items:center; font-size: 4rem;">
+                                ${game.emoji}
+                            </div>
+                            <div class="p-4">
+                                <h3 class="font-bold text-xl mb-1">${game.title}</h3>
+                                <div class="flex items-center text-gray-500 text-sm mb-2">
+                                    <span class="mr-2">🟢 ${game.online.toLocaleString()} Онлайн</span>
+                                    <span>👍 92%</span>
+                                </div>
+                                <p class="text-gray-600 text-sm truncate">${game.description}</p>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                html += `</div></div>`;
+                container.innerHTML = html;
+            },
+
+            renderAvatarEditor: () => {
+                const container = document.getElementById('app-container');
+                container.innerHTML = `
+                    <div class="flex flex-col md:flex-row gap-8 bg-white p-8 rounded-xl shadow-md">
+                        <div class="w-full md:w-1/3 flex flex-col items-center border-r border-gray-200 pr-4">
+                            <h2 class="text-2xl font-bold mb-6">Ваш Персонаж</h2>
+                            <div id="avatar-preview-container">
+                                <!-- JS Injected Preview -->
+                            </div>
+                        </div>
+                        <div class="w-full md:w-2/3">
+                            <h2 class="text-2xl font-bold mb-6">Редактор</h2>
+                            
+                            <div class="mb-6">
+                                <label class="block font-bold mb-2">Цвет Головы</label>
+                                <div class="flex gap-2 flex-wrap">
+                                    ${app.getColorButtons('head')}
+                                </div>
+                            </div>
+                            <div class="mb-6">
+                                <label class="block font-bold mb-2">Цвет Торса</label>
+                                <div class="flex gap-2 flex-wrap">
+                                    ${app.getColorButtons('torso')}
+                                </div>
+                            </div>
+                            <div class="mb-6">
+                                <label class="block font-bold mb-2">Цвет Ног</label>
+                                <div class="flex gap-2 flex-wrap">
+                                    ${app.getColorButtons('legs')}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                app.renderAvatarPreview();
+            },
+
+            renderAvatarPreview: () => {
+                const container = document.getElementById('avatar-preview-container');
+                const av = gameState.avatar;
+                container.innerHTML = `
+                    <div class="avatar-preview">
+                        <div class="av-head" style="background-color: ${av.head}"></div>
+                        <div class="av-torso" style="background-color: ${av.torso}"></div>
+                        <div class="av-l-arm" style="background-color: ${av.arms}"></div>
+                        <div class="av-r-arm" style="background-color: ${av.arms}"></div>
+                        <div class="av-l-leg" style="background-color: ${av.legs}"></div>
+                        <div class="av-r-leg" style="background-color: ${av.legs}"></div>
+                    </div>
+                `;
+            },
+
+            getColorButtons: (part) => {
+                const colors = ['#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#1f2937', '#d4d4d4', '#8b5cf6'];
+                return colors.map(c => 
+                    `<div onclick="app.updateAvatar('${part}', '${c}')" class="w-8 h-8 rounded-full cursor-pointer border-2 border-gray-300 hover:scale-110 transition-transform" style="background-color: ${c}"></div>`
+                ).join('');
+            },
+
+            renderGameLobby: () => {
+                const gameId = gameState.currentGame;
+                const game = games.find(g => g.id === gameId);
+                const container = document.getElementById('app-container');
+
+                container.innerHTML = `
+                    <div class="bg-white rounded-xl shadow-lg p-6 max-w-4xl mx-auto">
+                        <button onclick="app.navigate('home')" class="text-blue-500 mb-4 hover:underline">&larr; Назад к играм</button>
+                        
+                        <div class="flex flex-col md:flex-row gap-6">
+                            <div class="w-full md:w-1/3 h-48 rounded-lg flex items-center justify-center text-6xl shadow-inner" style="background: ${game.image}">
+                                ${game.emoji}
+                            </div>
+                            <div class="w-full md:w-2/3">
+                                <h2 class="text-4xl font-bold mb-2">${game.title}</h2>
+                                <p class="text-gray-600 mb-4">${game.description}</p>
+                                
+                                <div class="flex flex-col md:flex-row justify-between items-center bg-gray-100 p-4 rounded-lg mb-6 gap-4">
+                                    <div class="text-center md:text-left">
+                                        <div class="font-bold text-gray-700">Активных игроков</div>
+                                        <div class="text-2xl">${game.online.toLocaleString()}</div>
+                                    </div>
+                                    <button onclick="app.navigate('play', '${gameId}')" class="roblox-btn w-full md:w-auto bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-8 rounded-lg text-xl shadow-md">
+                                        ▶ ИГРАТЬ
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mt-8">
+                            <div class="flex justify-between items-center mb-4">
+                                <h3 class="text-xl font-bold">Серверы</h3>
+                                <button onclick="alert('Сервер создан! Вход... (симуляция)'); app.navigate('play', '${gameId}')" class="text-sm bg-gray-200 hover:bg-gray-300 px-3 py-1 rounded">
+                                    + Создать сервер
+                                </button>
+                            </div>
+                            
+                            <div class="space-y-2">
+                                ${Array.from({length: 5}).map((_, i) => `
+                                    <div class="flex flex-col md:flex-row justify-between items-center border border-gray-200 p-3 rounded hover:bg-gray-50 gap-2">
+                                        <div class="flex items-center gap-3 w-full md:w-auto">
+                                            <div class="w-8 h-8 bg-gray-300 rounded-full flex-shrink-0"></div>
+                                            <div>
+                                                <div class="font-bold text-sm">Сервер игрока User${Math.floor(Math.random()*9000)}</div>
+                                                <div class="text-xs text-gray-500">Пинг: ${Math.floor(Math.random()*50 + 20)}ms</div>
+                                            </div>
+                                        </div>
+                                        <div class="flex items-center gap-4 w-full md:w-auto justify-between">
+                                            <div class="text-sm font-mono">${Math.floor(Math.random()*10)}/12 Игроков</div>
+                                            <button onclick="app.navigate('play', '${gameId}')" class="bg-white border border-gray-300 px-4 py-1 rounded text-sm hover:bg-gray-100 font-semibold">
+                                                Вступить
+                                            </button>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            },
+
+            renderCreateServer: () => {
+                document.getElementById('app-container').innerHTML = `
+                    <div class="max-w-md mx-auto bg-white p-8 rounded-xl shadow-md mt-10">
+                        <h2 class="text-2xl font-bold mb-4">Создание Игры (Roblox Studio Sim)</h2>
+                        <p class="mb-4 text-gray-600">Здесь вы можете создать свой плейс.</p>
+                        <input type="text" placeholder="Название сервера" class="w-full border p-2 rounded mb-4">
+                        <select class="w-full border p-2 rounded mb-4">
+                            <option>Карта: Город</option>
+                            <option>Карта: Остров</option>
+                            <option>Карта: Космос</option>
+                        </select>
+                        <button onclick="alert('Сервер успешно опубликован!'); app.navigate('home')" class="w-full bg-blue-600 text-white font-bold py-2 rounded hover:bg-blue-700">
+                            Создать
+                        </button>
+                    </div>
+                `;
+            },
+
+            renderGameCanvas: () => {
+                const gameId = gameState.currentGame;
+                const container = document.getElementById('app-container');
+                container.innerHTML = `
+                    <div class="flex flex-col h-[85vh] md:h-[80vh] relative">
+                        <div class="flex justify-between items-center mb-2">
+                            <button onclick="app.navigate('game_lobby', '${gameId}')" class="bg-red-500 text-white px-4 py-1 rounded font-bold hover:bg-red-600 z-50">ВЫЙТИ</button>
+                            <div class="font-bold text-lg hidden md:block">${games.find(g => g.id === gameId).title}</div>
+                            <div class="text-sm bg-gray-200 px-2 py-1 rounded z-50">👥 ${Math.floor(Math.random()*15 + 1)}</div>
+                        </div>
+                        
+                        <div class="relative w-full h-full bg-gray-900 rounded-lg shadow-inner overflow-hidden">
+                            <canvas id="gameCanvas" width="800" height="500" class="w-full h-full block"></canvas>
+                            
+                            <!-- Touch Controls for Mobile -->
+                            <div class="touch-layer">
+                                <div class="d-pad-container">
+                                    <div class="d-btn d-up" ontouchstart="gameEngine.touchStart('ArrowUp')" ontouchend="gameEngine.touchEnd('ArrowUp')">▲</div>
+                                    <div class="d-btn d-down" ontouchstart="gameEngine.touchStart('ArrowDown')" ontouchend="gameEngine.touchEnd('ArrowDown')">▼</div>
+                                    <div class="d-btn d-left" ontouchstart="gameEngine.touchStart('ArrowLeft')" ontouchend="gameEngine.touchEnd('ArrowLeft')">◀</div>
+                                    <div class="d-btn d-right" ontouchstart="gameEngine.touchStart('ArrowRight')" ontouchend="gameEngine.touchEnd('ArrowRight')">▶</div>
+                                </div>
+                                <div class="action-btn" ontouchstart="gameEngine.touchStart('Space')" ontouchend="gameEngine.touchEnd('Space')">
+                                    ПРЫГ
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mt-2 text-center text-gray-500 text-sm hidden md:block">
+                            Управление: Стрелки / WASD
+                        </div>
+                    </div>
+                `;
+
+                setTimeout(() => gameEngine.start(gameId), 100);
+            }
+        };
+
+        // --- Game Engine (Simple Canvas Games) ---
+        const gameEngine = {
+            canvas: null,
+            ctx: null,
+            player: { x: 400, y: 250, size: 20, speed: 5, color: 'white' },
+            keys: {},
+            entities: [],
+            score: 0,
+            
+            start: (gameId) => {
+                const canvas = document.getElementById('gameCanvas');
+                if(!canvas) return;
+                
+                // Set canvas resolution match display size
+                canvas.width = canvas.offsetWidth;
+                canvas.height = canvas.offsetHeight;
+
+                gameEngine.canvas = canvas;
+                gameEngine.ctx = canvas.getContext('2d');
+                // Adjust player speed based on screen size (faster on small screens proportionally)
+                const speed = canvas.width < 600 ? 3 : 4;
+                gameEngine.player = { x: canvas.width/2, y: canvas.height/2, w: 20, h: 20, speed: speed, color: gameState.avatar.torso };
+                gameEngine.keys = {};
+                gameEngine.entities = [];
+                gameEngine.score = 0;
+                gameEngine.running = true;
+
+                // Event Listeners
+                window.addEventListener('keydown', e => gameEngine.keys[e.key] = true);
+                window.addEventListener('keyup', e => gameEngine.keys[e.key] = false);
+
+                // Game specific setup
+                if (gameId === 'disaster') {
+                    gameEngine.loop = gameEngine.disasterLoop;
+                } else if (gameId === 'forest') {
+                    gameEngine.loop = gameEngine.forestLoop;
+                } else if (gameId === 'steal') {
+                    gameEngine.player.x = 20; // Start at left
+                    gameEngine.target = { x: canvas.width - 50, y: canvas.height - 50, w: 30, h: 30 };
+                    // Adjust walls for canvas size
+                    gameEngine.entities = [
+                        {x: canvas.width * 0.3, y: 0, w: 20, h: canvas.height * 0.7, type: 'wall'},
+                        {x: canvas.width * 0.6, y: canvas.height * 0.3, w: 20, h: canvas.height * 0.7, type: 'wall'}
+                    ];
+                    gameEngine.loop = gameEngine.stealLoop;
+                }
+
+                gameEngine.run();
+            },
+
+            touchStart: (key) => {
+                gameEngine.keys[key] = true;
+                // Add vibration feedback if supported
+                if (navigator.vibrate) navigator.vibrate(20);
+            },
+
+            touchEnd: (key) => {
+                gameEngine.keys[key] = false;
+            },
+
+            run: () => {
+                if(!gameEngine.running || gameState.view !== 'play') return;
+                gameEngine.loop();
+                gameState.gameLoopId = requestAnimationFrame(gameEngine.run);
+            },
+
+            movePlayer: () => {
+                const p = gameEngine.player;
+                // Support both Keys and Touch Mapped keys
+                if ((gameEngine.keys['ArrowUp'] || gameEngine.keys['w']) && p.y > 0) p.y -= p.speed;
+                if ((gameEngine.keys['ArrowDown'] || gameEngine.keys['s']) && p.y < gameEngine.canvas.height - p.h) p.y += p.speed;
+                if ((gameEngine.keys['ArrowLeft'] || gameEngine.keys['a']) && p.x > 0) p.x -= p.speed;
+                if ((gameEngine.keys['ArrowRight'] || gameEngine.keys['d']) && p.x < gameEngine.canvas.width - p.w) p.x += p.speed;
+            },
+
+            drawPlayer: () => {
+                const ctx = gameEngine.ctx;
+                const p = gameEngine.player;
+                
+                // Simple roblox char
+                ctx.fillStyle = gameState.avatar.torso;
+                ctx.fillRect(p.x, p.y, p.w, p.h);
+                ctx.fillStyle = gameState.avatar.head;
+                ctx.fillRect(p.x + 2, p.y - 8, 16, 8); // Head
+                ctx.fillStyle = gameState.avatar.legs;
+                ctx.fillRect(p.x, p.y + p.h, 8, 10); // L Leg
+                ctx.fillRect(p.x + 12, p.y + p.h, 8, 10); // R Leg
+                
+                // Name tag
+                ctx.fillStyle = "white";
+                ctx.font = "10px Arial";
+                ctx.fillText(gameState.username, p.x - 5, p.y - 12);
+            },
+
+            // Game 1: Natural Disaster (Falling Rocks)
+            disasterLoop: () => {
+                const ctx = gameEngine.ctx;
+                const cvs = gameEngine.canvas;
+
+                // Clear
+                ctx.fillStyle = "#87CEEB"; // Sky
+                ctx.fillRect(0, 0, cvs.width, cvs.height);
+                
+                // Ground
+                ctx.fillStyle = "#228B22";
+                ctx.fillRect(0, cvs.height - 40, cvs.width, 40);
+
+                gameEngine.movePlayer();
+                gameEngine.drawPlayer();
+
+                // Spawn Meteors
+                if (Math.random() < 0.05) {
+                    gameEngine.entities.push({
+                        x: Math.random() * cvs.width,
+                        y: -20,
+                        r: 10 + Math.random() * 20,
+                        speed: 2 + Math.random() * 3
+                    });
+                }
+
+                // Update & Draw Meteors
+                ctx.fillStyle = "#8B0000";
+                for (let i = 0; i < gameEngine.entities.length; i++) {
+                    let e = gameEngine.entities[i];
+                    e.y += e.speed;
+                    
+                    ctx.beginPath();
+                    ctx.arc(e.x, e.y, e.r, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // Collision
+                    if (e.x > gameEngine.player.x && e.x < gameEngine.player.x + gameEngine.player.w &&
+                        e.y > gameEngine.player.y && e.y < gameEngine.player.y + gameEngine.player.h) {
+                            alert("Ты погиб! Метеорит упал на тебя.");
+                            gameEngine.running = false;
+                            app.navigate('game_lobby', 'disaster');
+                    }
+
+                    if (e.y > cvs.height) {
+                        gameEngine.entities.splice(i, 1);
+                        i--;
+                        gameEngine.score++;
+                    }
+                }
+
+                // Score
+                ctx.fillStyle = "black";
+                ctx.font = "20px Arial";
+                ctx.fillText(`Выжито: ${gameEngine.score}`, 10, 30);
+            },
+
+            // Game 2: 99 Nights (Flashlight & Monsters)
+            forestLoop: () => {
+                const ctx = gameEngine.ctx;
+                const cvs = gameEngine.canvas;
+                const p = gameEngine.player;
+
+                // Dark Background
+                ctx.fillStyle = "black";
+                ctx.fillRect(0, 0, cvs.width, cvs.height);
+
+                gameEngine.movePlayer();
+
+                // Spawn Monsters
+                if (Math.random() < 0.02) {
+                    gameEngine.entities.push({
+                        x: Math.random() * cvs.width,
+                        y: Math.random() * cvs.height,
+                        speedX: (Math.random() - 0.5) * 2,
+                        speedY: (Math.random() - 0.5) * 2
+                    });
+                }
+
+                // Flashlight Effect (Clip)
+                ctx.save();
+                ctx.beginPath();
+                ctx.arc(p.x + 10, p.y + 10, 100, 0, Math.PI * 2);
+                ctx.clip();
+                
+                // Ground inside light
+                ctx.fillStyle = "#1a2f1a";
+                ctx.fillRect(0,0, cvs.width, cvs.height);
+                
+                gameEngine.drawPlayer();
+
+                // Draw Monsters
+                ctx.fillStyle = "red";
+                for(let i=0; i<gameEngine.entities.length; i++){
+                    let e = gameEngine.entities[i];
+                    // Chase player slightly
+                    e.x += (p.x - e.x) * 0.01;
+                    e.y += (p.y - e.y) * 0.01;
+
+                    ctx.fillRect(e.x, e.y, 15, 15);
+                    
+                    // Eyes
+                    ctx.fillStyle = "yellow";
+                    ctx.fillRect(e.x + 2, e.y + 2, 3, 3);
+                    ctx.fillRect(e.x + 10, e.y + 2, 3, 3);
+                    ctx.fillStyle = "red";
+
+                    // Collision
+                    if(Math.abs(p.x - e.x) < 15 && Math.abs(p.y - e.y) < 15) {
+                        ctx.restore();
+                        alert("Монстр поймал тебя!");
+                        gameEngine.running = false;
+                        app.navigate('game_lobby', 'forest');
+                        return;
+                    }
+                }
+
+                ctx.restore();
+                
+                gameEngine.score++;
+                ctx.fillStyle = "white";
+                ctx.fillText(`Время: ${Math.floor(gameEngine.score/60)}ч`, 10, 30);
+            },
+
+            // Game 3: Steal (Stealth Maze)
+            stealLoop: () => {
+                const ctx = gameEngine.ctx;
+                const cvs = gameEngine.canvas;
+                const p = gameEngine.player;
+
+                // Floor
+                ctx.fillStyle = "#e5e7eb";
+                ctx.fillRect(0, 0, cvs.width, cvs.height);
+
+                gameEngine.movePlayer();
+
+                // Goal
+                ctx.fillStyle = "gold";
+                ctx.fillRect(gameEngine.target.x, gameEngine.target.y, gameEngine.target.w, gameEngine.target.h);
+                ctx.fillText("🦜", gameEngine.target.x + 5, gameEngine.target.y + 20);
+
+                // Walls
+                ctx.fillStyle = "#374151";
+                for(let wall of gameEngine.entities) {
+                    ctx.fillRect(wall.x, wall.y, wall.w, wall.h);
+                    
+                    // Simple AABB Collision
+                    if (p.x < wall.x + wall.w &&
+                        p.x + p.w > wall.x &&
+                        p.y < wall.y + wall.h &&
+                        p.y + p.h > wall.y) {
+                            // Reset position on hit
+                            p.x = 20;
+                            p.y = cvs.height / 2;
+                    }
+                }
+
+                gameEngine.drawPlayer();
+
+                // Win Condition
+                if (p.x < gameEngine.target.x + gameEngine.target.w &&
+                    p.x + p.w > gameEngine.target.x &&
+                    p.y < gameEngine.target.y + gameEngine.target.h &&
+                    p.y + p.h > gameEngine.target.y) {
+                        alert("Ты украл попугая! +50 Робуксов");
+                        gameState.robux += 50;
+                        gameEngine.running = false;
+                        app.navigate('home');
+                }
+            }
+        };
+
+        // Initialize
+        app.init();
+
+    </script>
+</body>
+</html>

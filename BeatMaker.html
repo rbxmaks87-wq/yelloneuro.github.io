@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BeatMaker V1.0</title>
+    <style>
+        :root {
+            --bg-grad: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --glass: rgba(255, 255, 255, 0.1);
+            --border: rgba(255, 255, 255, 0.2);
+            --text: #ffffff;
+            --accent: #00f2ff;
+            --step-off: rgba(255, 255, 255, 0.15);
+            --step-on: #00f2ff;
+            --step-play: #ff0055;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background: var(--bg-grad);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            color: var(--text);
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* Glassmorphism Styles */
+        .window {
+            width: 95%;
+            max-width: 900px;
+            height: 90vh;
+            background: var(--glass);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo { font-weight: 700; font-size: 1.2rem; letter-spacing: 2px; }
+
+        .nav-btn {
+            background: rgba(255,255,255,0.1);
+            border: 1px solid var(--border);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: 0.3s;
+            margin-left: 10px;
+        }
+        .nav-btn:hover, .nav-btn.active { background: var(--accent); color: #000; box-shadow: 0 0 15px var(--accent); }
+
+        .content { flex: 1; padding: 20px; overflow-y: auto; display: none; }
+        .content.active { display: block; }
+
+        /* Sequencer Grid */
+        .sequencer-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .inst-name {
+            width: 100px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            text-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+
+        .steps {
+            display: flex;
+            flex: 1;
+            gap: 4px;
+            justify-content: space-between;
+        }
+
+        .step {
+            flex: 1;
+            aspect-ratio: 1/1.5;
+            background: var(--step-off);
+            border-radius: 4px;
+            cursor: pointer;
+            transition: 0.1s;
+            border: 1px solid transparent;
+        }
+
+        .step.active { background: var(--step-on); box-shadow: 0 0 10px var(--step-on); }
+        .step.playing { border-color: var(--step-play); transform: scale(1.1); }
+        .step:nth-child(4n) { margin-right: 8px; } /* Разделение на такты */
+
+        /* Controls */
+        .controls-area {
+            background: rgba(0,0,0,0.2);
+            padding: 15px;
+            border-radius: 15px;
+            margin-top: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .control-group { display: flex; flex-direction: column; gap: 5px; flex: 1; min-width: 100px; }
+        label { font-size: 0.8rem; opacity: 0.8; }
+        
+        input[type=range] {
+            width: 100%;
+            accent-color: var(--accent);
+            cursor: pointer;
+        }
+
+        .action-btn {
+            background: var(--accent);
+            border: none;
+            color: #000;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 10px;
+            width: 100%;
+        }
+
+        /* About Page */
+        .about-box {
+            text-align: center;
+            margin-top: 50px;
+        }
+        h1 { font-size: 3rem; margin-bottom: 10px; background: -webkit-linear-gradient(#fff, #aaa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+
+        /* Notification */
+        #toast {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.8);
+            padding: 10px 20px;
+            border-radius: 20px;
+            opacity: 0;
+            transition: 0.5s;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+
+<div class="window">
+    <div class="header">
+        <div class="logo">SOLAXX BEATS</div>
+        <div>
+            <button class="nav-btn active" onclick="switchTab('editor')">РЕДАКТОР</button>
+            <button class="nav-btn" onclick="switchTab('about')">О ПРОГРАММЕ</button>
+        </div>
+    </div>
+
+    <!-- EDITOR TAB -->
+    <div id="editor" class="content active">
+        <div id="grid-container"></div>
+
+        <div class="controls-area">
+            <div class="control-group">
+                <button id="playBtn" class="action-btn" style="background: #ff0055; color: white;">▶ PLAY / STOP</button>
+            </div>
+            <div class="control-group">
+                <label>BPM: <span id="bpm-val">140</span></label>
+                <input type="range" id="bpm" min="50" max="1000" value="140">
+            </div>
+            <div class="control-group">
+                <label>Reverb: <span id="rev-val">0</span></label>
+                <input type="range" id="reverb" min="0" max="10" value="0">
+            </div>
+            <div class="control-group">
+                <label>Pitch: <span id="pitch-val">1</span></label>
+                <input type="range" id="pitch" min="0" max="10" step="0.1" value="1">
+            </div>
+        </div>
+
+        <div style="display: flex; gap: 10px; margin-top: 10px;">
+            <button class="action-btn" onclick="saveBeat()">💾 Сохранить</button>
+            <button class="action-btn" onclick="shareBeat()">🔗 Поделиться (Ссылка)</button>
+            <button class="action-btn" style="background: transparent; border: 1px solid white; color: white;" onclick="clearGrid()">🗑 Очистить</button>
+        </div>
+    </div>
+
+    <!-- ABOUT TAB -->
+    <div id="about" class="content">
+        <div class="about-box">
+            <h1>SOLAXX STUDIO</h1>
+            <p>Профессиональный инструмент в твоем браузере.</p>
+            <br>
+            <p><strong>Создал:</strong> Solaxx</p>
+            <p><strong>Версия:</strong> V1.0 [Beta]</p>
+            <br>
+            <p style="opacity: 0.5">Engineered with Pure Web Audio API</p>
+        </div>
+    </div>
+    
+    <div id="toast">Ссылка скопирована!</div>
+</div>
+
+<script>
+    // --- 1. CONFIG & STATE ---
+    const instruments = ['Kicks', 'Hi-Hats', 'Closed-hats', 'Snare', 'Tom', 'Bass'];
+    const rows = 6;
+    const cols = 16;
+    let grid = Array(rows).fill().map(() => Array(cols).fill(false));
+    let isPlaying = false;
+    let currentStep = 0;
+    let nextNoteTime = 0.0;
+    let timerID;
+    
+    // Audio Context (Real Sound Engine)
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    let ctx = new AudioContext();
+
+    // --- 2. SOUND SYNTHESIS ENGINE (REAL TIME) ---
+    function playSound(index, time) {
+        if (ctx.state === 'suspended') ctx.resume();
+        
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        const pVal = parseFloat(document.getElementById('pitch').value);
+        const rVal = parseFloat(document.getElementById('reverb').value) / 20; // Reverb fake tail
+
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+
+        const now = time;
+        const pitchMod = (0.5 + (pVal / 2)); // Pitch scaling
+
+        switch(index) {
+            case 0: // Kick
+                osc.frequency.setValueAtTime(150 * pitchMod, now);
+                osc.frequency.exponentialRampToValueAtTime(0.01, now + 0.5);
+                gain.gain.setValueAtTime(1, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5 + rVal);
+                break;
+            case 1: // Hi-Hat (Noise logic simplified with high osc)
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(800 * pitchMod, now); // Rough approximation
+                // Real noise requires buffer, keeping code short: using high square
+                osc.frequency.setValueAtTime(8000 * pitchMod, now);
+                gain.gain.setValueAtTime(0.3, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.05 + rVal);
+                break;
+            case 2: // Closed Hat
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(1200 * pitchMod, now); // Metal sound
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.03 + rVal);
+                break;
+            case 3: // Snare
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(200 * pitchMod, now);
+                gain.gain.setValueAtTime(0.5, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2 + rVal);
+                // Create Noise burst for snare
+                const noise = ctx.createBufferSource();
+                const buffer = ctx.createBuffer(1, ctx.sampleRate * 0.1, ctx.sampleRate);
+                const data = buffer.getChannelData(0);
+                for (let i = 0; i < buffer.length; i++) data[i] = Math.random() * 2 - 1;
+                noise.buffer = buffer;
+                const nGain = ctx.createGain();
+                nGain.gain.setValueAtTime(0.5, now);
+                nGain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+                noise.connect(nGain);
+                nGain.connect(ctx.destination);
+                noise.start(now);
+                break;
+            case 4: // Tom
+                osc.frequency.setValueAtTime(200 * pitchMod, now);
+                osc.frequency.exponentialRampToValueAtTime(50, now + 0.3);
+                gain.gain.setValueAtTime(0.8, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3 + rVal);
+                break;
+            case 5: // Bass
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(60 * pitchMod, now);
+                gain.gain.setValueAtTime(0.6, now);
+                gain.gain.linearRampToValueAtTime(0.6, now + 0.1);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4 + rVal);
+                break;
+        }
+
+        osc.start(now);
+        osc.stop(now + 1); // Cleanup
+    }
+
+    // --- 3. SEQUENCER LOGIC ---
+    function nextNote() {
+        const secondsPerBeat = 60.0 / document.getElementById('bpm').value;
+        const secondsPer16th = secondsPerBeat / 4; 
+        nextNoteTime += secondsPer16th;
+        currentStep++;
+        if (currentStep === cols) currentStep = 0;
+    }
+
+    function scheduleNote(beatNumber, time) {
+        // Visual Update
+        setTimeout(() => {
+            document.querySelectorAll('.step').forEach(s => s.classList.remove('playing'));
+            document.querySelectorAll(`.col-${beatNumber}`).forEach(s => s.classList.add('playing'));
+        }, (time - ctx.currentTime) * 1000);
+
+        // Audio Trigger
+        for (let i = 0; i < rows; i++) {
+            if (grid[i][beatNumber]) {
+                playSound(i, time);
+            }
+        }
+    }
+
+    function scheduler() {
+        // Lookahead: schedule notes 0.1s in advance
+        while (nextNoteTime < ctx.currentTime + 0.1) {
+            scheduleNote(currentStep, nextNoteTime);
+            nextNote();
+        }
+        if(isPlaying) timerID = requestAnimationFrame(scheduler);
+    }
+
+    // --- 4. UI BUILDER ---
+    const container = document.getElementById('grid-container');
+    instruments.forEach((inst, rowIndex) => {
+        const row = document.createElement('div');
+        row.className = 'sequencer-row';
+        
+        const name = document.createElement('div');
+        name.className = 'inst-name';
+        name.innerText = inst;
+        
+        const stepsDiv = document.createElement('div');
+        stepsDiv.className = 'steps';
+
+        for (let i = 0; i < cols; i++) {
+            const btn = document.createElement('div');
+            btn.className = `step col-${i}`;
+            btn.onclick = () => {
+                grid[rowIndex][i] = !grid[rowIndex][i];
+                btn.classList.toggle('active');
+            };
+            stepsDiv.appendChild(btn);
+        }
+
+        row.appendChild(name);
+        row.appendChild(stepsDiv);
+        container.appendChild(row);
+    });
+
+    // --- 5. CONTROLS ---
+    document.getElementById('playBtn').onclick = function() {
+        isPlaying = !isPlaying;
+        if (isPlaying) {
+            if (ctx.state === 'suspended') ctx.resume();
+            nextNoteTime = ctx.currentTime + 0.05;
+            currentStep = 0;
+            scheduler();
+            this.innerText = '⏹ STOP';
+        } else {
+            cancelAnimationFrame(timerID);
+            this.innerText = '▶ PLAY';
+            document.querySelectorAll('.step').forEach(s => s.classList.remove('playing'));
+        }
+    };
+
+    // Sliders Update
+    ['bpm', 'reverb', 'pitch'].forEach(id => {
+        document.getElementById(id).addEventListener('input', (e) => {
+            document.getElementById(id+'-val').innerText = e.target.value;
+        });
+    });
+
+    function switchTab(tab) {
+        document.querySelectorAll('.content').forEach(c => c.classList.remove('active'));
+        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById(tab).classList.add('active');
+        event.target.classList.add('active');
+    }
+
+    function clearGrid() {
+        grid = grid.map(r => r.fill(false));
+        document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+    }
+
+    // --- 6. SAVE & SHARE (WORKING) ---
+    function getState() {
+        return {
+            grid: grid,
+            bpm: document.getElementById('bpm').value,
+            pitch: document.getElementById('pitch').value,
+            reverb: document.getElementById('reverb').value
+        };
+    }
+
+    function loadState(data) {
+        if(!data) return;
+        grid = data.grid;
+        document.getElementById('bpm').value = data.bpm;
+        document.getElementById('pitch').value = data.pitch;
+        document.getElementById('reverb').value = data.reverb;
+        
+        // Update UI
+        document.getElementById('bpm-val').innerText = data.bpm;
+        document.getElementById('pitch-val').innerText = data.pitch;
+        document.getElementById('reverb-val').innerText = data.reverb;
+        
+        const steps = document.querySelectorAll('.step');
+        let counter = 0;
+        for(let r=0; r<rows; r++){
+            for(let c=0; c<cols; c++){
+                if(grid[r][c]) steps[counter].classList.add('active');
+                else steps[counter].classList.remove('active');
+                counter++;
+            }
+        }
+    }
+
+    function saveBeat() {
+        localStorage.setItem('solaxxBeat', JSON.stringify(getState()));
+        showToast('Бит сохранен локально!');
+    }
+
+    function shareBeat() {
+        // Encode state to Base64 to put in URL
+        const state = JSON.stringify(getState());
+        const encoded = btoa(state);
+        const url = window.location.href.split('#')[0] + '#data=' + encoded;
+        
+        navigator.clipboard.writeText(url).then(() => {
+            showToast('Ссылка скопирована в буфер!');
+        });
+    }
+
+    function showToast(msg) {
+        const t = document.getElementById('toast');
+        t.innerText = msg;
+        t.style.opacity = 1;
+        setTimeout(() => t.style.opacity = 0, 2000);
+    }
+
+    // Load from URL or LocalStorage on init
+    window.onload = () => {
+        if(window.location.hash.includes('data=')) {
+            try {
+                const encoded = window.location.hash.split('data=')[1];
+                const data = JSON.parse(atob(encoded));
+                loadState(data);
+                showToast('Бит загружен из ссылки!');
+            } catch(e) { console.log('Error loading url data'); }
+        } else {
+            const local = localStorage.getItem('solaxxBeat');
+            if(local) loadState(JSON.parse(local));
+        }
+    };
+</script>
+
+</body>
+</html>

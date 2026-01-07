@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>TheTown - City Builder</title>
+    <style>
+        body { margin: 0; padding: 0; background: #222; font-family: sans-serif; overflow: hidden; touch-action: none; }
+        #ui-top { position: absolute; top: 0; left: 0; width: 100%; height: 50px; background: rgba(0,0,0,0.7); color: white; display: flex; align-items: center; justify-content: space-around; z-index: 10; font-size: 14px; }
+        #canvas-container { width: 100vw; height: 100vh; cursor: crosshair; }
+        #toolbar { position: absolute; bottom: 0; left: 0; width: 100%; background: #333; display: flex; overflow-x: auto; padding: 10px 0; z-index: 10; border-top: 2px solid #555; }
+        .tool { min-width: 70px; height: 70px; margin: 0 5px; background: #555; color: white; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 10px; border: 2px solid transparent; flex-shrink: 0; }
+        .tool.active { border-color: #00ff00; background: #444; }
+        .tool img { width: 30px; margin-bottom: 5px; }
+        #stats { pointer-events: none; }
+    </style>
+</head>
+<body>
+
+<div id="ui-top">
+    <div id="stats">💰 <span id="money">10000</span> | 👥 <span id="pop">0</span> | 📅 День <span id="day">1</span></div>
+</div>
+
+<div id="canvas-container">
+    <canvas id="gameCanvas"></canvas>
+</div>
+
+<div id="toolbar">
+    <div class="tool active" onclick="setTool('road', 10, this)">🛣️<br>Дорога</div>
+    <div class="tool" onclick="setTool('residential', 50, this)">🏠<br>Жильё</div>
+    <div class="tool" onclick="setTool('commercial', 80, this)">🏢<br>Коммерц.</div>
+    <div class="tool" onclick="setTool('industrial', 100, this)">🏭<br>Завод</div>
+    <div class="tool" onclick="setTool('farm', 40, this)">🚜<br>Ферма</div>
+    <div class="tool" onclick="setTool('police', 500, this)">👮<br>Полиция</div>
+    <div class="tool" onclick="setTool('fire', 450, this)">🔥<br>Пож.</div>
+    <div class="tool" onclick="setTool('hospital', 600, this)">🏥<br>Больн.</div>
+    <div class="tool" onclick="setTool('park', 150, this)">🌳<br>Парк</div>
+    <div class="tool" onclick="setTool('edu', 300, this)">🎓<br>Школа</div>
+    <div class="tool" onclick="setTool('water', 0, this)">💧<br>Вода</div>
+    <div class="tool" onclick="setTool('grass', 0, this)">🌱<br>Земля</div>
+    <div class="tool" onclick="setTool('delete', 0, this)">🧹<br>Снос</div>
+</div>
+
+<script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const moneyEl = document.getElementById('money');
+    const popEl = document.getElementById('pop');
+    const dayEl = document.getElementById('day');
+
+    // Настройки игры
+    const gridSize = 40; // Размер клетки
+    const mapSize = 50;  // Клеток в ширину/высоту
+    let money = 10000;
+    let population = 0;
+    let day = 1;
+    let currentTool = 'road';
+    let toolCost = 10;
+
+    // Камера
+    let offsetX = 0, offsetY = 0;
+    let isDragging = false;
+    let lastX, lastY;
+
+    // Карта (двумерный массив)
+    let grid = [];
+    for(let x=0; x<mapSize; x++) {
+        grid[x] = [];
+        for(let y=0; y<mapSize; y++) {
+            grid[x][y] = { type: 'grass', level: 0 };
+        }
+    }
+
+    // Инициализация размеров
+    function resize() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    // Цвета зданий
+    const colors = {
+        grass: '#4CAF50',
+        water: '#2196F3',
+        road: '#444',
+        residential: '#8BC34A',
+        commercial: '#3F51B5',
+        industrial: '#FFEB3B',
+        farm: '#795548',
+        police: '#1A237E',
+        fire: '#F44336',
+        hospital: '#E91E63',
+        park: '#00E676',
+        edu: '#9C27B0',
+        delete: 'transparent'
+    };
+
+    function setTool(tool, cost, el) {
+        currentTool = tool;
+        toolCost = cost;
+        document.querySelectorAll('.tool').forEach(t => t.classList.remove('active'));
+        el.classList.add('active');
+    }
+
+    // Отрисовка
+    function draw() {
+        ctx.fillStyle = '#222';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        ctx.save();
+        ctx.translate(offsetX, offsetY);
+
+        for (let x = 0; x < mapSize; x++) {
+            for (let y = 0; y < mapSize; y++) {
+                let cell = grid[x][y];
+                let px = x * gridSize;
+                let py = y * gridSize;
+
+                // Отрисовка только того, что в экране
+                if (px + offsetX < -gridSize || px + offsetX > canvas.width || 
+                    py + offsetY < -gridSize || py + offsetY > canvas.height) continue;
+
+                ctx.fillStyle = colors[cell.type];
+                ctx.fillRect(px, py, gridSize - 1, gridSize - 1);
+
+                // Декор и символы
+                if (cell.type === 'road') {
+                    ctx.strokeStyle = '#666';
+                    ctx.setLineDash([5, 5]);
+                    ctx.strokeRect(px + 10, py + 10, gridSize - 20, gridSize - 20);
+                    ctx.setLineDash([]);
+                }
+                
+                if (cell.type !== 'grass' && cell.type !== 'water') {
+                    ctx.fillStyle = 'white';
+                    ctx.font = '10px Arial';
+                    ctx.fillText(cell.type[0].toUpperCase(), px + 15, py + 25);
+                }
+            }
+        }
+        ctx.restore();
+        requestAnimationFrame(draw);
+    }
+
+    // Логика постройки
+    function handleInput(clientX, clientY) {
+        const rect = canvas.getBoundingClientRect();
+        const x = Math.floor((clientX - rect.left - offsetX) / gridSize);
+        const y = Math.floor((clientY - rect.top - offsetY) / gridSize);
+
+        if (x >= 0 && x < mapSize && y >= 0 && y < mapSize) {
+            if (currentTool === 'delete') {
+                grid[x][y] = { type: 'grass' };
+            } else if (money >= toolCost) {
+                if (grid[x][y].type !== currentTool) {
+                    grid[x][y] = { type: currentTool };
+                    money -= toolCost;
+                    updateUI();
+                }
+            }
+        }
+    }
+
+    // Тач-события
+    canvas.addEventListener('touchstart', (e) => {
+        isDragging = false;
+        lastX = e.touches[0].clientX;
+        lastY = e.touches[0].clientY;
+        // Запоминаем для клика
+        this.touchStartTime = Date.now();
+    });
+
+    canvas.addEventListener('touchmove', (e) => {
+        let dx = e.touches[0].clientX - lastX;
+        let dy = e.touches[0].clientY - lastY;
+        if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
+            isDragging = true;
+            offsetX += dx;
+            offsetY += dy;
+            lastX = e.touches[0].clientX;
+            lastY = e.touches[0].clientY;
+        }
+    });
+
+    canvas.addEventListener('touchend', (e) => {
+        if (!isDragging) {
+            handleInput(lastX, lastY);
+        }
+    });
+
+    // Для ПК (тестирование)
+    canvas.addEventListener('mousedown', (e) => { isDragging = false; lastX = e.clientX; lastY = e.clientY; });
+    canvas.addEventListener('mousemove', (e) => {
+        if (e.buttons === 1) {
+            let dx = e.clientX - lastX;
+            let dy = e.clientY - lastY;
+            if (Math.abs(dx) > 2 || Math.abs(dy) > 2) {
+                isDragging = true;
+                offsetX += dx;
+                offsetY += dy;
+                lastX = e.clientX;
+                lastY = e.clientY;
+            }
+        }
+    });
+    canvas.addEventListener('mouseup', (e) => { if(!isDragging) handleInput(e.clientX, e.clientY); });
+
+    function updateUI() {
+        moneyEl.innerText = Math.floor(money);
+        popEl.innerText = population;
+        dayEl.innerText = day;
+    }
+
+    // Игровой цикл (Симуляция)
+    setInterval(() => {
+        day++;
+        let resCount = 0;
+        let jobCount = 0;
+        let serviceBonus = 0;
+
+        for (let x = 0; x < mapSize; x++) {
+            for (let y = 0; y < mapSize; y++) {
+                const type = grid[x][y].type;
+                if (type === 'residential') resCount++;
+                if (type === 'industrial' || type === 'commercial' || type === 'farm') jobCount++;
+                if (['police', 'fire', 'hospital', 'park', 'edu'].includes(type)) serviceBonus++;
+            }
+        }
+
+        // Прирост жителей: если есть работа и услуги
+        let targetPop = Math.min(resCount * 10, jobCount * 15) + (serviceBonus * 5);
+        if (population < targetPop) population += Math.ceil((targetPop - population) * 0.1);
+        else if (population > targetPop) population--;
+
+        // Экономика: Налоги - Расходы
+        let taxes = (population * 2) + (jobCount * 5);
+        let upkeep = (serviceBonus * 20);
+        money += (taxes - upkeep);
+
+        updateUI();
+    }, 2000); // Каждый игровой день - 2 секунды
+
+    draw();
+</script>
+
+</body>
+</html>

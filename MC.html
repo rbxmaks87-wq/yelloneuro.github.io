@@ -1,0 +1,1083 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MC Animator Pro - Редактор Анимаций и Локаций</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <!-- Three.js and Loaders/Exporters -->
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #1a1a1a; color: white; font-family: 'Segoe UI', sans-serif; }
+        #canvas-container { width: 100vw; height: calc(100vh - 160px); position: relative; }
+        
+        /* Timeline Styles */
+        #timeline-container {
+            height: 160px;
+            background: #222;
+            border-top: 2px solid #444;
+            display: flex;
+            flex-direction: column;
+            padding: 10px;
+            box-sizing: border-box;
+        }
+        
+        .timeline-track {
+            position: relative;
+            height: 40px;
+            background: #333;
+            margin-top: 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            overflow: hidden;
+        }
+        
+        .keyframe {
+            position: absolute;
+            top: 5px;
+            width: 10px;
+            height: 30px;
+            background: #facc15; /* Yellow */
+            border: 1px solid #fff;
+            transform: translateX(-50%);
+            cursor: grab;
+            z-index: 10;
+        }
+        
+        .playhead {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: #ef4444; /* Red */
+            z-index: 20;
+            pointer-events: none;
+        }
+
+        /* Sidebar */
+        #sidebar {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 280px;
+            height: calc(100vh - 160px);
+            background: rgba(0, 0, 0, 0.85);
+            padding: 15px;
+            overflow-y: auto;
+            backdrop-filter: blur(5px);
+            border-right: 1px solid #444;
+            transition: transform 0.3s;
+            z-index: 50;
+        }
+
+        .panel-section { margin-bottom: 20px; border-bottom: 1px solid #444; padding-bottom: 10px; }
+        .panel-title { font-weight: bold; color: #facc15; margin-bottom: 10px; display: block; }
+        
+        input[type="range"] { width: 100%; margin: 5px 0; }
+        label { font-size: 0.85rem; color: #ccc; }
+        
+        .btn {
+            background: #3b82f6;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 4px;
+            border: none;
+            cursor: pointer;
+            width: 100%;
+            margin-bottom: 5px;
+            font-size: 0.9rem;
+            transition: background 0.2s;
+        }
+        .btn:hover { background: #2563eb; }
+        .btn-danger { background: #ef4444; }
+        .btn-success { background: #22c55e; }
+        
+        /* Modal for Help */
+        #help-modal {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #333;
+            padding: 20px;
+            border-radius: 8px;
+            z-index: 100;
+            max-width: 500px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Sidebar Controls -->
+    <div id="sidebar">
+        <h2 class="text-xl font-bold mb-4 text-center text-yellow-400">MC Animator Pro</h2>
+        
+        <div class="panel-section">
+            <span class="panel-title">Персонаж & Скин</span>
+            <input type="file" id="skin-upload" accept="image/*" class="text-xs mb-2 w-full text-gray-300">
+            <button class="btn" onclick="document.getElementById('skin-upload').click()">📂 Загрузить Скин</button>
+            <button class="btn" onclick="app.resetPose()">🧘 Сброс Позы</button>
+        </div>
+
+        <div class="panel-section">
+            <span class="panel-title">Предмет в руке</span>
+            <div class="flex gap-1 mb-1">
+                <button class="btn text-xs" onclick="app.equipBlock()">⚔️ Блок</button>
+                <button class="btn btn-danger text-xs" onclick="app.equipItem(null)">❌ Убрать</button>
+            </div>
+            <input type="file" id="hand-item-upload" accept=".glb,.gltf" class="hidden">
+            <button class="btn" onclick="document.getElementById('hand-item-upload').click()">🔫 Загрузить 3D Предмет</button>
+        </div>
+
+        <div class="panel-section">
+            <span class="panel-title">Раскраска (Тинт)</span>
+            <div class="flex gap-1 mb-1">
+                <input type="color" id="tint-color" value="#ffffff" class="w-8 h-8 cursor-pointer border-0 p-0">
+                <button class="btn w-full" onclick="app.tintSelectedPart()">🎨 Покрасить Всё</button>
+            </div>
+            <div class="grid grid-cols-2 gap-1">
+                <button class="btn text-xs" onclick="app.tintPart('head', document.getElementById('tint-color').value)">Голова</button>
+                <button class="btn text-xs" onclick="app.tintPart('body', document.getElementById('tint-color').value)">Тело</button>
+                <button class="btn text-xs" onclick="app.tintPart('lArmMesh', document.getElementById('tint-color').value)">Л.Рука</button>
+                <button class="btn text-xs" onclick="app.tintPart('rArmMesh', document.getElementById('tint-color').value)">П.Рука</button>
+                <button class="btn text-xs" onclick="app.tintPart('lLegMesh', document.getElementById('tint-color').value)">Л.Нога</button>
+                <button class="btn text-xs" onclick="app.tintPart('rLegMesh', document.getElementById('tint-color').value)">П.Нога</button>
+            </div>
+        </div>
+
+        <div class="panel-section">
+            <span class="panel-title">Стиль & Эффекты</span>
+            <select id="style-select" class="w-full bg-gray-700 text-white p-1 rounded mb-2">
+                <option value="normal">Нормальный</option>
+                <option value="neon">Неон (Светящийся)</option>
+                <option value="toxic">Токсичный (Глюк)</option>
+                <option value="iridescent">Переливающийся</option>
+            </select>
+        </div>
+
+        <div class="panel-section">
+            <span class="panel-title">Позиция Конечностей</span>
+            <label>Голова X/Y</label>
+            <div class="flex gap-1">
+                <input type="range" min="-1" max="1" step="0.1" id="head-rot-x" oninput="app.updateBone('head', 'x', this.value)">
+                <input type="range" min="-1" max="1" step="0.1" id="head-rot-y" oninput="app.updateBone('head', 'y', this.value)">
+            </div>
+            
+            <label>Левая Рука X/Z</label>
+            <div class="flex gap-1">
+                <input type="range" min="-3" max="3" step="0.1" id="l-arm-rot-x" oninput="app.updateBone('lArm', 'x', this.value)">
+                <input type="range" min="-1" max="2" step="0.1" id="l-arm-rot-z" oninput="app.updateBone('lArm', 'z', this.value)">
+            </div>
+
+            <label>Правая Рука X/Z</label>
+            <div class="flex gap-1">
+                <input type="range" min="-3" max="3" step="0.1" id="r-arm-rot-x" oninput="app.updateBone('rArm', 'x', this.value)">
+                <input type="range" min="-2" max="1" step="0.1" id="r-arm-rot-z" oninput="app.updateBone('rArm', 'z', this.value)">
+            </div>
+
+            <label>Левая Нога X</label>
+            <input type="range" min="-2" max="2" step="0.1" id="l-leg-rot-x" oninput="app.updateBone('lLeg', 'x', this.value)">
+            
+            <label>Правая Нога X</label>
+            <input type="range" min="-2" max="2" step="0.1" id="r-leg-rot-x" oninput="app.updateBone('rLeg', 'x', this.value)">
+
+            <label>Всё тело (Позиция Y)</label>
+            <input type="range" min="0" max="5" step="0.1" id="body-pos-y" value="0" oninput="app.updateBone('root', 'y', this.value)">
+        </div>
+
+        <div class="panel-section">
+            <span class="panel-title">Локация & Ландшафт</span>
+            <div class="mb-2">
+                <label>Пресет</label>
+                <select id="map-select" class="w-full bg-gray-700 text-white p-1 rounded">
+                    <option value="grid">Сетка</option>
+                    <option value="grass">Трава</option>
+                    <option value="space">Космос</option>
+                    <option value="nether">Незер</option>
+                </select>
+            </div>
+            
+            <div class="mb-2">
+                <label>Цвет Неба/Фона</label>
+                <input type="color" id="bg-color" value="#1a1a1a" class="w-full h-8 cursor-pointer border-0 p-0 rounded" onchange="app.updateBackground(this.value)">
+            </div>
+
+            <div class="mb-2">
+                <label>Своя Текстура Земли</label>
+                <input type="file" id="ground-upload" accept="image/*" class="hidden">
+                <button class="btn" onclick="document.getElementById('ground-upload').click()">🌍 Загрузить Почву</button>
+            </div>
+
+            <div class="border-t border-gray-600 pt-2 mt-2">
+                <span class="panel-title text-sm text-yellow-200">Редактор Сцены</span>
+                <button class="btn" onclick="app.addBlock()">🧱 Добавить Блок</button>
+                <input type="file" id="model-upload" accept=".glb,.gltf" class="hidden">
+                <button class="btn" onclick="document.getElementById('model-upload').click()">📥 Импорт 3D (.glb)</button>
+                
+                <div class="mt-2 bg-gray-800 p-2 rounded">
+                    <div class="text-xs text-gray-400 mb-1">Управление Объектом:</div>
+                    <div class="flex gap-1 mb-1">
+                        <button class="btn text-xs flex-1" onclick="app.setTransformMode('translate')">Move</button>
+                        <button class="btn text-xs flex-1" onclick="app.setTransformMode('rotate')">Rotate</button>
+                        <button class="btn text-xs flex-1" onclick="app.setTransformMode('scale')">Scale</button>
+                    </div>
+                    <button class="btn btn-danger text-xs" onclick="app.deleteSelected()">❌ Удалить Выделенное</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="panel-section">
+            <span class="panel-title">Экспорт</span>
+            <button class="btn btn-success" onclick="app.exportGLTF()">💾 Экспорт в .GLB (Движок)</button>
+            <button class="btn" onclick="app.exportJSON()">📋 Экспорт JSON Анимации</button>
+        </div>
+        
+        <button class="btn" onclick="document.getElementById('help-modal').style.display='block'">❓ Инструкция</button>
+    </div>
+
+    <!-- 3D Canvas -->
+    <div id="canvas-container"></div>
+
+    <!-- Timeline Bottom Bar -->
+    <div id="timeline-container">
+        <div class="flex justify-between items-center mb-2">
+            <div class="flex gap-2">
+                <button class="btn w-auto" onclick="app.togglePlay()" id="play-btn">▶ Старт</button>
+                <button class="btn w-auto" onclick="app.addKeyframe()">➕ Добавить Кадр</button>
+                <button class="btn w-auto btn-danger" onclick="app.deleteKeyframe()">🗑 Удалить Кадр</button>
+            </div>
+            <div class="text-sm text-gray-400">
+                Длительность: <input type="number" id="duration" value="2" class="w-12 bg-gray-700 text-white border-none rounded p-1" onchange="app.updateDuration()"> сек
+            </div>
+        </div>
+        
+        <div class="flex justify-between text-xs text-gray-400 px-1">
+            <span>0s</span>
+            <span>Конец</span>
+        </div>
+        <div class="timeline-track" id="timeline-track" onclick="app.scrubTimeline(event)">
+            <div class="playhead" id="playhead"></div>
+            <!-- Keyframes will be injected here -->
+        </div>
+    </div>
+
+    <!-- Help Modal -->
+    <div id="help-modal">
+        <h3 class="text-xl font-bold mb-2 text-yellow-400">Инструкция</h3>
+        <ul class="list-disc pl-5 mb-4 space-y-1 text-sm">
+            <li><b>Загрузка скина:</b> Используйте стандартный PNG файл скина (64x64).</li>
+            <li><b>Предмет в руке:</b> Нажмите "Блок" или загрузите свою 3D модель (.glb), чтобы дать её персонажу.</li>
+            <li><b>Анимация:</b> Переместите ползунок времени, измените позу, нажмите "Добавить Кадр".</li>
+            <li><b>Импорт 3D:</b> Загружайте модели для локации и двигайте их (клавиши G, R, S).</li>
+            <li><b>Экспорт:</b> Сохраняет всю сцену (персонаж + предметы) в .GLB.</li>
+        </ul>
+        <button class="btn" onclick="document.getElementById('help-modal').style.display='none'">Закрыть</button>
+    </div>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { TransformControls } from 'three/addons/controls/TransformControls.js';
+        import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+        import { GLTFExporter } from 'three/addons/exporters/GLTFExporter.js';
+
+        class App {
+            constructor() {
+                this.container = document.getElementById('canvas-container');
+                this.scene = null;
+                this.camera = null;
+                this.renderer = null;
+                this.orbitControls = null;
+                this.transformControl = null;
+                this.playerGroup = null;
+                this.bones = {}; 
+                
+                // Scene Editing
+                this.sceneObjects = []; // Objects that can be selected/moved
+                this.raycaster = new THREE.Raycaster();
+                this.mouse = new THREE.Vector2();
+                this.selectedObject = null;
+                
+                // Animation State
+                this.keyframes = [];
+                this.isPlaying = false;
+                this.currentTime = 0; 
+                this.duration = 2.0; 
+                this.animationSpeed = 1.0;
+                
+                this.init();
+            }
+
+            init() {
+                // Scene
+                this.scene = new THREE.Scene();
+                this.scene.background = new THREE.Color(0x1a1a1a);
+
+                // Camera
+                this.camera = new THREE.PerspectiveCamera(60, this.container.clientWidth / this.container.clientHeight, 0.1, 1000);
+                this.camera.position.set(3, 3, 5);
+
+                // Renderer
+                this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+                this.renderer.setSize(this.container.clientWidth, this.container.clientHeight);
+                this.renderer.shadowMap.enabled = true;
+                this.container.appendChild(this.renderer.domElement);
+
+                // Lights
+                const ambLight = new THREE.AmbientLight(0xffffff, 0.6);
+                this.scene.add(ambLight);
+                const dirLight = new THREE.DirectionalLight(0xffffff, 1);
+                dirLight.position.set(5, 10, 7);
+                dirLight.castShadow = true;
+                this.scene.add(dirLight);
+
+                // Orbit Controls
+                this.orbitControls = new OrbitControls(this.camera, this.renderer.domElement);
+                this.orbitControls.enableDamping = true;
+
+                // Transform Controls (Gizmo)
+                this.transformControl = new TransformControls(this.camera, this.renderer.domElement);
+                this.transformControl.addEventListener('dragging-changed', (event) => {
+                    this.orbitControls.enabled = !event.value;
+                });
+                this.scene.add(this.transformControl);
+
+                // Environment
+                this.loadEnvironment('grid');
+
+                // Character
+                this.createCharacter();
+
+                // Events
+                window.addEventListener('resize', () => this.onWindowResize());
+                document.getElementById('skin-upload').addEventListener('change', (e) => this.handleSkinUpload(e));
+                document.getElementById('model-upload').addEventListener('change', (e) => this.handleModelUpload(e));
+                document.getElementById('hand-item-upload').addEventListener('change', (e) => this.handleHandItemUpload(e));
+                document.getElementById('ground-upload').addEventListener('change', (e) => this.handleGroundUpload(e));
+                document.getElementById('style-select').addEventListener('change', (e) => this.applyStyle(e.target.value));
+                document.getElementById('map-select').addEventListener('change', (e) => this.loadEnvironment(e.target.value));
+
+                // Interaction
+                this.renderer.domElement.addEventListener('pointerdown', (e) => this.onPointerDown(e));
+                window.addEventListener('keydown', (event) => {
+                    if (event.key === 'g') this.setTransformMode('translate');
+                    if (event.key === 'r') this.setTransformMode('rotate');
+                    if (event.key === 's') this.setTransformMode('scale');
+                    if (event.key === 'Delete' || event.key === 'Backspace') this.deleteSelected();
+                });
+
+                // Loop
+                this.animate();
+            }
+
+            // --- Scene Editing Features ---
+            
+            updateBackground(color) {
+                this.scene.background = new THREE.Color(color);
+            }
+
+            handleGroundUpload(e) {
+                const file = e.target.files[0];
+                if (!file) return;
+                const url = URL.createObjectURL(file);
+                const loader = new THREE.TextureLoader();
+                loader.load(url, (tex) => {
+                    tex.wrapS = THREE.RepeatWrapping;
+                    tex.wrapT = THREE.RepeatWrapping;
+                    tex.repeat.set(4, 4);
+                    
+                    // Find or create ground
+                    if (this.currentEnv) {
+                        // try to find mesh in currentEnv
+                        let mesh = null;
+                        this.currentEnv.traverse(c => { if(c.isMesh) mesh = c; });
+                        
+                        if (mesh) {
+                            mesh.material.map = tex;
+                            mesh.material.color.setHex(0xffffff); // reset tint
+                            mesh.material.needsUpdate = true;
+                        } else {
+                            // Recreate basic plane
+                            this.loadEnvironment('grid'); // reset
+                            // then apply
+                            // Simplified: just switch to grass logic but with new tex
+                            const geo = new THREE.PlaneGeometry(20, 20);
+                            const mat = new THREE.MeshStandardMaterial({ map: tex });
+                            const ground = new THREE.Mesh(geo, mat);
+                            ground.rotation.x = -Math.PI / 2;
+                            ground.receiveShadow = true;
+                            
+                            this.scene.remove(this.currentEnv);
+                            this.currentEnv = new THREE.Group();
+                            this.currentEnv.add(ground);
+                            this.scene.add(this.currentEnv);
+                        }
+                    }
+                });
+            }
+
+            addBlock() {
+                const geometry = new THREE.BoxGeometry(1, 1, 1);
+                const material = new THREE.MeshStandardMaterial({ color: Math.random() * 0xffffff });
+                const block = new THREE.Mesh(geometry, material);
+                block.position.set(Math.random() * 4 - 2, 0.5, Math.random() * 4 - 2);
+                block.castShadow = true;
+                block.receiveShadow = true;
+                
+                this.scene.add(block);
+                this.sceneObjects.push(block);
+                
+                // Auto select
+                this.transformControl.attach(block);
+                this.selectedObject = block;
+            }
+
+            deleteSelected() {
+                if (this.selectedObject) {
+                    this.transformControl.detach();
+                    this.scene.remove(this.selectedObject);
+                    this.sceneObjects = this.sceneObjects.filter(o => o !== this.selectedObject);
+                    this.selectedObject = null;
+                }
+            }
+
+            setTransformMode(mode) {
+                this.transformControl.setMode(mode);
+            }
+
+            onPointerDown(event) {
+                // Calculate mouse position in normalized device coordinates
+                const rect = this.renderer.domElement.getBoundingClientRect();
+                this.mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+                this.mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+                this.raycaster.setFromCamera(this.mouse, this.camera);
+                
+                // Intersect with scene objects
+                const intersects = this.raycaster.intersectObjects(this.sceneObjects, true);
+
+                if (intersects.length > 0) {
+                    // Select first hit
+                    let target = intersects[0].object;
+                    // Traverse up to find the root object if part of a group (like imported model)
+                    while(target.parent && !this.sceneObjects.includes(target)) {
+                        target = target.parent;
+                    }
+                    
+                    if (this.sceneObjects.includes(target)) {
+                        this.selectedObject = target;
+                        this.transformControl.attach(target);
+                    }
+                } else {
+                    // Clicked empty space? Check if we clicked the helper itself
+                    // TransformControls handles its own interaction, so we only detach if we clicked NOTHING
+                    // But checking gizmo intersection is tricky. 
+                    // Simple logic: if we didn't hit a scene object, check if we hit the player or background
+                    // For now, let's only detach if play isn't dragging. 
+                    // Actually, TransformControls prevents event propagation if interacting with it? No.
+                    // Let's just rely on user explicitly clicking 'background' to deselect?
+                    // Or keep it simple: Click object -> Select. 
+                    // Click background -> Detach.
+                    
+                    // Check if we hit ground
+                    const envIntersects = this.raycaster.intersectObjects(this.currentEnv.children, true);
+                    if (envIntersects.length > 0) {
+                        this.transformControl.detach();
+                        this.selectedObject = null;
+                    }
+                }
+            }
+
+            onWindowResize() {
+                if (this.camera && this.renderer) {
+                    this.camera.aspect = this.container.clientWidth / this.container.clientHeight;
+                    this.camera.updateProjectionMatrix();
+                    this.renderer.setSize(this.container.clientWidth, this.container.clientHeight);
+                }
+            }
+
+            createCharacter() {
+                // Create a Group to hold the character
+                this.playerGroup = new THREE.Group();
+                this.scene.add(this.playerGroup);
+
+                const material = new THREE.MeshStandardMaterial({ color: 0xaaaaaa }); // Default gray
+
+                // Dimensions (Minecraft Unit: 1 pixel = 0.0625 units roughly, but let's assume height is ~2 units)
+                // Head: 8x8x8 -> 0.5x0.5x0.5
+                // Body: 8x12x4 -> 0.5x0.75x0.25
+                // Arms/Legs: 4x12x4 -> 0.25x0.75x0.25
+
+                // 1. Body (Torso)
+                const bodyGeo = new THREE.BoxGeometry(0.5, 0.75, 0.25);
+                this.bones.body = new THREE.Mesh(bodyGeo, material.clone());
+                this.bones.body.position.y = 0.75 + 0.375; // Legs height + half body
+                this.bones.body.castShadow = true;
+                this.playerGroup.add(this.bones.body);
+
+                // 2. Head
+                const headGeo = new THREE.BoxGeometry(0.5, 0.5, 0.5);
+                this.bones.head = new THREE.Mesh(headGeo, material.clone());
+                this.bones.head.position.y = 0.375 + 0.25; // Relative to Body center: half body + half head
+                this.bones.body.add(this.bones.head); // Attach to body
+
+                // Helper for pivots: Create a wrapper group for arms/legs to rotate around the top
+                const createLimb = (x, y, z, name) => {
+                    const group = new THREE.Group();
+                    group.position.set(x, y, z);
+                    this.bones.body.add(group);
+                    
+                    const limbGeo = new THREE.BoxGeometry(0.25, 0.75, 0.25);
+                    const mesh = new THREE.Mesh(limbGeo, material.clone());
+                    mesh.position.y = -0.375; // Shift mesh down so pivot is at top
+                    mesh.castShadow = true;
+                    
+                    group.add(mesh);
+                    this.bones[name] = group; // We control the group rotation
+                    this.bones[name + 'Mesh'] = mesh; // We control texture on mesh
+                };
+
+                // Arms (Relative to Body)
+                // Body width is 0.5. Arm width 0.25. Center is 0.
+                createLimb(-0.375, 0.325, 0, 'lArm'); // Left Arm
+                createLimb(0.375, 0.325, 0, 'rArm');  // Right Arm
+
+                // Item Slot in Right Arm
+                this.bones.rHandItemSlot = new THREE.Group();
+                this.bones.rHandItemSlot.position.set(0, -0.65, 0.1); // Near hand position
+                this.bones.rHandItemSlot.rotation.x = -Math.PI / 8;
+                this.bones.rArm.add(this.bones.rHandItemSlot);
+
+                // Legs (Relative to Body - actually should be separate from body for walking, but attaching to body makes whole player move)
+                // Better approach: Legs are children of PlayerGroup, Body is child of PlayerGroup.
+                // But simple rig: Everything attached to Body is easier for hierarchy, but harder for walking animations where body bobs.
+                // Let's re-structure: Root -> [Legs, Body -> [Head, Arms]]
+                
+                // REFACTOR HIERARCHY FOR BETTER ANIMATION
+                this.playerGroup.remove(this.bones.body);
+                this.bones.root = new THREE.Group();
+                this.playerGroup.add(this.bones.root);
+
+                // Pelvis/Root position
+                this.bones.root.position.y = 0.75; 
+
+                // Add Legs to Root
+                const createLeg = (x, name) => {
+                     const group = new THREE.Group();
+                     group.position.set(x, 0, 0); // Relative to root (hips)
+                     this.bones.root.add(group);
+
+                     const mesh = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.75, 0.25), material.clone());
+                     mesh.position.y = -0.375; // Pivot at top
+                     mesh.castShadow = true;
+                     group.add(mesh);
+
+                     this.bones[name] = group;
+                     this.bones[name + 'Mesh'] = mesh;
+                };
+
+                createLeg(-0.125, 'lLeg');
+                createLeg(0.125, 'rLeg');
+
+                // Add Body to Root
+                this.bones.root.add(this.bones.body);
+                this.bones.body.position.set(0, 0.375, 0); // Move body up relative to hips
+
+                // Create Overlays (Layer 2)
+                const createOverlay = (parentMesh, width, height, depth) => {
+                    const geo = new THREE.BoxGeometry(width + 0.05, height + 0.05, depth + 0.05);
+                    const mat = new THREE.MeshStandardMaterial({ 
+                        transparent: true, 
+                        opacity: 1, 
+                        side: THREE.DoubleSide,
+                        alphaTest: 0.5 // Cutout transparency
+                    });
+                    const mesh = new THREE.Mesh(geo, mat);
+                    mesh.castShadow = true;
+                    parentMesh.add(mesh);
+                    return mesh;
+                };
+
+                this.bones.headOverlay = createOverlay(this.bones.head, 0.5, 0.5, 0.5);
+                this.bones.bodyOverlay = createOverlay(this.bones.body, 0.5, 0.75, 0.25);
+                this.bones.lArmOverlay = createOverlay(this.bones.lArmMesh, 0.25, 0.75, 0.25);
+                this.bones.rArmOverlay = createOverlay(this.bones.rArmMesh, 0.25, 0.75, 0.25);
+                this.bones.lLegOverlay = createOverlay(this.bones.lLegMesh, 0.25, 0.75, 0.25);
+                this.bones.rLegOverlay = createOverlay(this.bones.rLegMesh, 0.25, 0.75, 0.25);
+            }
+
+            handleSkinUpload(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const img = new Image();
+                    img.src = e.target.result;
+                    img.onload = () => {
+                        this.processSkin(img);
+                    };
+                };
+                reader.readAsDataURL(file);
+            }
+
+            processSkin(img) {
+                const getTex = (x, y, w, h) => {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = w;
+                    canvas.height = h;
+                    const ctx = canvas.getContext('2d');
+                    ctx.imageSmoothingEnabled = false;
+                    ctx.drawImage(img, x, y, w, h, 0, 0, w, h);
+                    const tex = new THREE.CanvasTexture(canvas);
+                    tex.magFilter = THREE.NearestFilter;
+                    tex.colorSpace = THREE.SRGBColorSpace;
+                    return tex;
+                };
+
+                const applyBoxMat = (mesh, x, y, w, h, d) => {
+                    // Right, Left, Top, Bottom, Front, Back
+                    // x, y coords are usually top-left of the "Right" face in the strip
+                    // Standard MC Strip: Top(x+d, y), Bottom(x+d+w, y), Right(x, y+d), Front(x+d, y+d), Left(x+d+w, y+d), Back(x+d+w+w, y+d)
+                    // But here I'll just map faces manually for precision
+                    
+                    const mats = [
+                        new THREE.MeshStandardMaterial({ map: getTex(x, y + d, d, h), transparent: true }), // Right
+                        new THREE.MeshStandardMaterial({ map: getTex(x + d + w, y + d, d, h), transparent: true }), // Left
+                        new THREE.MeshStandardMaterial({ map: getTex(x + d, y, w, d), transparent: true }), // Top
+                        new THREE.MeshStandardMaterial({ map: getTex(x + d + w, y, w, d), transparent: true }), // Bottom
+                        new THREE.MeshStandardMaterial({ map: getTex(x + d, y + d, w, h), transparent: true }), // Front
+                        new THREE.MeshStandardMaterial({ map: getTex(x + d + w + d, y + d, w, h), transparent: true })  // Back
+                    ];
+                    mesh.material = mats;
+                };
+
+                // Base Layer
+                applyBoxMat(this.bones.head, 0, 0, 8, 8, 8);
+                applyBoxMat(this.bones.body, 16, 16, 8, 12, 4);
+                applyBoxMat(this.bones.rArmMesh, 40, 16, 4, 12, 4);
+                applyBoxMat(this.bones.lArmMesh, 32, 48, 4, 12, 4);
+                applyBoxMat(this.bones.rLegMesh, 0, 16, 4, 12, 4);
+                applyBoxMat(this.bones.lLegMesh, 16, 48, 4, 12, 4);
+
+                // Overlay Layer
+                if (img.height === 64) {
+                    applyBoxMat(this.bones.headOverlay, 32, 0, 8, 8, 8);
+                    applyBoxMat(this.bones.bodyOverlay, 16, 32, 8, 12, 4);
+                    applyBoxMat(this.bones.rArmOverlay, 40, 32, 4, 12, 4);
+                    applyBoxMat(this.bones.lArmOverlay, 48, 48, 4, 12, 4);
+                    applyBoxMat(this.bones.rLegOverlay, 0, 32, 4, 12, 4);
+                    applyBoxMat(this.bones.lLegOverlay, 0, 48, 4, 12, 4);
+                    
+                    // Ensure transparency works
+                    [this.bones.headOverlay, this.bones.bodyOverlay, this.bones.lArmOverlay, 
+                     this.bones.rArmOverlay, this.bones.lLegOverlay, this.bones.rLegOverlay].forEach(mesh => {
+                        if(Array.isArray(mesh.material)) {
+                            mesh.material.forEach(m => { m.side = THREE.DoubleSide; m.alphaTest = 0.1; });
+                        }
+                    });
+                } else {
+                    // Hide overlays if old skin
+                     [this.bones.headOverlay, this.bones.bodyOverlay, this.bones.lArmOverlay, 
+                     this.bones.rArmOverlay, this.bones.lLegOverlay, this.bones.rLegOverlay].forEach(mesh => {
+                        mesh.visible = false;
+                    });
+                }
+            }
+
+            updateBone(boneName, axis, value) {
+                if (this.bones[boneName]) {
+                    if (boneName === 'root' && axis === 'y') {
+                        this.bones.root.position.y = parseFloat(value);
+                    } else {
+                        this.bones[boneName].rotation[axis] = parseFloat(value);
+                    }
+                }
+            }
+
+            // Timeline & Animation
+            addKeyframe() {
+                const state = {
+                    time: this.currentTime,
+                    bones: {
+                        head: { x: this.bones.head.rotation.x, y: this.bones.head.rotation.y },
+                        lArm: { x: this.bones.lArm.rotation.x, z: this.bones.lArm.rotation.z },
+                        rArm: { x: this.bones.rArm.rotation.x, z: this.bones.rArm.rotation.z },
+                        lLeg: { x: this.bones.lLeg.rotation.x },
+                        rLeg: { x: this.bones.rLeg.rotation.x },
+                        root: { y: this.bones.root.position.y }
+                    }
+                };
+                
+                // Remove existing keyframe at exact same time or add new
+                this.keyframes = this.keyframes.filter(k => Math.abs(k.time - this.currentTime) > 0.01);
+                this.keyframes.push(state);
+                this.keyframes.sort((a, b) => a.time - b.time);
+                
+                this.renderTimeline();
+            }
+
+            deleteKeyframe() {
+                // Delete closest keyframe
+                if(this.keyframes.length === 0) return;
+                this.keyframes.sort((a, b) => Math.abs(a.time - this.currentTime) - Math.abs(b.time - this.currentTime));
+                if (Math.abs(this.keyframes[0].time - this.currentTime) < 0.05) {
+                    this.keyframes.shift(); // Remove closest
+                    this.renderTimeline();
+                }
+            }
+
+            renderTimeline() {
+                const track = document.getElementById('timeline-track');
+                // clear old keyframes (keep playhead)
+                const oldKeys = track.querySelectorAll('.keyframe');
+                oldKeys.forEach(k => k.remove());
+
+                this.keyframes.forEach(kf => {
+                    const el = document.createElement('div');
+                    el.className = 'keyframe';
+                    el.style.left = (kf.time * 100) + '%';
+                    el.title = `Frame at ${kf.time.toFixed(2)}`;
+                    el.onclick = (e) => {
+                        e.stopPropagation();
+                        this.scrubTo(kf.time);
+                    };
+                    track.appendChild(el);
+                });
+            }
+
+            scrubTimeline(e) {
+                const rect = e.target.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                let pct = x / rect.width;
+                if(pct < 0) pct = 0;
+                if(pct > 1) pct = 1;
+                this.scrubTo(pct);
+            }
+
+            scrubTo(pct) {
+                this.currentTime = pct;
+                this.updatePlayhead();
+                this.applyAnimationAtTime(pct);
+                
+                // Update Inputs to reflect current state
+                document.getElementById('head-rot-x').value = this.bones.head.rotation.x;
+                document.getElementById('l-arm-rot-x').value = this.bones.lArm.rotation.x;
+                // ... update other inputs ideally
+            }
+
+            updatePlayhead() {
+                document.getElementById('playhead').style.left = (this.currentTime * 100) + '%';
+            }
+
+            togglePlay() {
+                this.isPlaying = !this.isPlaying;
+                document.getElementById('play-btn').innerText = this.isPlaying ? "⏸ Стоп" : "▶ Старт";
+            }
+
+            applyAnimationAtTime(t) {
+                if (this.keyframes.length < 2) return;
+
+                // Find surrounding keyframes
+                let prev = this.keyframes[0];
+                let next = this.keyframes[this.keyframes.length - 1];
+
+                for (let i = 0; i < this.keyframes.length - 1; i++) {
+                    if (t >= this.keyframes[i].time && t <= this.keyframes[i+1].time) {
+                        prev = this.keyframes[i];
+                        next = this.keyframes[i+1];
+                        break;
+                    }
+                }
+
+                if (prev === next) {
+                    // Apply exact
+                    this.setPose(prev.bones);
+                    return;
+                }
+
+                // Interpolate
+                const factor = (t - prev.time) / (next.time - prev.time);
+                
+                const lerp = (a, b, f) => a + (b - a) * f;
+
+                this.bones.head.rotation.x = lerp(prev.bones.head.x, next.bones.head.x, factor);
+                this.bones.head.rotation.y = lerp(prev.bones.head.y, next.bones.head.y, factor);
+                
+                this.bones.lArm.rotation.x = lerp(prev.bones.lArm.x, next.bones.lArm.x, factor);
+                this.bones.lArm.rotation.z = lerp(prev.bones.lArm.z, next.bones.lArm.z, factor);
+
+                this.bones.rArm.rotation.x = lerp(prev.bones.rArm.x, next.bones.rArm.x, factor);
+                this.bones.rArm.rotation.z = lerp(prev.bones.rArm.z, next.bones.rArm.z, factor);
+
+                this.bones.lLeg.rotation.x = lerp(prev.bones.lLeg.x, next.bones.lLeg.x, factor);
+                this.bones.rLeg.rotation.x = lerp(prev.bones.rLeg.x, next.bones.rLeg.x, factor);
+                
+                this.bones.root.position.y = lerp(prev.bones.root.y, next.bones.root.y, factor);
+            }
+
+            setPose(poseData) {
+                this.bones.head.rotation.x = poseData.head.x;
+                this.bones.head.rotation.y = poseData.head.y;
+                this.bones.lArm.rotation.x = poseData.lArm.x;
+                this.bones.lArm.rotation.z = poseData.lArm.z;
+                this.bones.rArm.rotation.x = poseData.rArm.x;
+                this.bones.rArm.rotation.z = poseData.rArm.z;
+                this.bones.lLeg.rotation.x = poseData.lLeg.x;
+                this.bones.rLeg.rotation.x = poseData.rLeg.x;
+                this.bones.root.position.y = poseData.root.y;
+            }
+
+            resetPose() {
+                const zero = { 
+                    head: {x:0, y:0}, lArm: {x:0, z:0}, rArm: {x:0, z:0}, 
+                    lLeg: {x:0}, rLeg: {x:0}, root: {y:0.75} 
+                };
+                this.setPose(zero);
+                // Reset inputs
+                document.querySelectorAll('input[type="range"]').forEach(i => {
+                    if(i.id === 'body-pos-y') i.value = 0.75;
+                    else i.value = 0;
+                });
+            }
+            
+            updateDuration() {
+                this.duration = parseFloat(document.getElementById('duration').value) || 2;
+            }
+
+            // Environment & Models
+            loadEnvironment(type) {
+                // Remove old env
+                if (this.currentEnv) this.scene.remove(this.currentEnv);
+                
+                this.currentEnv = new THREE.Group();
+                this.scene.add(this.currentEnv);
+
+                if (type === 'grid') {
+                    const grid = new THREE.GridHelper(20, 20, 0x444444, 0x222222);
+                    this.currentEnv.add(grid);
+                } else if (type === 'grass') {
+                    const geo = new THREE.PlaneGeometry(20, 20);
+                    const mat = new THREE.MeshStandardMaterial({ color: 0x55aa55 });
+                    const ground = new THREE.Mesh(geo, mat);
+                    ground.rotation.x = -Math.PI / 2;
+                    ground.receiveShadow = true;
+                    this.currentEnv.add(ground);
+                } else if (type === 'space') {
+                    this.scene.background = new THREE.Color(0x000011);
+                    // Add stars
+                    const starsGeo = new THREE.BufferGeometry();
+                    const count = 500;
+                    const pos = new Float32Array(count * 3);
+                    for(let i=0; i<count*3; i++) pos[i] = (Math.random()-0.5)*50;
+                    starsGeo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+                    const stars = new THREE.Points(starsGeo, new THREE.PointsMaterial({color:0xffffff, size:0.1}));
+                    this.currentEnv.add(stars);
+                }
+            }
+
+            handleModelUpload(e) {
+                const file = e.target.files[0];
+                if(!file) return;
+                
+                const url = URL.createObjectURL(file);
+                const loader = new GLTFLoader();
+                loader.load(url, (gltf) => {
+                    const model = gltf.scene;
+                    model.position.set(2, 0, -2);
+                    
+                    // Enable shadows
+                    model.traverse(c => {
+                        if(c.isMesh) {
+                            c.castShadow = true;
+                            c.receiveShadow = true;
+                        }
+                    });
+
+                    this.scene.add(model);
+                    this.sceneObjects.push(model); // Enable selection
+                    
+                    // Select it
+                    this.transformControl.attach(model);
+                    this.selectedObject = model;
+                }, undefined, (err) => console.error(err));
+            }
+
+            equipItem(obj) {
+                // Clear existing
+                while(this.bones.rHandItemSlot.children.length > 0){ 
+                    this.bones.rHandItemSlot.remove(this.bones.rHandItemSlot.children[0]); 
+                }
+                if (obj) {
+                    this.bones.rHandItemSlot.add(obj);
+                }
+            }
+
+            equipBlock() {
+                const geo = new THREE.BoxGeometry(0.2, 0.2, 0.2);
+                const mat = new THREE.MeshStandardMaterial({ color: Math.random() * 0xffffff });
+                const mesh = new THREE.Mesh(geo, mat);
+                mesh.castShadow = true;
+                this.equipItem(mesh);
+            }
+
+            handleHandItemUpload(e) {
+                const file = e.target.files[0];
+                if(!file) return;
+                const url = URL.createObjectURL(file);
+                const loader = new GLTFLoader();
+                loader.load(url, (gltf) => {
+                    const model = gltf.scene;
+                    // Auto scale logic
+                    const box = new THREE.Box3().setFromObject(model);
+                    const size = box.getSize(new THREE.Vector3());
+                    const maxDim = Math.max(size.x, size.y, size.z);
+                    if (maxDim > 0) {
+                        const scale = 0.4 / maxDim; // Fit within 0.4 units
+                        model.scale.setScalar(scale);
+                    }
+                    model.traverse(c => { if(c.isMesh) c.castShadow = true; });
+                    this.equipItem(model);
+                }, undefined, (err) => console.error(err));
+            }
+
+            tintPart(partName, colorHex) {
+                const target = this.bones[partName];
+                if (target) {
+                    const color = new THREE.Color(colorHex);
+                    if (Array.isArray(target.material)) {
+                        target.material.forEach(m => m.color.set(color));
+                    } else if (target.material) {
+                        target.material.color.set(color);
+                    }
+                }
+            }
+
+            tintSelectedPart() {
+                const color = document.getElementById('tint-color').value;
+                ['head', 'body', 'lArmMesh', 'rArmMesh', 'lLegMesh', 'rLegMesh'].forEach(p => {
+                    this.tintPart(p, color);
+                });
+            }
+
+            // Styling
+            applyStyle(style) {
+                const traverseMaterials = (obj, fn) => {
+                    obj.traverse(child => {
+                        if (child.isMesh) {
+                            if (Array.isArray(child.material)) child.material.forEach(fn);
+                            else fn(child.material);
+                        }
+                    });
+                };
+
+                if (style === 'neon') {
+                    traverseMaterials(this.playerGroup, mat => {
+                        mat.emissive = mat.color;
+                        mat.emissiveIntensity = 0.5;
+                        mat.wireframe = false;
+                    });
+                    this.scene.background = new THREE.Color(0x111111);
+                } else if (style === 'toxic') {
+                    traverseMaterials(this.playerGroup, mat => {
+                        mat.color.setHex(0x00ff00);
+                        mat.emissive.setHex(0x003300);
+                        mat.emissiveIntensity = 0.2;
+                    });
+                } else if (style === 'iridescent') {
+                    traverseMaterials(this.playerGroup, mat => {
+                        mat.color.setHex(0xffffff);
+                        mat.metalness = 1.0;
+                        mat.roughness = 0.0;
+                        mat.emissiveIntensity = 0;
+                    });
+                } else {
+                    // Normal
+                    traverseMaterials(this.playerGroup, mat => {
+                        mat.color.setHex(0xffffff);
+                        mat.emissive.setHex(0x000000);
+                        mat.emissiveIntensity = 0;
+                        mat.metalness = 0;
+                        mat.roughness = 1;
+                    });
+                    this.scene.background = new THREE.Color(0x1a1a1a);
+                }
+            }
+
+            // Export
+            exportGLTF() {
+                const exporter = new GLTFExporter();
+                // Export entire scene (or a specific group containing player + objects)
+                // We want to export player + created scene objects, but not grid/helpers
+                
+                const exportGroup = new THREE.Group();
+                exportGroup.add(this.playerGroup.clone());
+                this.sceneObjects.forEach(obj => exportGroup.add(obj.clone()));
+                
+                exporter.parse(
+                    exportGroup,
+                    (gltf) => {
+                        const output = JSON.stringify(gltf, null, 2);
+                        const blob = new Blob([output], { type: 'text/plain' });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = 'scene.gltf';
+                        a.click();
+                    },
+                    (err) => console.error('Export failed', err),
+                    { binary: false }
+                );
+            }
+
+            exportJSON() {
+                const data = {
+                    duration: this.duration,
+                    keyframes: this.keyframes
+                };
+                const blob = new Blob([JSON.stringify(data, null, 2)], {type : 'application/json'});
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'animation.json';
+                a.click();
+            }
+
+            animate() {
+                requestAnimationFrame(() => this.animate());
+                
+                if (this.isPlaying) {
+                    // Advance time
+                    const delta = 0.016; // approx 60fps
+                    const step = delta / this.duration; // Normalized step
+                    this.currentTime += step;
+                    
+                    if (this.currentTime >= 1.0) {
+                        this.currentTime = 1.0;
+                        this.isPlaying = false;
+                        document.getElementById('play-btn').innerText = "▶ Старт";
+                    }
+                    
+                    this.updatePlayhead();
+                    this.applyAnimationAtTime(this.currentTime);
+                }
+
+                this.orbitControls.update();
+                this.renderer.render(this.scene, this.camera);
+            }
+        }
+
+        // Initialize App
+        window.app = new App();
+    </script>
+</body>
+</html>

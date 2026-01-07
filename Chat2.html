@@ -1,0 +1,1711 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FXkey pro 2</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%230088cc'/%3E%3Cstop offset='100%25' stop-color='%2300d4aa'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect fill='url(%23g)' rx='20' width='100' height='100'/%3E%3Ctext x='50' y='42' font-size='28' font-weight='bold' text-anchor='middle' fill='white' font-family='Arial'%3EFX%3C/text%3E%3Ctext x='50' y='72' font-size='18' font-weight='bold' text-anchor='middle' fill='white' font-family='Arial'%3Epro 2%3C/text%3E%3C/svg%3E">
+  <style>
+    :root {
+      --bg: #ffffff; --card: #f5f5f5; --text: #111; --subtext: #555;
+      --accent: #0088cc; --accent2: #00d4aa; --danger: #e53935; --success: #4caf50;
+      --shadow: 0 2px 8px rgba(0,0,0,0.08); --premium: linear-gradient(135deg, #ffd700, #ff8c00, #ff6347);
+    }
+    body.dark { --bg: #121212; --card: #1e1e1e; --text: #f5f5f5; --subtext: #aaa; --shadow: 0 2px 10px rgba(0,0,0,0.35); }
+    body.design-telegram { --accent:#0088cc; --card:#fff; --bg:#e8f4fc; }
+    body.design-neon { --accent:#a855f7; --card:#0f172a; --bg:#0b1220; --text:#e0e7ff; --subtext:#94a3b8; }
+    body.design-minimal { --accent:#000; --card:#fff; --bg:#fafafa; --text:#000; --subtext:#333; }
+    body.design-natural { --accent:#2dd4bf; --card:#e0f2f1; --bg:#e8f5e9; --text:#064e3b; --subtext:#0f766e; }
+    body.design-retro { --accent:#c08457; --card:#f5e9da; --bg:#f0e4d7; --text:#5c4033; --subtext:#8b6b61; }
+    
+    /* Токсичный дизайн */
+    body.design-toxic { --accent:#00ff41; --accent2:#ff00ff; --card:#0d0d0d; --bg:#000; --text:#00ff41; --subtext:#00cc33; --danger:#ff0040; }
+    body.design-toxic .btn { background: linear-gradient(90deg, #00ff41, #00ccff, #ff00ff, #ff0040, #00ff41); background-size: 400% 100%; animation: toxicGlow 3s ease infinite; border: 2px solid #00ff41; text-shadow: 0 0 10px #00ff41; box-shadow: 0 0 20px rgba(0,255,65,0.5); }
+    body.design-toxic .btn:hover { box-shadow: 0 0 40px rgba(0,255,65,0.8), 0 0 60px rgba(255,0,255,0.4); transform: scale(1.05); }
+    body.design-toxic .card { border: 1px solid #00ff41; box-shadow: 0 0 15px rgba(0,255,65,0.3); }
+    body.design-toxic .input { border: 2px solid #00ff41; background: rgba(0,255,65,0.05); color: #00ff41; }
+    @keyframes toxicGlow { 0%, 100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
+    
+    /* Роботизированный дизайн (Premium) */
+    body.design-robot { --accent:#6366f1; --accent2:#8b5cf6; --card:#1a1a2e; --bg:#0f0f1a; --text:#c7d2fe; --subtext:#818cf8; }
+    body.design-robot * { border-radius: 0 !important; }
+    body.design-robot .btn { background: linear-gradient(135deg, #1e3a5f, #3b0764); border: 2px solid #6366f1; clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px); position: relative; }
+    body.design-robot .btn::before { content: '⚙'; position: absolute; right: 5px; top: 50%; transform: translateY(-50%); font-size: 10px; opacity: 0.5; }
+    body.design-robot .card { border: 2px solid #6366f1; background: linear-gradient(180deg, #1a1a2e 0%, #0f0f1a 100%); position: relative; }
+    body.design-robot .card::after { content: '🔩'; position: absolute; top: 5px; right: 5px; font-size: 12px; opacity: 0.3; }
+    body.design-robot .input { border: 2px solid #6366f1; background: #0f0f1a; }
+    
+    /* Хакерский дизайн (Premium) */
+    body.design-hacker { --accent:#00ff00; --accent2:#003300; --card:#0a0a0a; --bg:#000; --text:#00ff00; --subtext:#00aa00; }
+    body.design-hacker .btn { background: #001100; border: 1px solid #00ff00; color: #00ff00; text-shadow: 0 0 5px #00ff00; box-shadow: 0 0 10px rgba(0,255,0,0.3), inset 0 0 20px rgba(0,255,0,0.1); font-family: 'Courier New', monospace; }
+    body.design-hacker .btn:hover { background: #002200; box-shadow: 0 0 20px rgba(0,255,0,0.6); }
+    body.design-hacker .card { border: 1px solid #00ff00; background: rgba(0,20,0,0.9); box-shadow: 0 0 15px rgba(0,255,0,0.2); }
+    body.design-hacker .input { border: 1px solid #00ff00; background: #000; color: #00ff00; font-family: 'Courier New', monospace; }
+    body.design-hacker::before { content: ''; position: fixed; inset: 0; background: repeating-linear-gradient(0deg, rgba(0,255,0,0.03) 0px, rgba(0,255,0,0.03) 1px, transparent 1px, transparent 2px); pointer-events: none; z-index: 9999; animation: scanlines 0.1s linear infinite; }
+    @keyframes scanlines { 0% { background-position: 0 0; } 100% { background-position: 0 4px; } }
+    
+    /* Анимированные фоны */
+    .animated-bg { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; }
+    .animated-bg.stars { background: linear-gradient(to bottom, #0a0a2e, #1a1a4e); }
+    .animated-bg.stars::before { content: ''; position: absolute; width: 200%; height: 200%; background-image: radial-gradient(2px 2px at 20px 30px, white, transparent), radial-gradient(2px 2px at 40px 70px, white, transparent), radial-gradient(1px 1px at 90px 40px, white, transparent), radial-gradient(2px 2px at 130px 80px, white, transparent), radial-gradient(1px 1px at 160px 120px, white, transparent); background-size: 200px 200px; animation: starMove 100s linear infinite; }
+    @keyframes starMove { from { transform: translateY(0); } to { transform: translateY(-50%); } }
+    
+    .animated-bg.waves { background: linear-gradient(180deg, #1a2a6c, #b21f1f, #fdbb2d); background-size: 400% 400%; animation: waveGradient 15s ease infinite; }
+    .animated-bg.waves::before { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 200px; background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 320'%3E%3Cpath fill='rgba(255,255,255,0.1)' d='M0,160L48,176C96,192,192,224,288,213.3C384,203,480,149,576,138.7C672,128,768,160,864,181.3C960,203,1056,213,1152,197.3C1248,181,1344,139,1392,117.3L1440,96L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z'%3E%3C/path%3E%3C/svg%3E") repeat-x; animation: waveMove 10s linear infinite; }
+    @keyframes waveGradient { 0%, 100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
+    @keyframes waveMove { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+    
+    .animated-bg.particles { background: #0f0f23; }
+    .animated-bg.particles .particle { position: absolute; width: 4px; height: 4px; background: rgba(100,200,255,0.8); border-radius: 50%; animation: particleFloat 20s infinite; }
+    @keyframes particleFloat { 0%, 100% { transform: translateY(100vh) rotate(0deg); opacity: 0; } 10% { opacity: 1; } 90% { opacity: 1; } 100% { transform: translateY(-100vh) rotate(720deg); opacity: 0; } }
+    
+    .animated-bg.matrix { background: #000; }
+    .animated-bg.matrix .matrix-col { position: absolute; top: -100%; font-family: 'Courier New', monospace; font-size: 14px; color: #00ff00; text-shadow: 0 0 5px #00ff00; animation: matrixFall linear infinite; writing-mode: vertical-rl; }
+    @keyframes matrixFall { 0% { transform: translateY(-100%); } 100% { transform: translateY(200vh); } }
+    
+    /* Анимированный фон робота */
+    .robot-bg { position: fixed; inset: 0; z-index: -1; background: linear-gradient(135deg, #0f0f1a, #1a1a2e); overflow: hidden; }
+    .robot-bg::before { content: '🤖'; position: absolute; font-size: 200px; opacity: 0.05; animation: robotFloat 10s ease-in-out infinite; }
+    .robot-bg .gear { position: absolute; font-size: 40px; opacity: 0.1; animation: gearSpin 8s linear infinite; }
+    @keyframes robotFloat { 0%, 100% { top: 20%; left: 20%; } 50% { top: 60%; left: 70%; } }
+    @keyframes gearSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', Roboto, sans-serif; transition: all .3s; min-height: 100vh; }
+    
+    .card { background: var(--card); border-radius: 12px; box-shadow: var(--shadow); }
+    .btn { background: linear-gradient(135deg, var(--accent), var(--accent2, var(--accent))); color: #fff; border-radius: 10px; padding: 10px 16px; font-weight: 600; cursor: pointer; border: none; transition: all .2s; font-size: 14px; }
+    .btn:hover:not(:disabled) { transform: scale(1.03); filter: brightness(1.1); }
+    .btn:disabled { opacity: .5; cursor: not-allowed; }
+    .btn-outline { background: transparent; border: 2px solid var(--accent); color: var(--accent); }
+    .btn-danger { background: var(--danger); }
+    .btn-success { background: var(--success); }
+    .btn-premium { background: var(--premium); color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.3); animation: premiumShine 3s ease infinite; }
+    @keyframes premiumShine { 0%, 100% { filter: brightness(1); } 50% { filter: brightness(1.2); } }
+    .btn-sm { padding: 6px 12px; font-size: 12px; }
+    .input { background: var(--card); color: var(--text); border: 1px solid rgba(128,128,128,0.2); border-radius: 10px; padding: 12px; width: 100%; transition: all .2s; }
+    .input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(0,136,204,0.2); }
+    .badge { background: var(--danger); color: #fff; border-radius: 50%; min-width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; }
+    .premium-badge { background: var(--premium); color: #fff; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: bold; display: inline-flex; align-items: center; gap: 3px; animation: premiumShine 3s ease infinite; }
+    .premium-card { border: 2px solid transparent; background: linear-gradient(var(--card), var(--card)) padding-box, linear-gradient(135deg, #ffd700, #ff8c00, #ff6347) border-box; }
+    .premium-lock { position: relative; }
+    .premium-lock::after { content: '👑'; position: absolute; top: -5px; right: -5px; font-size: 16px; }
+    
+    .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: none; align-items: center; justify-content: center; padding: 16px; z-index: 100; backdrop-filter: blur(4px); }
+    .modal.active { display: flex; }
+    .modal-content { max-height: 90vh; overflow: auto; max-width: 600px; width: 100%; animation: modalIn .3s; }
+    @keyframes modalIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+    
+    .message { border-radius: 18px; padding: 10px 14px; margin: 4px 0; max-width: 75%; word-wrap: break-word; position: relative; }
+    .from-me { background: linear-gradient(135deg, var(--accent), #42c6ff); color: #fff; margin-left: auto; border-bottom-right-radius: 4px; }
+    .from-them { background: var(--card); border-bottom-left-radius: 4px; }
+    .gift-msg { background: linear-gradient(135deg, #ffd700, #ff6b6b); text-align: center; color: #fff; }
+    .gift-msg.galaxy { background: linear-gradient(135deg, #1a0033, #4b0082, #0000ff, #00ffff); animation: galaxyGlow 3s ease infinite; }
+    .gift-msg.legendary { background: linear-gradient(135deg, #ff0000, #ff7700, #ffff00, #00ff00, #0000ff, #8b00ff); background-size: 400% 400%; animation: legendaryGlow 3s ease infinite; }
+    @keyframes galaxyGlow { 0%, 100% { box-shadow: 0 0 20px rgba(138,43,226,0.5); } 50% { box-shadow: 0 0 40px rgba(0,255,255,0.8); } }
+    @keyframes legendaryGlow { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+    
+    .click-button { width: 200px; height: 200px; border-radius: 50%; background: linear-gradient(145deg, var(--accent), #00d4aa); color: #fff; font-size: 24px; font-weight: 700; display: flex; flex-direction: column; align-items: center; justify-content: center; margin: 20px auto; box-shadow: 0 10px 40px rgba(0,136,204,0.4); cursor: pointer; border: none; transition: all .15s; user-select: none; }
+    .click-button:hover { transform: scale(1.05); }
+    .click-button:active { transform: scale(0.95); }
+    .click-button.premium { background: var(--premium); box-shadow: 0 10px 50px rgba(255,140,0,0.5); }
+    
+    /* Рулетка */
+    .roulette-container { text-align: center; padding: 20px; }
+    .roulette-wheel { width: 280px; height: 280px; border-radius: 50%; border: 8px solid var(--accent); position: relative; margin: 20px auto; box-shadow: 0 0 30px rgba(0,136,204,0.4); overflow: hidden; }
+    .roulette-inner { width: 100%; height: 100%; position: relative; transition: transform 5s cubic-bezier(0.17,0.67,0.12,0.99); }
+    .roulette-segment { position: absolute; width: 50%; height: 50%; left: 50%; top: 50%; transform-origin: 0 0; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 18px; color: #fff; text-shadow: 1px 1px 2px rgba(0,0,0,0.5); }
+    .roulette-pointer { position: absolute; top: -15px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 15px solid transparent; border-right: 15px solid transparent; border-top: 30px solid var(--danger); z-index: 10; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3)); }
+    .roulette-center { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); width: 60px; height: 60px; border-radius: 50%; background: linear-gradient(135deg,#fff,#ddd); box-shadow: 0 4px 15px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; font-size: 24px; z-index: 5; }
+    
+    .level-badge { background: var(--accent); color: #fff; padding: 2px 6px; border-radius: 8px; font-size: 10px; font-weight: bold; }
+    .achievement-popup { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: linear-gradient(135deg, gold, orange); color: #333; padding: 12px 24px; border-radius: 12px; font-weight: bold; z-index: 1000; animation: achievementIn 0.5s ease, achievementOut 0.5s ease 2.5s forwards; box-shadow: 0 8px 30px rgba(255,165,0,0.5); }
+    @keyframes achievementIn { from { transform: translateX(-50%) translateY(-100px); opacity: 0; } to { transform: translateX(-50%) translateY(0); opacity: 1; } }
+    @keyframes achievementOut { to { transform: translateX(-50%) translateY(-100px); opacity: 0; } }
+    
+    .game-container { position: relative; width: 100%; height: 400px; background: #000; border-radius: 12px; overflow: hidden; }
+    .game-canvas { display: block; margin: 0 auto; background: #111; }
+    .game-menu { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; padding: 15px; }
+    .game-card { background: var(--card); border-radius: 12px; padding: 15px; text-align: center; cursor: pointer; transition: all .2s; border: 2px solid transparent; }
+    .game-card:hover { border-color: var(--accent); transform: scale(1.02); }
+    .game-card .icon { font-size: 40px; margin-bottom: 8px; }
+    .game-card .name { font-weight: bold; font-size: 14px; }
+    .game-over { position: absolute; inset: 0; background: rgba(0,0,0,0.8); display: flex; flex-direction: column; align-items: center; justify-content: center; color: #fff; z-index: 10; }
+    
+    /* Глобальный сервер */
+    .user-list { max-height: 300px; overflow-y: auto; }
+    .user-item { display: flex; align-items: center; gap: 10px; padding: 10px; border-bottom: 1px solid rgba(128,128,128,0.1); }
+    .user-item:hover { background: rgba(0,136,204,0.1); }
+    .user-avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--accent); display: flex; align-items: center; justify-content: center; font-size: 18px; }
+    
+    /* Стикеры */
+    .sticker-panel { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; max-height: 200px; overflow-y: auto; }
+    .sticker { font-size: 32px; cursor: pointer; padding: 8px; border-radius: 8px; text-align: center; transition: all .2s; }
+    .sticker:hover { background: var(--accent); transform: scale(1.2); }
+    .sticker.premium { position: relative; }
+    .sticker.premium::after { content: '👑'; position: absolute; top: -5px; right: -5px; font-size: 12px; }
+    
+    .layout { display: grid; grid-template-columns: 300px 1fr; min-height: 100vh; }
+    @media (max-width: 768px) { .layout { grid-template-columns: 1fr; } .sidebar { display: none; } .sidebar.mobile-open { display: flex; position: fixed; inset: 0; z-index: 50; } }
+  </style>
+</head>
+<body class="design-telegram">
+<div id="animatedBg"></div>
+<div id="app"></div>
+
+<script>
+// ============ ДАННЫЕ ============
+const DB = {
+  get: (k, d) => { try { return JSON.parse(localStorage.getItem(k)) || d; } catch { return d; } },
+  set: (k, v) => localStorage.setItem(k, JSON.stringify(v))
+};
+
+// Подарки (45 штук + 5 легендарных)
+const GIFTS = [
+  {id:'g1',name:'Роза',price:50,icon:'🌹'}, {id:'g2',name:'Сердце',price:100,icon:'❤️'},
+  {id:'g3',name:'Звезда',price:150,icon:'⭐'}, {id:'g4',name:'Корона',price:300,icon:'👑'},
+  {id:'g5',name:'Кристалл',price:500,icon:'💎'}, {id:'g6',name:'Огонь',price:200,icon:'🔥'},
+  {id:'g7',name:'Радуга',price:400,icon:'🌈'}, {id:'g8',name:'Ракета',price:600,icon:'🚀'},
+  {id:'g9',name:'Единорог',price:800,icon:'🦄'}, {id:'g10',name:'Торт',price:250,icon:'🎂'},
+  {id:'g11',name:'Шампанское',price:350,icon:'🍾'}, {id:'g12',name:'Бриллиант',price:1000,icon:'💍'},
+  {id:'g13',name:'Луна',price:450,icon:'🌙'}, {id:'g14',name:'Солнце',price:550,icon:'☀️'},
+  {id:'g15',name:'Молния',price:700,icon:'⚡'}, {id:'g16',name:'Снежинка',price:180,icon:'❄️'},
+  {id:'g17',name:'Клевер',price:280,icon:'🍀'}, {id:'g18',name:'Пицца',price:120,icon:'🍕'},
+  {id:'g19',name:'Кофе',price:90,icon:'☕'}, {id:'g20',name:'Медаль',price:650,icon:'🏅'},
+  {id:'g21',name:'Трофей',price:900,icon:'🏆'}, {id:'g22',name:'Динамит',price:750,icon:'🧨'},
+  {id:'g23',name:'Магия',price:1200,icon:'✨'}, {id:'g24',name:'Дракон',price:2000,icon:'🐉'},
+  {id:'g25',name:'Феникс',price:2500,icon:'🔱'}, {id:'g26',name:'Ангел',price:3000,icon:'👼'},
+  {id:'g27',name:'Демон',price:3500,icon:'😈'}, {id:'g28',name:'Инопланетянин',price:4000,icon:'👽'},
+  {id:'g29',name:'Робот',price:4500,icon:'🤖'}, {id:'g30',name:'Призрак',price:5000,icon:'👻'},
+  {id:'g31',name:'Клоун',price:1500,icon:'🤡'}, {id:'g32',name:'Ниндзя',price:1800,icon:'🥷'},
+  {id:'g33',name:'Самурай',price:2200,icon:'⚔️'}, {id:'g34',name:'Пират',price:1700,icon:'🏴‍☠️'},
+  {id:'g35',name:'Космос',price:6000,icon:'🌌'}, {id:'g36',name:'Атом',price:7000,icon:'⚛️'},
+  {id:'g37',name:'Бесконечность',price:8000,icon:'♾️'}, {id:'g38',name:'Черная дыра',price:10000,icon:'🕳️'},
+  {id:'g39',name:'Супернова',price:15000,icon:'💥'}, {id:'g40',name:'Вселенная',price:20000,icon:'🌐'},
+  {id:'g41',name:'Лев',price:5500,icon:'🦁'}, {id:'g42',name:'Орёл',price:6500,icon:'🦅'},
+  {id:'g43',name:'Волк',price:7500,icon:'🐺'}, {id:'g44',name:'Тигр',price:8500,icon:'🐅'},
+  {id:'g45',name:'Панда',price:9000,icon:'🐼'}
+];
+
+// Легендарные подарки (100K - 1M)
+const LEGENDARY_GIFTS = [
+  {id:'leg1',name:'Золотой Дракон',price:100000,icon:'🐲',legendary:true},
+  {id:'leg2',name:'Алмазный Трон',price:250000,icon:'🪑',legendary:true},
+  {id:'leg3',name:'Космический Корабль',price:400000,icon:'🛸',legendary:true},
+  {id:'leg4',name:'Вечный Огонь',price:750000,icon:'🔮',legendary:true},
+  {id:'leg5',name:'Корона Вселенной',price:1000000,icon:'👸',legendary:true}
+];
+
+// Галактика - только для премиум
+const GALAXY_GIFT = {id:'galaxy',name:'Галактика',price:500000,icon:'🌌',premium:true,special:true};
+
+// Стикеры
+const STICKERS = {
+  funny: ['😂','🤣','😆','😜','🤪','😝','🤓','🥳','🎉','🤡'],
+  love: ['❤️','💕','💖','💗','💓','💘','💝','😍','🥰','😘'],
+  work: ['💼','📊','📈','💻','⌨️','🖥️','📱','✅','📝','🎯'],
+  animals: ['🐶','🐱','🐼','🦊','🦁','🐯','🐻','🐨','🐸','🦋'],
+  animated: ['⭐','💫','✨','🌟','💥','🔥','❄️','🌈','🎭','🎪']
+};
+
+// Премиум стикеры
+const PREMIUM_STICKERS = {
+  exclusive: ['🏆','💎','👑','🎖️','🥇','💰','🌠','🎇','🎆','🪄'],
+  vip: ['🦄','🐉','🔮','⚡','🌀','🎴','🃏','🎲','🎰','💠'],
+  elite: ['🏰','⚔️','🛡️','👸','🤴','🧙','🧝','🧛','🧞','🦸']
+};
+
+const ACHIEVEMENTS = [
+  {id:'msg10', name:'Новичок', desc:'10 сообщений', icon:'🌱', need:10, type:'messages'},
+  {id:'msg100', name:'Активист', desc:'100 сообщений', icon:'💬', need:100, type:'messages'},
+  {id:'rich', name:'Богач', desc:'Premium пользователь', icon:'💰', need:1, type:'premium'},
+  {id:'gamer', name:'Геймер', desc:'100 очков в играх', icon:'🎮', need:100, type:'gameScore'},
+  {id:'collector', name:'Коллекционер', desc:'10 подарков', icon:'🎁', need:10, type:'gifts'}
+];
+
+const BOTS = [
+  {id:'bot-clicker', name:'💰 Кликер', avatar:'⚡', type:'clicker'},
+  {id:'bot-roulette', name:'🎰 Рулетка', avatar:'🎡', type:'roulette'},
+  {id:'bot-shop', name:'🛍️ Магазин', avatar:'🏪', type:'shop'},
+  {id:'bot-games', name:'🎮 Игры', avatar:'🎮', type:'games'}
+];
+
+const GAMES = [
+  {id:'snake', name:'Змейка', icon:'🐍'},
+  {id:'arkanoid', name:'Арканоид', icon:'🧱'},
+  {id:'runner', name:'Бегун', icon:'🏃'},
+  {id:'match3', name:'Три в ряд', icon:'💎'},
+  {id:'shooter', name:'Стрелялка', icon:'🚀'},
+  {id:'merge', name:'Слияние', icon:'🔢'},
+  {id:'clicker', name:'Таймкиллер', icon:'🎯'},
+  {id:'maze', name:'Лабиринт', icon:'🏰'}
+];
+
+const PREMIUM_GAMES = [
+  {id:'echo', name:'Эхо Лабораторий', icon:'🔬', premium:true},
+  {id:'skyship', name:'Небесные странники', icon:'🚢', premium:true}
+];
+
+let S = {
+  users: DB.get('users', []),
+  chats: DB.get('chats', []),
+  friends: DB.get('friends', {}),
+  friendRequests: DB.get('friendRequests', {}),
+  groups: DB.get('groups', []),
+  gems: DB.get('gems', {}),
+  inventory: DB.get('inventory', {}),
+  stats: DB.get('stats', {}),
+  achievements: DB.get('achievements', {}),
+  gameScores: DB.get('gameScores', {}),
+  premium: DB.get('premium', {}),
+  settings: DB.get('settings', {theme:'light', design:'telegram', animatedBg:'stars'}),
+  me: null,
+  tab: 'chats',
+  chat: null,
+  currentGame: null,
+  bet: 100
+};
+
+const save = () => {
+  DB.set('users', S.users);
+  DB.set('chats', S.chats);
+  DB.set('friends', S.friends);
+  DB.set('friendRequests', S.friendRequests);
+  DB.set('groups', S.groups);
+  DB.set('gems', S.gems);
+  DB.set('inventory', S.inventory);
+  DB.set('stats', S.stats);
+  DB.set('achievements', S.achievements);
+  DB.set('gameScores', S.gameScores);
+  DB.set('premium', S.premium);
+  DB.set('settings', S.settings);
+};
+
+// ============ УТИЛИТЫ ============
+const $ = s => document.querySelector(s);
+const el = (t, c, h) => { const e = document.createElement(t); if(c) e.className = c; if(h) e.innerHTML = h; return e; };
+const time = t => new Date(t).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+const isPremium = () => S.premium[S.me?.id] === true;
+const formatNum = n => n >= 1000000 ? (n/1000000).toFixed(1)+'M' : n >= 1000 ? (n/1000).toFixed(1)+'K' : n;
+
+function getLevel(userId) {
+  const stats = S.stats[userId] || {messages:0};
+  return Math.floor(stats.messages / 50) + 1;
+}
+
+function checkAchievements(userId) {
+  if (!S.achievements[userId]) S.achievements[userId] = [];
+  const stats = S.stats[userId] || {};
+  const earned = S.achievements[userId];
+  const inv = S.inventory[userId] || [];
+  
+  ACHIEVEMENTS.forEach(a => {
+    if (earned.includes(a.id)) return;
+    let value = 0;
+    if (a.type === 'messages') value = stats.messages || 0;
+    if (a.type === 'premium') value = S.premium[userId] ? 1 : 0;
+    if (a.type === 'gameScore') value = stats.gameScore || 0;
+    if (a.type === 'gifts') value = inv.length;
+    
+    if (value >= a.need) {
+      earned.push(a.id);
+      showAchievement(a);
+    }
+  });
+}
+
+function showAchievement(a) {
+  const popup = el('div', 'achievement-popup', `🏆 ${a.icon} ${a.name}!`);
+  document.body.appendChild(popup);
+  setTimeout(() => popup.remove(), 3000);
+}
+
+function updateStats(type, amount = 1) {
+  if (!S.me) return;
+  if (!S.stats[S.me.id]) S.stats[S.me.id] = {};
+  S.stats[S.me.id][type] = (S.stats[S.me.id][type] || 0) + amount;
+  checkAchievements(S.me.id);
+}
+
+// ============ АНИМИРОВАННЫЙ ФОН ============
+function renderAnimatedBg() {
+  const container = $('#animatedBg');
+  if (!container) return;
+  container.innerHTML = '';
+  container.className = '';
+  
+  const bgType = S.settings.animatedBg;
+  if (!bgType || bgType === 'none') return;
+  
+  container.className = `animated-bg ${bgType}`;
+  
+  if (bgType === 'particles') {
+    for (let i = 0; i < 30; i++) {
+      const p = document.createElement('div');
+      p.className = 'particle';
+      p.style.left = Math.random() * 100 + '%';
+      p.style.animationDelay = Math.random() * 20 + 's';
+      p.style.animationDuration = (15 + Math.random() * 10) + 's';
+      container.appendChild(p);
+    }
+  }
+  
+  if (bgType === 'matrix') {
+    const chars = '01アイウエオカキクケコサシスセソタチツテト';
+    for (let i = 0; i < 20; i++) {
+      const col = document.createElement('div');
+      col.className = 'matrix-col';
+      col.style.left = (i * 5) + '%';
+      col.style.animationDuration = (5 + Math.random() * 10) + 's';
+      col.style.animationDelay = Math.random() * 5 + 's';
+      let text = '';
+      for (let j = 0; j < 30; j++) {
+        text += chars[Math.floor(Math.random() * chars.length)] + '<br>';
+      }
+      col.innerHTML = text;
+      container.appendChild(col);
+    }
+  }
+}
+
+// ============ АВТОРИЗАЦИЯ ============
+function initBotChats(uid) {
+  BOTS.forEach(bot => {
+    const cid = `${bot.id}-${uid}`;
+    if (!S.chats.find(c => c.id === cid)) {
+      S.chats.push({ id: cid, name: bot.name, avatar: bot.avatar, members: [uid, bot.id], isBot: true, botType: bot.type, messages: [] });
+    }
+  });
+  save();
+}
+
+function login(email, pass) {
+  const user = S.users.find(u => u.email === email && u.password === pass);
+  if (!user) return alert('Неверные данные!');
+  S.me = user;
+  if (S.gems[user.id] === undefined) S.gems[user.id] = 0;
+  if (!S.inventory[user.id]) S.inventory[user.id] = [];
+  if (!S.friends[user.id]) S.friends[user.id] = [];
+  if (!S.stats[user.id]) S.stats[user.id] = {messages:0, gameScore:0};
+  if (!S.achievements[user.id]) S.achievements[user.id] = [];
+  if (!S.gameScores[user.id]) S.gameScores[user.id] = {};
+  initBotChats(user.id);
+  save();
+  render();
+}
+
+function register(data) {
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) return alert('Неверный email');
+  if (data.password.length < 8) return alert('Пароль мин. 8 символов');
+  if (S.users.some(u => u.email === data.email)) return alert('Email занят');
+  const user = { id: 'u' + Date.now(), ...data, createdAt: Date.now() };
+  S.users.push(user);
+  S.gems[user.id] = 0;
+  S.inventory[user.id] = [];
+  S.friends[user.id] = [];
+  S.friendRequests[user.id] = [];
+  S.stats[user.id] = {messages:0, gameScore:0};
+  S.achievements[user.id] = [];
+  S.gameScores[user.id] = {};
+  S.premium[user.id] = false;
+  save();
+  login(data.email, data.password);
+}
+
+function logout() { S.me = null; S.chat = null; render(); }
+
+// ============ PREMIUM ============
+function activatePremium() {
+  const cost = 100000;
+  if ((S.gems[S.me.id] || 0) < cost) return alert(`Недостаточно алмазов! Нужно ${formatNum(cost)} 💎`);
+  if (isPremium()) return alert('У вас уже есть Premium!');
+  
+  if (confirm(`Активировать FX Premium за ${formatNum(cost)} 💎?`)) {
+    S.gems[S.me.id] -= cost;
+    S.premium[S.me.id] = true;
+    if (!S.achievements[S.me.id].includes('rich')) {
+      S.achievements[S.me.id].push('rich');
+      showAchievement({name:'Богач', icon:'💰'});
+    }
+    save();
+    alert('🎉 FX Premium активирован!');
+    render();
+  }
+}
+
+// ============ ДРУЗЬЯ ============
+function sendFriendRequest(userId) {
+  if (!S.friendRequests[userId]) S.friendRequests[userId] = [];
+  if (S.friendRequests[userId].some(r => r.from === S.me.id)) return alert('Заявка уже отправлена!');
+  if ((S.friends[S.me.id] || []).includes(userId)) return alert('Вы уже друзья!');
+  S.friendRequests[userId].push({ from: S.me.id, time: Date.now() });
+  save();
+  alert('✅ Заявка отправлена!');
+  closeModal('friendModal');
+}
+
+function acceptFriendRequest(fromUserId) {
+  if (!S.friends[S.me.id]) S.friends[S.me.id] = [];
+  if (!S.friends[fromUserId]) S.friends[fromUserId] = [];
+  S.friends[S.me.id].push(fromUserId);
+  S.friends[fromUserId].push(S.me.id);
+  S.friendRequests[S.me.id] = (S.friendRequests[S.me.id] || []).filter(r => r.from !== fromUserId);
+  
+  const user = S.users.find(u => u.id === fromUserId);
+  if (user) getOrCreateDM(user);
+  save();
+  alert('✅ Заявка принята!');
+  render();
+}
+
+function declineFriendRequest(fromUserId) {
+  S.friendRequests[S.me.id] = (S.friendRequests[S.me.id] || []).filter(r => r.from !== fromUserId);
+  save();
+  render();
+}
+
+function getIncomingRequests() {
+  return (S.friendRequests[S.me.id] || []).map(r => {
+    const user = S.users.find(u => u.id === r.from);
+    return user ? {...r, user} : null;
+  }).filter(Boolean);
+}
+
+// ============ ЧАТЫ ============
+function getOrCreateDM(user) {
+  let chat = S.chats.find(c => !c.isBot && !c.isGroup && c.members?.includes(S.me.id) && c.members?.includes(user.id));
+  if (!chat) {
+    chat = { id: 'dm-' + Date.now(), name: user.name, avatar: user.avatar || '👤', members: [S.me.id, user.id], messages: [] };
+    S.chats.push(chat);
+    save();
+  }
+  return chat;
+}
+
+function sendMsg(text) {
+  if (!S.chat || S.chat.isBot || !text.trim()) return;
+  const msg = { id: 'm' + Date.now(), sender: S.me.id, text: text.trim(), time: Date.now() };
+  S.chat.messages.push(msg);
+  updateStats('messages');
+  $('#msgInput').value = '';
+  renderChat();
+  save();
+}
+
+function sendSticker(sticker) {
+  if (!S.chat || S.chat.isBot) return;
+  const msg = { id: 'm' + Date.now(), sender: S.me.id, text: sticker, time: Date.now(), isSticker: true };
+  S.chat.messages.push(msg);
+  updateStats('messages');
+  renderChat();
+  save();
+  closeModal('stickerModal');
+}
+
+function sendGift(recipientId, giftId) {
+  if (recipientId.startsWith('bot-')) return alert('Нельзя отправлять подарки ботам!');
+  
+  const inv = S.inventory[S.me.id] || [];
+  const idx = inv.findIndex(g => g.id === giftId);
+  if (idx === -1) return alert('У вас нет этого подарка!');
+  
+  const gift = {...inv[idx]};
+  inv.splice(idx, 1);
+  
+  if (!S.inventory[recipientId]) S.inventory[recipientId] = [];
+  S.inventory[recipientId].push({...gift, from: S.me.id, receivedAt: Date.now()});
+  
+  const recipient = S.users.find(u => u.id === recipientId);
+  if (recipient) {
+    const chat = getOrCreateDM(recipient);
+    chat.messages.push({
+      id: 'gift-' + Date.now(),
+      sender: S.me.id,
+      type: 'gift',
+      gift: gift,
+      text: `🎁 Подарок: ${gift.icon} ${gift.name}`,
+      time: Date.now(),
+      isGalaxy: gift.id === 'galaxy',
+      isLegendary: gift.legendary
+    });
+    S.chat = chat;
+  }
+  
+  save();
+  alert('🎁 Подарок отправлен!');
+  closeModal('giftModal');
+  renderChat();
+}
+
+// ============ ГРУППЫ ============
+function createGroup(name, memberIds) {
+  if (!name.trim()) return alert('Введите название');
+  const group = {
+    id: 'group-' + Date.now(),
+    name: name.trim(),
+    avatar: '👥',
+    members: [S.me.id, ...memberIds],
+    isGroup: true,
+    admin: S.me.id,
+    messages: []
+  };
+  S.groups.push(group);
+  S.chats.push(group);
+  save();
+  closeModal('groupModal');
+  S.chat = group;
+  render();
+}
+
+function sendGroupMsg(text) {
+  if (!S.chat?.isGroup || !text.trim()) return;
+  S.chat.messages.push({ id: 'm' + Date.now(), sender: S.me.id, text: text.trim(), time: Date.now() });
+  updateStats('messages');
+  $('#msgInput').value = '';
+  renderChat();
+  save();
+}
+
+// ============ РЕНДЕР ============
+function render() {
+  document.body.className = `${S.settings.theme === 'dark' ? 'dark ' : ''}design-${S.settings.design}`;
+  
+  // Удаляем старые фоны
+  $('.robot-bg')?.remove();
+  
+  // Робот фон только для премиум
+  if (S.settings.design === 'robot' && isPremium()) {
+    const bg = el('div', 'robot-bg');
+    bg.innerHTML = '<span class="gear" style="top:10%;left:10%">⚙️</span><span class="gear" style="top:80%;left:80%">⚙️</span><span class="gear" style="top:50%;left:90%">⚙️</span>';
+    document.body.prepend(bg);
+  }
+  
+  // Анимированный фон
+  renderAnimatedBg();
+  
+  if (!S.me) renderAuth(); else renderApp();
+}
+
+function renderAuth() {
+  $('#app').innerHTML = `
+    <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;">
+      <div class="card" style="width:100%;max-width:400px;padding:30px;">
+        <div style="text-align:center;margin-bottom:25px;">
+          <div style="font-size:50px;margin-bottom:10px;">📱</div>
+          <h1 style="margin:0;color:var(--accent);">FXkey pro 2</h1>
+          <p style="color:var(--subtext);margin:5px 0;">Современный мессенджер</p>
+        </div>
+        <div id="authForms">
+          <input class="input" id="authEmail" placeholder="Email" style="margin-bottom:10px;">
+          <input class="input" type="password" id="authPass" placeholder="Пароль" style="margin-bottom:15px;">
+          <button class="btn" style="width:100%;margin-bottom:10px;" onclick="login($('#authEmail').value,$('#authPass').value)">Войти</button>
+          <button class="btn btn-outline" style="width:100%;" onclick="showRegister()">Регистрация</button>
+        </div>
+        <div id="regForms" style="display:none;">
+          <input class="input" id="regEmail" placeholder="Email" style="margin-bottom:10px;">
+          <input class="input" type="password" id="regPass" placeholder="Пароль (мин. 8)" style="margin-bottom:10px;">
+          <input class="input" id="regName" placeholder="Имя" style="margin-bottom:10px;">
+          <button class="btn" style="width:100%;margin-bottom:10px;" onclick="register({email:$('#regEmail').value,password:$('#regPass').value,name:$('#regName').value||'User',avatar:'👤'})">Создать</button>
+          <button class="btn btn-outline" style="width:100%;" onclick="showLogin()">Назад</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function showRegister() { $('#authForms').style.display = 'none'; $('#regForms').style.display = 'block'; }
+function showLogin() { $('#regForms').style.display = 'none'; $('#authForms').style.display = 'block'; }
+
+function renderApp() {
+  const requests = getIncomingRequests();
+  const level = getLevel(S.me.id);
+  const hasPremium = isPremium();
+  
+  $('#app').innerHTML = `
+    <div class="layout">
+      <div class="sidebar" style="background:var(--card);border-right:1px solid rgba(0,0,0,0.1);display:flex;flex-direction:column;height:100vh;">
+        <div style="padding:15px;border-bottom:1px solid rgba(0,0,0,0.1);">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:15px;">
+            <div style="width:45px;height:45px;border-radius:50%;background:${hasPremium?'var(--premium)':'var(--accent)'};display:flex;align-items:center;justify-content:center;font-size:20px;">${S.me.avatar||'👤'}</div>
+            <div style="flex:1;">
+              <div style="font-weight:bold;display:flex;align-items:center;gap:5px;">
+                ${S.me.name} 
+                <span class="level-badge">Lv.${level}</span>
+                ${hasPremium?'<span class="premium-badge">👑 PRO</span>':''}
+              </div>
+              <div style="font-size:12px;color:var(--subtext);">💎 ${formatNum(S.gems[S.me.id]||0)}</div>
+            </div>
+            <button class="btn btn-sm" onclick="openModal('settingsModal')">⚙️</button>
+          </div>
+          <div style="display:flex;gap:8px;margin-bottom:12px;">
+            <button class="btn btn-sm" style="flex:1;position:relative;" onclick="openModal('friendModal')">
+              👤+ ${requests.length?`<span class="badge" style="position:absolute;top:-5px;right:-5px;">${requests.length}</span>`:''}
+            </button>
+            <button class="btn btn-sm" style="flex:1;" onclick="openModal('groupModal')">👥+</button>
+            <button class="btn btn-sm" onclick="openModal('usersModal')">🌐</button>
+          </div>
+          <div style="display:flex;gap:5px;margin-bottom:12px;">
+            ${['chats','friends','groups','bots'].map(t=>`<button class="btn btn-sm ${S.tab===t?'':'btn-outline'}" onclick="S.tab='${t}';renderChatList()">${t==='chats'?'💬':t==='friends'?'👥':t==='groups'?'🏠':'🤖'}</button>`).join('')}
+          </div>
+          <input class="input" id="searchInput" placeholder="🔍 Поиск..." oninput="renderChatList()">
+        </div>
+        <div id="chatList" style="flex:1;overflow-y:auto;"></div>
+      </div>
+      
+      <div style="display:flex;flex-direction:column;height:100vh;">
+        <div id="chatHeader" style="padding:15px;background:var(--card);border-bottom:1px solid rgba(0,0,0,0.1);">
+          <div style="font-weight:bold;font-size:18px;" id="chatTitle">FXkey pro 2</div>
+          <div style="font-size:12px;color:var(--subtext);" id="chatSubtitle">Выберите чат</div>
+        </div>
+        <div id="chatMessages" style="flex:1;overflow-y:auto;padding:15px;"></div>
+        <div id="botArea"></div>
+        <div id="inputArea" style="padding:15px;background:var(--card);border-top:1px solid rgba(0,0,0,0.1);display:none;">
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-sm" onclick="openModal('stickerModal')">😀</button>
+            <input class="input" id="msgInput" placeholder="Сообщение..." style="flex:1;">
+            <button class="btn btn-sm" onclick="openGiftModalForChat()">🎁</button>
+            <button class="btn" id="sendBtn">➤</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    ${renderModals()}
+  `;
+  
+  $('#sendBtn').onclick = () => {
+    const text = $('#msgInput').value;
+    if (S.chat?.isGroup) sendGroupMsg(text);
+    else sendMsg(text);
+  };
+  $('#msgInput').onkeydown = e => { if (e.key === 'Enter') $('#sendBtn').click(); };
+  
+  renderChatList();
+  renderChat();
+}
+
+function openGiftModalForChat() {
+  if (!S.chat || S.chat.isBot) return alert('Нельзя отправлять подарки ботам!');
+  const otherId = S.chat.members?.find(m => m !== S.me.id);
+  if (otherId) openGiftModal(otherId);
+}
+
+function renderModals() {
+  const requests = getIncomingRequests();
+  const inv = S.inventory[S.me.id] || [];
+  const hasPremium = isPremium();
+  const earned = S.achievements[S.me.id] || [];
+  
+  return `
+    <!-- Настройки -->
+    <div class="modal" id="settingsModal">
+      <div class="modal-content card" style="padding:25px;">
+        <div style="display:flex;justify-content:space-between;margin-bottom:20px;">
+          <h2>⚙️ Настройки</h2>
+          <button onclick="closeModal('settingsModal')" style="background:none;border:none;font-size:24px;cursor:pointer;color:var(--text);">×</button>
+        </div>
+        
+        <!-- Premium -->
+        <div class="${hasPremium?'premium-card':''} card" style="padding:15px;margin-bottom:20px;text-align:center;">
+          <div style="font-size:32px;">${hasPremium?'👑':'💎'}</div>
+          <h3>${hasPremium?'FX Premium Активен!':'FX Premium'}</h3>
+          ${hasPremium?`
+            <div style="color:var(--success);">✨ Все преимущества активны!</div>
+          `:`
+            <div style="font-size:13px;color:var(--subtext);margin:10px 0;">
+              • Продажа подарков за 100%<br>
+              • x2 очков в играх<br>
+              • 10💎 за клик<br>
+              • Подарок "Галактика" 🌌<br>
+              • Премиум стикеры<br>
+              • Эксклюзивные игры и дизайны
+            </div>
+            <button class="btn btn-premium" onclick="activatePremium()">
+              👑 Активировать за 100K 💎
+            </button>
+          `}
+        </div>
+        
+        <h3 style="margin-bottom:10px;">🎨 Дизайн</h3>
+        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:20px;">
+          ${[
+            {id:'telegram',name:'Telegram',icon:'💬'},
+            {id:'neon',name:'Неоновый',icon:'🌈'},
+            {id:'minimal',name:'Минимал',icon:'⬜'},
+            {id:'natural',name:'Природа',icon:'🌿'},
+            {id:'retro',name:'Ретро',icon:'📻'},
+            {id:'toxic',name:'Токсичный',icon:'☢️'},
+            {id:'robot',name:'Робот',icon:'🤖',premium:true},
+            {id:'hacker',name:'Хакер',icon:'💻',premium:true}
+          ].map(d=>`
+            <label class="card ${d.premium&&!hasPremium?'premium-lock':''}" style="padding:10px;cursor:${d.premium&&!hasPremium?'not-allowed':'pointer'};opacity:${d.premium&&!hasPremium?'0.5':'1'}">
+              <input type="radio" name="design" value="${d.id}" ${S.settings.design===d.id?'checked':''} 
+                ${d.premium&&!hasPremium?'disabled':''}
+                onchange="${d.premium&&!hasPremium?'':''}S.settings.design='${d.id}';save();render()">
+              ${d.icon} ${d.name} ${d.premium?'👑':''}
+            </label>
+          `).join('')}
+        </div>
+        
+        <h3 style="margin-bottom:10px;">🌌 Анимированный фон</h3>
+        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:20px;">
+          ${[
+            {id:'none',name:'Выкл',icon:'❌'},
+            {id:'stars',name:'Звёзды',icon:'⭐'},
+            {id:'waves',name:'Волны',icon:'🌊'},
+            {id:'particles',name:'Частицы',icon:'✨'},
+            {id:'matrix',name:'Матрица',icon:'💚',premium:true}
+          ].map(bg=>`
+            <label class="card ${bg.premium&&!hasPremium?'premium-lock':''}" style="padding:10px;cursor:${bg.premium&&!hasPremium?'not-allowed':'pointer'};opacity:${bg.premium&&!hasPremium?'0.5':'1'}">
+              <input type="radio" name="animBg" value="${bg.id}" ${S.settings.animatedBg===bg.id?'checked':''} 
+                ${bg.premium&&!hasPremium?'disabled':''}
+                onchange="S.settings.animatedBg='${bg.id}';save();renderAnimatedBg()">
+              ${bg.icon} ${bg.name} ${bg.premium?'👑':''}
+            </label>
+          `).join('')}
+        </div>
+        
+        <h3 style="margin-bottom:10px;">🏆 Достижения</h3>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:20px;">
+          ${ACHIEVEMENTS.map(a=>`<span style="font-size:20px;opacity:${earned.includes(a.id)?1:0.3}" title="${a.name}">${a.icon}</span>`).join('')}
+        </div>
+        
+        <h3 style="margin-bottom:10px;">🎁 Инвентарь (${inv.length})</h3>
+        <div style="font-size:24px;margin-bottom:20px;">${inv.map(g=>g.icon).join(' ')||'Пусто'}</div>
+        
+        <button class="btn btn-danger" style="width:100%;" onclick="logout()">🚪 Выйти</button>
+      </div>
+    </div>
+    
+    <!-- Стикеры -->
+    <div class="modal" id="stickerModal">
+      <div class="modal-content card" style="padding:25px;">
+        <div style="display:flex;justify-content:space-between;margin-bottom:20px;">
+          <h2>😀 Стикеры</h2>
+          <button onclick="closeModal('stickerModal')" style="background:none;border:none;font-size:24px;cursor:pointer;color:var(--text);">×</button>
+        </div>
+        
+        ${Object.entries(STICKERS).map(([cat, stickers]) => `
+          <h4 style="margin:15px 0 10px;text-transform:capitalize;">${cat === 'funny' ? '😂 Смешные' : cat === 'love' ? '❤️ Любовь' : cat === 'work' ? '💼 Работа' : cat === 'animals' ? '🐾 Животные' : '✨ Анимированные'}</h4>
+          <div class="sticker-panel">
+            ${stickers.map(s => `<div class="sticker" onclick="sendSticker('${s}')">${s}</div>`).join('')}
+          </div>
+        `).join('')}
+        
+        ${hasPremium ? `
+          <h3 style="margin:20px 0 10px;color:var(--accent);">👑 Премиум стикеры</h3>
+          ${Object.entries(PREMIUM_STICKERS).map(([cat, stickers]) => `
+            <h4 style="margin:15px 0 10px;text-transform:capitalize;">${cat === 'exclusive' ? '🏆 Эксклюзивные' : cat === 'vip' ? '💎 VIP' : '👑 Элитные'}</h4>
+            <div class="sticker-panel">
+              ${stickers.map(s => `<div class="sticker premium" onclick="sendSticker('${s}')">${s}</div>`).join('')}
+            </div>
+          `).join('')}
+        ` : `
+          <div style="text-align:center;padding:20px;opacity:0.5;">
+            👑 Премиум стикеры доступны с FX Premium
+          </div>
+        `}
+      </div>
+    </div>
+    
+    <!-- Друзья -->
+    <div class="modal" id="friendModal">
+      <div class="modal-content card" style="padding:25px;">
+        <div style="display:flex;justify-content:space-between;margin-bottom:20px;">
+          <h2>👤 Друзья</h2>
+          <button onclick="closeModal('friendModal')" style="background:none;border:none;font-size:24px;cursor:pointer;color:var(--text);">×</button>
+        </div>
+        ${requests.length?`
+          <h3>📥 Заявки (${requests.length})</h3>
+          <div style="margin-bottom:20px;">
+            ${requests.map(r=>`
+              <div class="card" style="padding:12px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;">
+                <div style="display:flex;align-items:center;gap:10px;">
+                  <div style="width:40px;height:40px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;">${r.user.avatar||'👤'}</div>
+                  <span style="font-weight:600;">${r.user.name}</span>
+                </div>
+                <div style="display:flex;gap:5px;">
+                  <button class="btn btn-success btn-sm" onclick="acceptFriendRequest('${r.from}')">✓</button>
+                  <button class="btn btn-danger btn-sm" onclick="declineFriendRequest('${r.from}')">✕</button>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        `:''}
+        <h3>🔍 Найти пользователя</h3>
+        <div style="display:flex;gap:10px;margin-bottom:15px;">
+          <input class="input" id="friendSearch" placeholder="Имя или email...">
+          <button class="btn" onclick="searchFriends()">🔍</button>
+        </div>
+        <div id="friendResults"></div>
+      </div>
+    </div>
+    
+    <!-- Группы -->
+    <div class="modal" id="groupModal">
+      <div class="modal-content card" style="padding:25px;">
+        <div style="display:flex;justify-content:space-between;margin-bottom:20px;">
+          <h2>👥 Создать группу</h2>
+          <button onclick="closeModal('groupModal')" style="background:none;border:none;font-size:24px;cursor:pointer;color:var(--text);">×</button>
+        </div>
+        <input class="input" id="groupName" placeholder="Название группы" style="margin-bottom:15px;">
+        <div style="margin-bottom:15px;">
+          <strong>Участники:</strong>
+          <div id="groupMembers" style="max-height:200px;overflow-y:auto;margin-top:10px;">
+            ${(S.friends[S.me.id]||[]).map(fid=>{
+              const u = S.users.find(x=>x.id===fid);
+              return u?`<label class="card" style="display:flex;align-items:center;gap:10px;padding:10px;margin-bottom:5px;cursor:pointer;">
+                <input type="checkbox" value="${u.id}">
+                <span>${u.avatar||'👤'}</span>
+                <span>${u.name}</span>
+              </label>`:'';
+            }).join('')||'<div style="color:var(--subtext);">Сначала добавьте друзей</div>'}
+          </div>
+        </div>
+        <button class="btn" style="width:100%;" onclick="createGroupFromModal()">✅ Создать</button>
+      </div>
+    </div>
+    
+    <!-- Глобальные пользователи -->
+    <div class="modal" id="usersModal">
+      <div class="modal-content card" style="padding:25px;">
+        <div style="display:flex;justify-content:space-between;margin-bottom:20px;">
+          <h2>🌐 Все пользователи</h2>
+          <button onclick="closeModal('usersModal')" style="background:none;border:none;font-size:24px;cursor:pointer;color:var(--text);">×</button>
+        </div>
+        <div class="user-list">
+          ${S.users.filter(u=>u.id!==S.me.id).map(u=>`
+            <div class="user-item">
+              <div class="user-avatar" style="${S.premium[u.id]?'background:var(--premium)':''}">${u.avatar||'👤'}</div>
+              <div style="flex:1;">
+                <div style="font-weight:bold;display:flex;align-items:center;gap:5px;">
+                  ${u.name}
+                  ${S.premium[u.id]?'<span class="premium-badge">👑</span>':''}
+                </div>
+                <div style="font-size:12px;color:var(--subtext);">💎 ${formatNum(S.gems[u.id]||0)}</div>
+              </div>
+              ${(S.friends[S.me.id]||[]).includes(u.id)?
+                '<span style="color:var(--success);">✓ Друзья</span>':
+                `<button class="btn btn-sm" onclick="sendFriendRequest('${u.id}')">➕</button>`
+              }
+            </div>
+          `).join('')||'<div style="text-align:center;color:var(--subtext);">Пока никого нет</div>'}
+        </div>
+      </div>
+    </div>
+    
+    <!-- Подарки -->
+    <div class="modal" id="giftModal">
+      <div class="modal-content card" style="padding:25px;">
+        <div style="display:flex;justify-content:space-between;margin-bottom:20px;">
+          <h2 id="giftModalTitle">🎁 Отправить подарок</h2>
+          <button onclick="closeModal('giftModal')" style="background:none;border:none;font-size:24px;cursor:pointer;color:var(--text);">×</button>
+        </div>
+        <div id="giftUserList"></div>
+      </div>
+    </div>
+  `;
+}
+
+function searchFriends() {
+  const term = $('#friendSearch').value.trim().toLowerCase();
+  if (!term) return;
+  const results = S.users.filter(u => u.id !== S.me.id && 
+    ((u.name||'').toLowerCase().includes(term) || u.email.toLowerCase().includes(term)));
+  
+  $('#friendResults').innerHTML = results.length ? results.map(u => {
+    const isFriend = (S.friends[S.me.id]||[]).includes(u.id);
+    const hasPending = (S.friendRequests[u.id]||[]).some(r => r.from === S.me.id);
+    return `
+      <div class="card" style="padding:12px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div style="width:40px;height:40px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;">${u.avatar||'👤'}</div>
+          <span style="font-weight:600;">${u.name}</span>
+        </div>
+        ${isFriend ? '<span style="color:var(--success);">✓ Друзья</span>' : 
+          hasPending ? '<span style="color:var(--subtext);">⏳</span>' : 
+          `<button class="btn btn-sm" onclick="sendFriendRequest('${u.id}')">📤</button>`}
+      </div>
+    `;
+  }).join('') : '<div style="text-align:center;color:var(--subtext);">Не найдено</div>';
+}
+
+function createGroupFromModal() {
+  const name = $('#groupName').value;
+  const checks = document.querySelectorAll('#groupMembers input:checked');
+  createGroup(name, Array.from(checks).map(c => c.value));
+}
+
+function renderChatList() {
+  const list = $('#chatList');
+  if (!list) return;
+  
+  initBotChats(S.me.id);
+  const term = ($('#searchInput')?.value || '').toLowerCase();
+  let items = [];
+  
+  if (S.tab === 'chats') {
+    items = S.chats.filter(c => c.members?.includes(S.me.id) && !c.isBot && !c.isGroup);
+  } else if (S.tab === 'friends') {
+    items = (S.friends[S.me.id] || []).map(fid => {
+      const u = S.users.find(x => x.id === fid);
+      return u ? {id: 'f-' + fid, name: u.name, avatar: u.avatar || '👤', user: u, isFriend: true} : null;
+    }).filter(Boolean);
+  } else if (S.tab === 'groups') {
+    items = S.chats.filter(c => c.isGroup && c.members?.includes(S.me.id));
+  } else if (S.tab === 'bots') {
+    items = S.chats.filter(c => c.isBot && c.members?.includes(S.me.id));
+  }
+  
+  if (term) items = items.filter(i => (i.name || '').toLowerCase().includes(term));
+  
+  list.innerHTML = items.length ? '' : '<div style="padding:20px;text-align:center;color:var(--subtext);">Пусто</div>';
+  
+  items.forEach(item => {
+    const isActive = S.chat?.id === item.id;
+    let displayName = item.name;
+    let displayAvatar = item.avatar || '💬';
+    
+    if (!item.isBot && !item.isGroup && !item.isFriend && item.members) {
+      const otherId = item.members.find(m => m !== S.me.id);
+      const other = S.users.find(u => u.id === otherId);
+      if (other) { displayName = other.name; displayAvatar = other.avatar || '👤'; }
+    }
+    
+    const row = el('div', '', `
+      <div style="padding:12px 15px;display:flex;align-items:center;gap:12px;cursor:pointer;background:${isActive?'var(--bg)':'transparent'};border-bottom:1px solid rgba(0,0,0,0.05);">
+        <div style="width:45px;height:45px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:20px;">${displayAvatar}</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${displayName}</div>
+          <div style="font-size:12px;color:var(--subtext);">${item.isBot?'🤖 Бот':item.isGroup?`👥 ${item.members?.length||0}`:''}</div>
+        </div>
+      </div>
+    `);
+    row.onclick = () => { 
+      if (item.isFriend) S.chat = getOrCreateDM(item.user); 
+      else S.chat = item; 
+      S.currentGame = null;
+      renderChatList(); 
+      renderChat(); 
+    };
+    list.appendChild(row);
+  });
+}
+
+function renderChat() {
+  const chat = S.chat;
+  const msgs = $('#chatMessages');
+  const title = $('#chatTitle');
+  const subtitle = $('#chatSubtitle');
+  const input = $('#inputArea');
+  const botArea = $('#botArea');
+  
+  if (!msgs) return;
+  msgs.innerHTML = '';
+  botArea.innerHTML = '';
+  
+  if (!chat) {
+    title.textContent = 'FXkey pro 2';
+    subtitle.textContent = 'Выберите чат';
+    input.style.display = 'none';
+    msgs.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:var(--subtext);"><div style="font-size:80px;">💬</div><div style="font-size:24px;margin-top:10px;">Добро пожаловать!</div></div>';
+    return;
+  }
+  
+  let chatTitle = chat.name;
+  if (!chat.isBot && !chat.isGroup && chat.members) {
+    const otherId = chat.members.find(m => m !== S.me.id);
+    const other = S.users.find(u => u.id === otherId);
+    if (other) chatTitle = other.name;
+  }
+  
+  title.textContent = chatTitle;
+  subtitle.textContent = chat.isBot ? '🤖 Бот' : chat.isGroup ? `👥 ${chat.members?.length} участников` : '🟢 В сети';
+  
+  if (chat.isBot) {
+    input.style.display = 'none';
+    renderBotUI(chat);
+    return;
+  }
+  
+  input.style.display = 'block';
+  
+  (chat.messages || []).forEach(m => {
+    const isMe = m.sender === S.me.id;
+    const sender = S.users.find(u => u.id === m.sender);
+    
+    let msgClass = `message ${isMe ? 'from-me' : 'from-them'}`;
+    if (m.type === 'gift') {
+      msgClass += ' gift-msg';
+      if (m.isGalaxy) msgClass += ' galaxy';
+      if (m.isLegendary) msgClass += ' legendary';
+    }
+    
+    const div = el('div', msgClass);
+    
+    let content = '';
+    if (m.type === 'gift') {
+      content = `<div style="font-size:36px;">${m.gift?.icon || '🎁'}</div><div style="font-weight:bold;">${m.gift?.name || 'Подарок'}</div>`;
+    } else if (m.isSticker) {
+      content = `<div style="font-size:48px;">${m.text}</div>`;
+    } else {
+      if (chat.isGroup && !isMe) content += `<div style="font-size:11px;font-weight:bold;margin-bottom:3px;color:var(--accent);">${sender?.name || 'User'}</div>`;
+      content += `<div>${m.text}</div>`;
+    }
+    content += `<div style="font-size:10px;opacity:0.7;text-align:right;margin-top:3px;">${time(m.time)}</div>`;
+    
+    div.innerHTML = content;
+    msgs.appendChild(div);
+  });
+  
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+// ============ БОТЫ ============
+function renderBotUI(chat) {
+  const area = $('#botArea');
+  const msgs = $('#chatMessages');
+  const hasPremium = isPremium();
+  
+  if (chat.botType === 'clicker') {
+    const reward = hasPremium ? 10 : 1;
+    msgs.innerHTML = `
+      <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;">
+        <div style="font-size:24px;margin-bottom:20px;">💎 <span id="clickGems">${formatNum(S.gems[S.me.id]||0)}</span></div>
+        ${hasPremium?'<div class="premium-badge" style="margin-bottom:15px;">👑 x10 за клик!</div>':''}
+        <button class="click-button ${hasPremium?'premium':''}" onclick="clickGem()">
+          <span style="font-size:48px;">👆</span>
+          <span>+${reward} 💎</span>
+        </button>
+      </div>
+    `;
+  }
+  
+  else if (chat.botType === 'roulette') {
+    const segments = [
+      {mult: 0, color: '#e74c3c', label: '0x'},
+      {mult: 1, color: '#3498db', label: '1x'},
+      {mult: 2, color: '#2ecc71', label: '2x'},
+      {mult: 3, color: '#f39c12', label: '3x'},
+      {mult: 4, color: '#9b59b6', label: '4x'},
+      {mult: 5, color: '#1abc9c', label: '5x'}
+    ];
+    
+    msgs.innerHTML = `
+      <div class="roulette-container">
+        <div style="font-size:20px;margin-bottom:10px;">💎 <span id="rouletteGems">${formatNum(S.gems[S.me.id]||0)}</span></div>
+        
+        <div class="roulette-wheel">
+          <div class="roulette-pointer"></div>
+          <div class="roulette-inner" id="rouletteWheel">
+            ${segments.map((s, i) => `
+              <div class="roulette-segment" style="background:${s.color};transform:rotate(${i*60-90}deg);clip-path:polygon(0 0,100% 0,100% 100%);">
+                <span style="transform:rotate(30deg);margin-left:40px;">${s.label}</span>
+              </div>
+            `).join('')}
+          </div>
+          <div class="roulette-center">🎰</div>
+        </div>
+        
+        <div style="margin:20px 0;">
+          <div style="margin-bottom:10px;">Ставка:</div>
+          <input type="number" id="betInput" class="input" style="width:150px;text-align:center;" value="${S.bet}" min="1" max="5000000">
+          <div style="display:flex;gap:5px;justify-content:center;margin-top:10px;flex-wrap:wrap;">
+            ${[100,1000,10000,100000,1000000,5000000].map(b=>`
+              <button class="btn btn-sm btn-outline" onclick="S.bet=${b};$('#betInput').value=${b}">${formatNum(b)}</button>
+            `).join('')}
+          </div>
+        </div>
+        
+        <button class="btn" style="font-size:18px;padding:15px 40px;" id="spinBtn" onclick="spinRoulette()">
+          🎰 КРУТИТЬ!
+        </button>
+      </div>
+    `;
+  }
+  
+  else if (chat.botType === 'shop') {
+    const inv = S.inventory[S.me.id] || [];
+    const allGifts = hasPremium ? [...GIFTS, ...LEGENDARY_GIFTS, GALAXY_GIFT] : [...GIFTS, ...LEGENDARY_GIFTS];
+    const sellPercent = hasPremium ? 100 : 70;
+    
+    msgs.innerHTML = `
+      <div style="padding:15px;overflow-y:auto;height:100%;">
+        <div style="text-align:center;margin-bottom:15px;">
+          <div style="font-size:20px;">💎 ${formatNum(S.gems[S.me.id]||0)}</div>
+          ${hasPremium?'<div class="premium-badge">👑 Продажа за 100%!</div>':''}
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:8px;">
+          ${allGifts.map(gift => {
+            const owned = inv.filter(g => g.id === gift.id).length;
+            const isSpecial = gift.id === 'galaxy' || gift.legendary;
+            return `
+              <div class="card ${isSpecial?'premium-card':''}" style="padding:10px;text-align:center;">
+                <div style="font-size:28px;">${gift.icon}</div>
+                <div style="font-size:11px;font-weight:600;">${gift.name}</div>
+                <div style="font-size:10px;color:var(--accent);">${formatNum(gift.price)} 💎</div>
+                ${gift.legendary?'<div style="font-size:9px;color:gold;">⭐ Легендарный</div>':''}
+                ${owned?`<div style="font-size:10px;color:var(--success);">✓ ${owned}</div>`:''}
+                <button class="btn btn-sm" style="width:100%;margin-top:5px;font-size:10px;" onclick="buyGift('${gift.id}')">Купить</button>
+                ${owned?`<button class="btn btn-sm btn-outline" style="width:100%;margin-top:3px;font-size:10px;" onclick="sellGift('${gift.id}')">Продать ${sellPercent}%</button>`:''}
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+    `;
+  }
+  
+  else if (chat.botType === 'games') {
+    if (S.currentGame) {
+      renderGame(S.currentGame);
+    } else {
+      const allGames = hasPremium ? [...GAMES, ...PREMIUM_GAMES] : GAMES;
+      msgs.innerHTML = `
+        <div style="padding:15px;">
+          <div style="text-align:center;margin-bottom:15px;">
+            <div style="font-size:24px;font-weight:bold;">🎮 Игры</div>
+            <div style="color:var(--subtext);">Очки: 🪙 ${S.stats[S.me.id]?.gameScore||0}</div>
+            ${hasPremium?'<div class="premium-badge">👑 x2 очков!</div>':''}
+          </div>
+          <div class="game-menu">
+            ${allGames.map(g => `
+              <div class="game-card ${g.premium?'premium-card':''}" onclick="${g.premium&&!hasPremium?'alert(\'Нужен Premium!\')':'startGame(\''+g.id+'\')'}">
+                <div class="icon">${g.icon}</div>
+                <div class="name">${g.name}</div>
+                ${g.premium?'<div class="premium-badge">👑</div>':''}
+                <div style="font-size:11px;color:var(--subtext);">Рекорд: ${S.gameScores[S.me.id]?.[g.id]||0}</div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    }
+  }
+}
+
+function clickGem() {
+  const reward = isPremium() ? 10 : 1;
+  S.gems[S.me.id] = (S.gems[S.me.id]||0) + reward;
+  const el = $('#clickGems');
+  if (el) el.textContent = formatNum(S.gems[S.me.id]);
+  save();
+}
+
+function spinRoulette() {
+  const bet = Math.min(parseInt($('#betInput').value) || 100, 5000000);
+  if (bet > (S.gems[S.me.id]||0)) return alert('Недостаточно 💎!');
+  if (bet < 1) return alert('Минимальная ставка: 1 💎');
+  
+  S.gems[S.me.id] -= bet;
+  S.bet = bet;
+  $('#rouletteGems').textContent = formatNum(S.gems[S.me.id]);
+  
+  const mults = [0, 1, 2, 3, 4, 5];
+  const winIdx = Math.floor(Math.random() * 6);
+  const deg = 1800 + (5 - winIdx) * 60 + 30;
+  
+  const wheel = $('#rouletteWheel');
+  wheel.style.transform = `rotate(${deg}deg)`;
+  $('#spinBtn').disabled = true;
+  
+  setTimeout(() => {
+    const win = bet * mults[winIdx];
+    S.gems[S.me.id] += win;
+    $('#rouletteGems').textContent = formatNum(S.gems[S.me.id]);
+    save();
+    
+    if (mults[winIdx] === 0) {
+      alert('😢 Проигрыш!');
+    } else {
+      alert(`🎉 Выигрыш: ${formatNum(win)} 💎 (x${mults[winIdx]})!`);
+    }
+    
+    $('#spinBtn').disabled = false;
+    wheel.style.transition = 'none';
+    wheel.style.transform = 'rotate(0deg)';
+    setTimeout(() => wheel.style.transition = 'transform 5s cubic-bezier(0.17,0.67,0.12,0.99)', 50);
+  }, 5000);
+}
+
+function buyGift(giftId) {
+  let gift = GIFTS.find(g => g.id === giftId) || LEGENDARY_GIFTS.find(g => g.id === giftId);
+  if (!gift && giftId === 'galaxy') {
+    if (!isPremium()) return alert('Нужен Premium!');
+    gift = GALAXY_GIFT;
+  }
+  if (!gift) return;
+  if ((S.gems[S.me.id]||0) < gift.price) return alert('Недостаточно 💎!');
+  
+  S.gems[S.me.id] -= gift.price;
+  S.inventory[S.me.id].push({...gift, boughtAt: Date.now()});
+  checkAchievements(S.me.id);
+  save();
+  renderBotUI(S.chat);
+}
+
+function sellGift(giftId) {
+  const inv = S.inventory[S.me.id] || [];
+  const idx = inv.findIndex(g => g.id === giftId);
+  if (idx === -1) return;
+  
+  const gift = inv[idx];
+  const percent = isPremium() ? 1 : 0.7;
+  S.gems[S.me.id] = (S.gems[S.me.id]||0) + Math.floor(gift.price * percent);
+  inv.splice(idx, 1);
+  save();
+  renderBotUI(S.chat);
+}
+
+function openGiftModal(recipientId) {
+  const recipient = S.users.find(u => u.id === recipientId);
+  if (!recipient) return;
+  
+  openModal('giftModal');
+  $('#giftModalTitle').textContent = `🎁 Подарить: ${recipient.name}`;
+  
+  const inv = S.inventory[S.me.id] || [];
+  if (!inv.length) {
+    $('#giftUserList').innerHTML = '<div style="text-align:center;color:var(--subtext);">Нет подарков. Купите в магазине!</div>';
+    return;
+  }
+  
+  const grouped = {};
+  inv.forEach(g => { if (!grouped[g.id]) grouped[g.id] = {gift:g, count:0}; grouped[g.id].count++; });
+  
+  $('#giftUserList').innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:10px;">
+      ${Object.values(grouped).map(({gift, count}) => `
+        <div class="card ${gift.id==='galaxy'||gift.legendary?'premium-card':''}" style="padding:10px;text-align:center;cursor:pointer;" onclick="sendGift('${recipientId}','${gift.id}')">
+          <div style="font-size:28px;">${gift.icon}</div>
+          <div style="font-size:11px;">${gift.name}</div>
+          <div style="font-size:10px;color:var(--subtext);">x${count}</div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+// ============ ИГРЫ ============
+let gameLoop = null;
+let gameState = {};
+
+function startGame(gameId) {
+  S.currentGame = gameId;
+  gameState = { score: 0, running: true };
+  renderGame(gameId);
+}
+
+function exitGame() {
+  if (gameLoop) cancelAnimationFrame(gameLoop);
+  gameLoop = null;
+  S.currentGame = null;
+  gameState = {};
+  renderChat();
+}
+
+function saveScore(gameId, score) {
+  const finalScore = isPremium() ? score * 2 : score;
+  if (!S.gameScores[S.me.id]) S.gameScores[S.me.id] = {};
+  if (finalScore > (S.gameScores[S.me.id][gameId] || 0)) {
+    S.gameScores[S.me.id][gameId] = finalScore;
+  }
+  S.stats[S.me.id].gameScore = (S.stats[S.me.id].gameScore || 0) + Math.floor(finalScore / 10);
+  checkAchievements(S.me.id);
+  save();
+}
+
+function renderGame(gameId) {
+  const msgs = $('#chatMessages');
+  const hasPremium = isPremium();
+  
+  msgs.innerHTML = `
+    <div style="position:relative;height:100%;">
+      <div style="display:flex;justify-content:space-between;padding:10px;background:var(--card);border-radius:8px;margin-bottom:10px;">
+        <button class="btn btn-sm btn-outline" onclick="exitGame()">← Назад</button>
+        <span style="font-weight:bold;">Очки: <span id="gameScore">0</span> ${hasPremium?'<span class="premium-badge">x2</span>':''}</span>
+      </div>
+      <div class="game-container">
+        <canvas id="gameCanvas" width="400" height="350"></canvas>
+        <div id="gameOver" class="game-over" style="display:none;">
+          <div style="font-size:32px;">🏆</div>
+          <div style="font-size:24px;margin:10px 0;">Игра окончена!</div>
+          <div style="margin-bottom:20px;">Очки: <span id="finalScore">0</span></div>
+          <button class="btn" onclick="startGame('${gameId}')">Заново</button>
+        </div>
+      </div>
+      <div style="text-align:center;margin-top:10px;color:var(--subtext);font-size:12px;" id="gameControls"></div>
+    </div>
+  `;
+  
+  const canvas = $('#gameCanvas');
+  const ctx = canvas.getContext('2d');
+  
+  if (gameId === 'snake') initSnake(canvas, ctx);
+  else if (gameId === 'arkanoid') initArkanoid(canvas, ctx);
+  else if (gameId === 'runner') initRunner(canvas, ctx);
+  else if (gameId === 'match3') initMatch3(canvas, ctx);
+  else if (gameId === 'shooter') initShooter(canvas, ctx);
+  else if (gameId === 'merge') initMerge(canvas, ctx);
+  else if (gameId === 'clicker') initClicker(canvas, ctx);
+  else if (gameId === 'maze') initMaze(canvas, ctx);
+  else if (gameId === 'echo') initEcho(canvas, ctx);
+  else if (gameId === 'skyship') initSkyship(canvas, ctx);
+}
+
+// Игры (сокращённые версии)
+function initSnake(canvas, ctx) {
+  $('#gameControls').textContent = '← ↑ ↓ → управление';
+  let snake = [{x:10,y:10}], food = {x:15,y:15}, dir = {x:1,y:0}, score = 0;
+  const size = 20;
+  
+  const move = () => {
+    if (!gameState.running) return;
+    const head = {x: snake[0].x + dir.x, y: snake[0].y + dir.y};
+    if (head.x < 0 || head.x >= 20 || head.y < 0 || head.y >= 17 || snake.some(s => s.x === head.x && s.y === head.y)) {
+      gameState.running = false; saveScore('snake', score);
+      $('#gameOver').style.display = 'flex'; $('#finalScore').textContent = isPremium() ? score * 2 : score;
+      return;
+    }
+    snake.unshift(head);
+    if (head.x === food.x && head.y === food.y) {
+      score += 10; $('#gameScore').textContent = score;
+      food = {x: Math.floor(Math.random()*20), y: Math.floor(Math.random()*17)};
+    } else snake.pop();
+    
+    ctx.fillStyle = '#111'; ctx.fillRect(0, 0, 400, 350);
+    ctx.fillStyle = '#00ff41'; snake.forEach(s => ctx.fillRect(s.x*size, s.y*size, size-2, size-2));
+    ctx.fillStyle = '#ff0040'; ctx.fillRect(food.x*size, food.y*size, size-2, size-2);
+    setTimeout(() => requestAnimationFrame(move), 100);
+  };
+  
+  document.onkeydown = e => {
+    if (e.key === 'ArrowUp' && dir.y !== 1) dir = {x:0,y:-1};
+    if (e.key === 'ArrowDown' && dir.y !== -1) dir = {x:0,y:1};
+    if (e.key === 'ArrowLeft' && dir.x !== 1) dir = {x:-1,y:0};
+    if (e.key === 'ArrowRight' && dir.x !== -1) dir = {x:1,y:0};
+  };
+  move();
+}
+
+function initArkanoid(canvas, ctx) {
+  $('#gameControls').textContent = '← → движение, Пробел - старт';
+  let paddle = {x:175, w:80}, ball = {x:200, y:300, dx:3, dy:-3}, bricks = [], score = 0, started = false;
+  for (let r = 0; r < 4; r++) for (let c = 0; c < 8; c++) bricks.push({x:c*49+5, y:r*25+30, alive:true});
+  
+  const draw = () => {
+    if (!gameState.running) return;
+    ctx.fillStyle = '#111'; ctx.fillRect(0, 0, 400, 350);
+    ctx.fillStyle = '#0088cc'; ctx.fillRect(paddle.x, 330, paddle.w, 12);
+    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(ball.x, ball.y, 8, 0, Math.PI*2); ctx.fill();
+    bricks.forEach(b => { if (b.alive) { ctx.fillStyle = '#ff6b6b'; ctx.fillRect(b.x, b.y, 45, 20); } });
+    
+    if (started) {
+      ball.x += ball.dx; ball.y += ball.dy;
+      if (ball.x <= 8 || ball.x >= 392) ball.dx *= -1;
+      if (ball.y <= 8) ball.dy *= -1;
+      if (ball.y >= 322 && ball.x >= paddle.x && ball.x <= paddle.x + paddle.w) ball.dy *= -1;
+      bricks.forEach(b => {
+        if (b.alive && ball.x >= b.x && ball.x <= b.x+45 && ball.y >= b.y && ball.y <= b.y+20) {
+          b.alive = false; ball.dy *= -1; score += 10; $('#gameScore').textContent = score;
+        }
+      });
+      if (ball.y > 360 || !bricks.some(b => b.alive)) {
+        gameState.running = false; saveScore('arkanoid', score);
+        $('#gameOver').style.display = 'flex'; $('#finalScore').textContent = isPremium() ? score * 2 : score;
+        return;
+      }
+    }
+    requestAnimationFrame(draw);
+  };
+  
+  document.onkeydown = e => {
+    if (e.key === 'ArrowLeft') paddle.x = Math.max(0, paddle.x - 20);
+    if (e.key === 'ArrowRight') paddle.x = Math.min(320, paddle.x + 20);
+    if (e.key === ' ') started = true;
+  };
+  draw();
+}
+
+function initRunner(canvas, ctx) {
+  $('#gameControls').textContent = '↑ прыжок';
+  let player = {x:50, y:300, vy:0}, obstacles = [], score = 0, frame = 0;
+  
+  const draw = () => {
+    if (!gameState.running) return;
+    ctx.fillStyle = '#87CEEB'; ctx.fillRect(0, 0, 400, 350);
+    ctx.fillStyle = '#228B22'; ctx.fillRect(0, 320, 400, 30);
+    
+    player.vy += 0.8; player.y += player.vy;
+    if (player.y > 300) { player.y = 300; player.vy = 0; }
+    ctx.fillStyle = '#ff6b6b'; ctx.fillRect(player.x, player.y, 30, 40);
+    
+    if (frame % 60 === 0) obstacles.push({x: 420, h: 30});
+    obstacles.forEach((o, i) => {
+      o.x -= 5; ctx.fillStyle = '#333'; ctx.fillRect(o.x, 320-o.h, 20, o.h);
+      if (o.x < 80 && o.x > 20 && player.y > 320 - o.h - 40) {
+        gameState.running = false; saveScore('runner', score);
+        $('#gameOver').style.display = 'flex'; $('#finalScore').textContent = isPremium() ? score * 2 : score;
+        return;
+      }
+      if (o.x < -20) { obstacles.splice(i, 1); score += 10; $('#gameScore').textContent = score; }
+    });
+    frame++; requestAnimationFrame(draw);
+  };
+  
+  document.onkeydown = e => { if (e.key === 'ArrowUp' && player.y >= 300) player.vy = -15; };
+  draw();
+}
+
+function initMatch3(canvas, ctx) {
+  $('#gameControls').textContent = 'Кликай для обмена';
+  const colors = ['#e74c3c','#3498db','#2ecc71','#f39c12','#9b59b6'];
+  const grid = []; let selected = null, score = 0, timeLeft = 60;
+  for (let r = 0; r < 8; r++) { grid[r] = []; for (let c = 0; c < 8; c++) grid[r][c] = Math.floor(Math.random()*5); }
+  
+  const draw = () => {
+    ctx.fillStyle = '#222'; ctx.fillRect(0, 0, 400, 350);
+    for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) {
+      ctx.fillStyle = colors[grid[r][c]]; ctx.beginPath(); ctx.arc(c*40+35, r*40+35, 15, 0, Math.PI*2); ctx.fill();
+    }
+    ctx.fillStyle = '#fff'; ctx.font = '16px Arial'; ctx.fillText(`Время: ${timeLeft}с`, 340, 30);
+  };
+  
+  canvas.onclick = e => {
+    const rect = canvas.getBoundingClientRect();
+    const c = Math.floor((e.clientX - rect.left - 20) / 40);
+    const r = Math.floor((e.clientY - rect.top - 20) / 40);
+    if (r < 0 || r >= 8 || c < 0 || c >= 8) return;
+    if (!selected) selected = {r,c};
+    else {
+      if (Math.abs(selected.r-r) + Math.abs(selected.c-c) === 1) {
+        [grid[r][c], grid[selected.r][selected.c]] = [grid[selected.r][selected.c], grid[r][c]];
+        score += 30; $('#gameScore').textContent = score;
+      }
+      selected = null;
+    }
+    draw();
+  };
+  
+  const timer = setInterval(() => {
+    if (!gameState.running) { clearInterval(timer); return; }
+    timeLeft--;
+    if (timeLeft <= 0) {
+      gameState.running = false; saveScore('match3', score); clearInterval(timer);
+      $('#gameOver').style.display = 'flex'; $('#finalScore').textContent = isPremium() ? score * 2 : score;
+    }
+    draw();
+  }, 1000);
+  draw();
+}
+
+function initShooter(canvas, ctx) {
+  $('#gameControls').textContent = '← → движение, Пробел - стрельба';
+  let player = {x:185}, bullets = [], enemies = [], score = 0, frame = 0;
+  
+  const draw = () => {
+    if (!gameState.running) return;
+    ctx.fillStyle = '#000'; ctx.fillRect(0, 0, 400, 350);
+    ctx.fillStyle = '#0088cc'; ctx.beginPath();
+    ctx.moveTo(player.x, 310); ctx.lineTo(player.x-15, 340); ctx.lineTo(player.x+15, 340); ctx.fill();
+    
+    bullets.forEach((b, i) => { b.y -= 8; ctx.fillStyle = '#ff0'; ctx.fillRect(b.x-2, b.y, 4, 10); if (b.y < 0) bullets.splice(i, 1); });
+    if (frame % 40 === 0) enemies.push({x: Math.random()*360+20, y:-20});
+    
+    enemies.forEach((e, i) => {
+      e.y += 3; ctx.fillStyle = '#f00'; ctx.fillRect(e.x-15, e.y, 30, 20);
+      bullets.forEach((b, bi) => {
+        if (Math.abs(b.x - e.x) < 20 && Math.abs(b.y - e.y) < 20) {
+          enemies.splice(i, 1); bullets.splice(bi, 1); score += 20; $('#gameScore').textContent = score;
+        }
+      });
+      if (e.y > 350) { gameState.running = false; saveScore('shooter', score);
+        $('#gameOver').style.display = 'flex'; $('#finalScore').textContent = isPremium() ? score * 2 : score; return; }
+    });
+    frame++; requestAnimationFrame(draw);
+  };
+  
+  document.onkeydown = e => {
+    if (e.key === 'ArrowLeft') player.x = Math.max(20, player.x - 15);
+    if (e.key === 'ArrowRight') player.x = Math.min(380, player.x + 15);
+    if (e.key === ' ') bullets.push({x: player.x, y: 310});
+  };
+  draw();
+}
+
+function initMerge(canvas, ctx) {
+  $('#gameControls').textContent = '← ↑ ↓ → для сдвига';
+  const grid = [[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]]; let score = 0;
+  const addTile = () => {
+    const empty = [];
+    for (let r = 0; r < 4; r++) for (let c = 0; c < 4; c++) if (!grid[r][c]) empty.push({r,c});
+    if (empty.length) { const t = empty[Math.floor(Math.random()*empty.length)]; grid[t.r][t.c] = 2; }
+  };
+  const colors = {0:'#ccc',2:'#eee',4:'#ede0c8',8:'#f2b179',16:'#f59563',32:'#f67c5f',64:'#f65e3b',128:'#edcf72',256:'#edcc61',512:'#edc850',1024:'#edc53f',2048:'#edc22e'};
+  const draw = () => {
+    ctx.fillStyle = '#bbada0'; ctx.fillRect(50, 25, 300, 300);
+    for (let r = 0; r < 4; r++) for (let c = 0; c < 4; c++) {
+      const v = grid[r][c]; ctx.fillStyle = colors[v] || '#3c3a32'; ctx.fillRect(55 + c*73, 30 + r*73, 68, 68);
+      if (v) { ctx.fillStyle = v > 4 ? '#fff' : '#776e65'; ctx.font = 'bold 24px Arial'; ctx.textAlign = 'center'; ctx.fillText(v, 89 + c*73, 72 + r*73); }
+    }
+  };
+  document.onkeydown = e => {
+    if (!gameState.running) return;
+    let moved = false;
+    if (e.key.includes('Arrow')) { moved = true; addTile(); score += 10; $('#gameScore').textContent = score; }
+    draw();
+  };
+  addTile(); addTile(); draw();
+}
+
+function initClicker(canvas, ctx) {
+  $('#gameControls').textContent = 'Кликай по кругам!';
+  let circles = [], score = 0, timeLeft = 30;
+  const draw = () => {
+    if (!gameState.running) return;
+    ctx.fillStyle = '#1a1a2e'; ctx.fillRect(0, 0, 400, 350);
+    circles.forEach((c, i) => {
+      c.life--; ctx.fillStyle = `rgba(255, 100, 100, ${c.life/60})`;
+      ctx.beginPath(); ctx.arc(c.x, c.y, c.r, 0, Math.PI*2); ctx.fill();
+      if (c.life <= 0) circles.splice(i, 1);
+    });
+    ctx.fillStyle = '#fff'; ctx.font = '16px Arial'; ctx.fillText(`Время: ${timeLeft}с`, 10, 25);
+    if (Math.random() < 0.03 && circles.length < 5) circles.push({x: Math.random()*340+30, y: Math.random()*290+30, r:25, life:60});
+    requestAnimationFrame(draw);
+  };
+  canvas.onclick = e => {
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left, y = e.clientY - rect.top;
+    circles.forEach((c, i) => { if (Math.sqrt((x-c.x)**2 + (y-c.y)**2) < c.r) { circles.splice(i, 1); score += 10; $('#gameScore').textContent = score; } });
+  };
+  const timer = setInterval(() => {
+    if (!gameState.running) { clearInterval(timer); return; }
+    timeLeft--;
+    if (timeLeft <= 0) { gameState.running = false; saveScore('clicker', score); clearInterval(timer);
+      $('#gameOver').style.display = 'flex'; $('#finalScore').textContent = isPremium() ? score * 2 : score; }
+  }, 1000);
+  draw();
+}
+
+function initMaze(canvas, ctx) {
+  $('#gameControls').textContent = '← ↑ ↓ → движение';
+  const size = 20, cols = 20, rows = 17, maze = [];
+  let player = {x:1, y:1}, exit = {x:cols-2, y:rows-2}, score = 1000;
+  for (let r = 0; r < rows; r++) { maze[r] = []; for (let c = 0; c < cols; c++) maze[r][c] = Math.random() > 0.7 ? 1 : 0; }
+  maze[1][1] = 0; maze[exit.y][exit.x] = 0;
+  const draw = () => {
+    ctx.fillStyle = '#111'; ctx.fillRect(0, 0, 400, 350);
+    for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
+      ctx.fillStyle = maze[r][c] ? '#444' : '#222'; ctx.fillRect(c*size, r*size, size, size);
+    }
+    ctx.fillStyle = '#0f0'; ctx.fillRect(exit.x*size+2, exit.y*size+2, size-4, size-4);
+    ctx.fillStyle = '#0088cc'; ctx.beginPath(); ctx.arc(player.x*size+size/2, player.y*size+size/2, size/2-2, 0, Math.PI*2); ctx.fill();
+  };
+  document.onkeydown = e => {
+    if (!gameState.running) return;
+    let nx = player.x, ny = player.y;
+    if (e.key === 'ArrowUp') ny--; if (e.key === 'ArrowDown') ny++;
+    if (e.key === 'ArrowLeft') nx--; if (e.key === 'ArrowRight') nx++;
+    if (nx >= 0 && nx < cols && ny >= 0 && ny < rows && !maze[ny][nx]) {
+      player.x = nx; player.y = ny; score = Math.max(0, score - 5); $('#gameScore').textContent = score;
+      if (player.x === exit.x && player.y === exit.y) { gameState.running = false; saveScore('maze', score);
+        $('#gameOver').style.display = 'flex'; $('#finalScore').textContent = isPremium() ? score * 2 : score; }
+    }
+    draw();
+  };
+  draw();
+}
+
+function initEcho(canvas, ctx) {
+  $('#gameControls').textContent = '← ↑ ↓ → движение, E - взаимодействие';
+  let player = {x:200, y:175}, flashlight = 100, exit = {x:380, y:330}, hasKey = false, score = 0;
+  const items = [{x:80,y:80,type:'key'},{x:250,y:150,type:'battery'}];
+  const draw = () => {
+    if (!gameState.running) return;
+    ctx.fillStyle = '#0a0a0a'; ctx.fillRect(0, 0, 400, 350);
+    const gradient = ctx.createRadialGradient(player.x, player.y, 0, player.x, player.y, flashlight);
+    gradient.addColorStop(0, 'rgba(255,255,200,0.3)'); gradient.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = gradient; ctx.fillRect(0, 0, 400, 350);
+    items.forEach(i => { if (!i.collected) { ctx.font = '20px Arial'; ctx.fillText(i.type === 'key' ? '🔑' : '🔋', i.x, i.y); } });
+    ctx.fillStyle = hasKey ? '#0f0' : '#600'; ctx.fillRect(exit.x, exit.y, 20, 20);
+    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(player.x, player.y, 10, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#fff'; ctx.font = '14px Arial'; ctx.fillText(`🔦 ${Math.floor(flashlight)}%`, 10, 20);
+    flashlight = Math.max(30, flashlight - 0.02);
+    requestAnimationFrame(draw);
+  };
+  document.onkeydown = e => {
+    if (!gameState.running) return;
+    const speed = 5;
+    if (e.key === 'ArrowUp') player.y -= speed; if (e.key === 'ArrowDown') player.y += speed;
+    if (e.key === 'ArrowLeft') player.x -= speed; if (e.key === 'ArrowRight') player.x += speed;
+    player.x = Math.max(10, Math.min(390, player.x)); player.y = Math.max(10, Math.min(340, player.y));
+    if (e.key.toLowerCase() === 'e') {
+      items.forEach(i => {
+        if (!i.collected && Math.abs(player.x - i.x) < 20 && Math.abs(player.y - i.y) < 20) {
+          i.collected = true; score += 100;
+          if (i.type === 'battery') flashlight = Math.min(100, flashlight + 30);
+          if (i.type === 'key') hasKey = true;
+          $('#gameScore').textContent = score;
+        }
+      });
+      if (hasKey && Math.abs(player.x - exit.x) < 30 && Math.abs(player.y - exit.y) < 30) {
+        score += 500; gameState.running = false; saveScore('echo', score);
+        $('#gameOver').style.display = 'flex'; $('#finalScore').textContent = isPremium() ? score * 2 : score;
+      }
+    }
+  };
+  draw();
+}
+
+function initSkyship(canvas, ctx) {
+  $('#gameControls').textContent = '← ↑ ↓ → полёт, Пробел - стрельба';
+  let ship = {x:200, y:300}, bullets = [], pirates = [], score = 0;
+  const draw = () => {
+    if (!gameState.running) return;
+    const sky = ctx.createLinearGradient(0, 0, 0, 350);
+    sky.addColorStop(0, '#1a1a4e'); sky.addColorStop(1, '#4a4a8e');
+    ctx.fillStyle = sky; ctx.fillRect(0, 0, 400, 350);
+    if (Math.random() < 0.01) pirates.push({x: Math.random()*400, y: -20, hp: 1});
+    pirates.forEach((p, i) => {
+      p.y += 2; ctx.fillStyle = '#8b0000'; ctx.fillRect(p.x-15, p.y, 30, 20);
+      if (p.y > 360) pirates.splice(i, 1);
+    });
+    bullets.forEach((b, i) => {
+      b.y -= 8; ctx.fillStyle = '#ff0'; ctx.beginPath(); ctx.arc(b.x, b.y, 4, 0, Math.PI*2); ctx.fill();
+      if (b.y < 0) bullets.splice(i, 1);
+      pirates.forEach((p, pi) => {
+        if (Math.abs(b.x - p.x) < 20 && Math.abs(b.y - p.y) < 15) {
+          pirates.splice(pi, 1); bullets.splice(i, 1); score += 50; $('#gameScore').textContent = score;
+        }
+      });
+    });
+    ctx.fillStyle = '#8b4513'; ctx.fillRect(ship.x-20, ship.y-10, 40, 20);
+    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.moveTo(ship.x, ship.y-30); ctx.lineTo(ship.x-15, ship.y-10); ctx.lineTo(ship.x+15, ship.y-10); ctx.fill();
+    pirates.forEach(p => {
+      if (Math.abs(ship.x - p.x) < 30 && Math.abs(ship.y - p.y) < 25) {
+        gameState.running = false; saveScore('skyship', score);
+        $('#gameOver').style.display = 'flex'; $('#finalScore').textContent = isPremium() ? score * 2 : score;
+      }
+    });
+    requestAnimationFrame(draw);
+  };
+  document.onkeydown = e => {
+    if (!gameState.running) return;
+    if (e.key === 'ArrowUp') ship.y = Math.max(30, ship.y - 8);
+    if (e.key === 'ArrowDown') ship.y = Math.min(330, ship.y + 8);
+    if (e.key === 'ArrowLeft') ship.x = Math.max(25, ship.x - 8);
+    if (e.key === 'ArrowRight') ship.x = Math.min(375, ship.x + 8);
+    if (e.key === ' ') bullets.push({x: ship.x, y: ship.y - 20});
+  };
+  draw();
+}
+
+// ============ ВСПОМОГАТЕЛЬНЫЕ ============
+function openModal(id) { const m = $('#'+id); if(m) m.classList.add('active'); }
+function closeModal(id) { const m = $('#'+id); if(m) m.classList.remove('active'); }
+
+// Инициализация
+setInterval(save, 30000);
+render();
+</script>
+</body>
+</html>

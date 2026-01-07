@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>PolyCloth Physics Sim</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #050505; color: white; font-family: 'Inter', sans-serif; touch-action: none; }
+        canvas { display: block; width: 100vw; height: 100vh; outline: none; }
+        .glass-panel {
+            background: rgba(20, 20, 20, 0.6);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+        }
+        /* Custom Range Slider */
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 16px;
+            width: 16px;
+            border-radius: 50%;
+            background: #3b82f6;
+            cursor: pointer;
+            margin-top: -6px;
+            box-shadow: 0 0 10px rgba(59, 130, 246, 0.8);
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            cursor: pointer;
+            background: rgba(255,255,255,0.2);
+            border-radius: 2px;
+        }
+    </style>
+    <!-- Import Map for Three.js -->
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+</head>
+<body>
+
+    <!-- UI Overlay -->
+    <div class="absolute top-0 left-0 w-full h-full pointer-events-none flex flex-col justify-between p-4 z-10">
+        
+        <!-- Header -->
+        <div class="flex justify-between items-start pointer-events-auto">
+            <div class="glass-panel p-3 rounded-xl">
+                <h1 class="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-500">PolyCloth</h1>
+                <p class="text-xs text-gray-400">Physics Simulation</p>
+            </div>
+            <button id="fullscreenBtn" class="glass-panel p-3 rounded-xl hover:bg-white/10 transition">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                </svg>
+            </button>
+        </div>
+
+        <!-- Controls -->
+        <div class="pointer-events-auto w-full max-w-md mx-auto glass-panel rounded-2xl p-5 space-y-4 mb-4">
+            
+            <!-- Resolution Control -->
+            <div>
+                <div class="flex justify-between mb-1">
+                    <label class="text-sm font-medium text-blue-300">Polygon Count (Resolution)</label>
+                    <span id="resValue" class="text-sm font-bold">32 faces</span>
+                </div>
+                <input type="range" id="resolutionSlider" min="4" max="100" value="32" step="2">
+                <div class="flex justify-between text-[10px] text-gray-500 mt-1">
+                    <span>Low Poly (Fast)</span>
+                    <span>High Poly (Smooth)</span>
+                </div>
+            </div>
+
+            <!-- Object Control -->
+            <div class="grid grid-cols-2 gap-2">
+                <div>
+                    <label class="text-xs text-gray-400 block mb-1">Object Shape</label>
+                    <select id="shapeSelect" class="w-full bg-black/30 border border-white/10 rounded px-2 py-1.5 text-sm focus:outline-none focus:border-blue-500">
+                        <option value="sphere">Sphere</option>
+                        <option value="box">Cube</option>
+                        <option value="cylinder">Cylinder</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="text-xs text-gray-400 block mb-1">Display Mode</label>
+                    <button id="wireframeBtn" class="w-full bg-black/30 border border-white/10 rounded px-2 py-1.5 text-sm hover:bg-white/5 transition text-left flex justify-between items-center">
+                        <span>Wireframe</span>
+                        <div id="wireframeIndicator" class="w-2 h-2 rounded-full bg-gray-600"></div>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="grid grid-cols-3 gap-2 pt-2">
+                <button id="slowMoBtn" class="col-span-1 bg-gray-700/50 border border-white/10 hover:bg-gray-600/50 text-white font-medium py-3 rounded-xl transition flex flex-col items-center justify-center text-[10px] gap-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    SLOW MO
+                </button>
+                <button id="dropBtn" class="col-span-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white font-bold py-3 rounded-xl shadow-lg shadow-blue-900/50 transition transform active:scale-95 flex items-center justify-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clip-rule="evenodd" />
+                    </svg>
+                    DROP SHEET
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Canvas Container -->
+    <div id="canvas-container" class="w-full h-full"></div>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+        // --- Configuration ---
+        const CONFIG = {
+            clothSize: 4,
+            gravity: -9.8,
+            physicsSteps: 4, // Iterations per frame for stability
+            drag: 0.99, // Air resistance
+            bounce: 0.1, // Friction against object
+            offsetY: 4, // Drop height
+        };
+
+        // --- State ---
+        let scene, camera, renderer, controls;
+        let clothMesh, objectMesh;
+        let particles = [];
+        let constraints = [];
+        let physicsActive = true;
+        let timeScale = 1.0;
+        
+        // Current Object Settings
+        let currentShape = 'sphere';
+        let objectSize = 1.5;
+
+        // --- Physics Engine (Verlet) ---
+
+        class Particle {
+            constructor(x, y, z, pinned = false) {
+                this.pos = new THREE.Vector3(x, y, z);
+                this.oldPos = new THREE.Vector3(x, y, z);
+                this.originalPos = new THREE.Vector3(x, y, z);
+                this.mass = 1;
+                this.pinned = pinned;
+                this.acceleration = new THREE.Vector3(0, 0, 0);
+            }
+
+            update(dt) {
+                if (this.pinned) return;
+
+                const vel = this.pos.clone().sub(this.oldPos);
+                vel.multiplyScalar(CONFIG.drag);
+                
+                // Add gravity
+                this.acceleration.y += CONFIG.gravity * 0.05; // Scaling gravity for visual feel
+
+                this.oldPos.copy(this.pos);
+                
+                // Verlet integration: x(t+dt) = x(t) + (x(t) - x(t-dt)) + a(t) * dt^2
+                const deltaSq = dt * dt;
+                this.pos.add(vel).add(this.acceleration.multiplyScalar(deltaSq));
+                
+                this.acceleration.set(0, 0, 0);
+            }
+        }
+
+        class Constraint {
+            constructor(p1, p2, distance) {
+                this.p1 = p1;
+                this.p2 = p2;
+                this.distance = distance;
+            }
+
+            solve() {
+                const diff = new THREE.Vector3().subVectors(this.p1.pos, this.p2.pos);
+                const currentDist = diff.length();
+                if (currentDist === 0) return; // Prevent division by zero
+
+                const difference = (currentDist - this.distance) / currentDist;
+                const correction = diff.multiplyScalar(0.5 * difference); // 0.5 because shared between 2 particles
+
+                if (!this.p1.pinned) this.p1.pos.sub(correction);
+                if (!this.p2.pinned) this.p2.pos.add(correction);
+            }
+        }
+
+        // --- Initialization ---
+
+        function init() {
+            // Scene Setup
+            const container = document.getElementById('canvas-container');
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x111111);
+            scene.fog = new THREE.FogExp2(0x111111, 0.02);
+
+            // Camera
+            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 100);
+            camera.position.set(0, 2, 7);
+
+            // Renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            container.appendChild(renderer.domElement);
+
+            // Controls
+            controls = new OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.maxDistance = 20;
+
+            // Lighting
+            const ambientLight = new THREE.AmbientLight(0x404040, 2); // Soft white light
+            scene.add(ambientLight);
+
+            const dirLight = new THREE.DirectionalLight(0xffffff, 2);
+            dirLight.position.set(5, 10, 5);
+            dirLight.castShadow = true;
+            dirLight.shadow.mapSize.width = 2048;
+            dirLight.shadow.mapSize.height = 2048;
+            scene.add(dirLight);
+
+            // Purple/Blue Rim Lights for "Cyber" look
+            const pointLight1 = new THREE.PointLight(0x3b82f6, 10, 20);
+            pointLight1.position.set(-5, 2, -5);
+            scene.add(pointLight1);
+            
+            const pointLight2 = new THREE.PointLight(0xa855f7, 10, 20);
+            pointLight2.position.set(5, 2, 5);
+            scene.add(pointLight2);
+
+            // Floor
+            const floorGeo = new THREE.PlaneGeometry(100, 100);
+            const floorMat = new THREE.MeshStandardMaterial({ 
+                color: 0x080808, 
+                roughness: 0.4,
+                metalness: 0.8
+            });
+            const floor = new THREE.Mesh(floorGeo, floorMat);
+            floor.rotation.x = -Math.PI / 2;
+            floor.position.y = -2;
+            floor.receiveShadow = true;
+            scene.add(floor);
+
+            // Grid Helper
+            const gridHelper = new THREE.GridHelper(50, 50, 0x333333, 0x111111);
+            gridHelper.position.y = -1.99;
+            scene.add(gridHelper);
+
+            // Initial Objects
+            createColliderObject();
+            createCloth();
+
+            // Event Listeners
+            window.addEventListener('resize', onWindowResize);
+            setupUI();
+
+            // Start Loop
+            animate();
+        }
+
+        function createColliderObject() {
+            if (objectMesh) scene.remove(objectMesh);
+
+            let geometry;
+            const segments = 32;
+
+            if (currentShape === 'sphere') {
+                geometry = new THREE.SphereGeometry(objectSize, segments, segments);
+            } else if (currentShape === 'box') {
+                geometry = new THREE.BoxGeometry(objectSize * 1.5, objectSize * 1.5, objectSize * 1.5);
+            } else if (currentShape === 'cylinder') {
+                geometry = new THREE.CylinderGeometry(objectSize, objectSize, objectSize * 2, segments);
+            }
+
+            const material = new THREE.MeshStandardMaterial({
+                color: 0x444444,
+                roughness: 0.1,
+                metalness: 0.9,
+                emissive: 0x111111
+            });
+
+            objectMesh = new THREE.Mesh(geometry, material);
+            objectMesh.castShadow = true;
+            objectMesh.receiveShadow = true;
+            objectMesh.position.set(0, -0.5, 0); // Center scene
+            scene.add(objectMesh);
+        }
+
+        function createCloth() {
+            if (clothMesh) {
+                scene.remove(clothMesh);
+                clothMesh.geometry.dispose();
+            }
+
+            // Get resolution from slider
+            const slider = document.getElementById('resolutionSlider');
+            const segs = parseInt(slider.value);
+            
+            const w = CONFIG.clothSize;
+            const h = CONFIG.clothSize;
+            
+            // Create Geometry
+            const geometry = new THREE.PlaneGeometry(w, h, segs, segs);
+            geometry.rotateX(-Math.PI / 2); // Lay flat initially
+            
+            // Create Material - Cyberpunk Silk Style
+            const material = new THREE.MeshStandardMaterial({
+                color: 0x2563eb, // Vibrant Blue
+                emissive: 0x1e3a8a, // Deep Blue Glow
+                emissiveIntensity: 0.4,
+                side: THREE.DoubleSide,
+                flatShading: segs < 24, // Threshold for low-poly look
+                wireframe: document.getElementById('wireframeBtn').dataset.active === 'true',
+                roughness: 0.4,
+                metalness: 0.6,
+            });
+
+            clothMesh = new THREE.Mesh(geometry, material);
+            clothMesh.castShadow = true;
+            clothMesh.receiveShadow = true;
+            clothMesh.position.y = CONFIG.offsetY;
+            scene.add(clothMesh);
+
+            // Initialize Physics Particles
+            particles = [];
+            constraints = [];
+            
+            const positions = geometry.attributes.position.array;
+            const widthVerts = segs + 1;
+            const heightVerts = segs + 1;
+
+            // 1. Create Particles
+            for (let i = 0; i < positions.length; i += 3) {
+                const x = positions[i] + clothMesh.position.x;
+                const y = positions[i + 1] + clothMesh.position.y;
+                const z = positions[i + 2] + clothMesh.position.z;
+                
+                // Pin logic (optional, currently free fall)
+                const p = new Particle(x, y, z, false); 
+                particles.push(p);
+            }
+
+            // 2. Create Constraints (Sticks)
+            // Helper to get index
+            const idx = (u, v) => v * widthVerts + u;
+
+            for (let v = 0; v < heightVerts; v++) {
+                for (let u = 0; u < widthVerts; u++) {
+                    const i = idx(u, v);
+                    
+                    // Structural (Horizontal)
+                    if (u < widthVerts - 1) {
+                        const right = idx(u + 1, v);
+                        const dist = particles[i].pos.distanceTo(particles[right].pos);
+                        constraints.push(new Constraint(particles[i], particles[right], dist));
+                    }
+                    
+                    // Structural (Vertical)
+                    if (v < heightVerts - 1) {
+                        const down = idx(u, v + 1);
+                        const dist = particles[i].pos.distanceTo(particles[down].pos);
+                        constraints.push(new Constraint(particles[i], particles[down], dist));
+                    }
+
+                    // Shearing (Diagonal) - Adds stiffness to cloth so it doesn't collapse like a net
+                    if (u < widthVerts - 1 && v < heightVerts - 1) {
+                        const diag = idx(u + 1, v + 1);
+                         const dist = particles[i].pos.distanceTo(particles[diag].pos);
+                         constraints.push(new Constraint(particles[i], particles[diag], dist));
+                    }
+                }
+            }
+        }
+
+        function resolveCollisions() {
+            // Collision with the Central Object
+            const center = objectMesh.position;
+            
+            for (let p of particles) {
+                // Ground Collision
+                if (p.pos.y < -2) {
+                    p.pos.y = -2;
+                    // Friction
+                    const vel = p.pos.clone().sub(p.oldPos);
+                    p.oldPos.x = p.pos.x - vel.x * 0.5;
+                    p.oldPos.z = p.pos.z - vel.z * 0.5;
+                }
+
+                // Object Collision
+                if (currentShape === 'sphere') {
+                    // Sphere Collision (Radius check)
+                    const dist = p.pos.distanceTo(center);
+                    const radius = objectSize + 0.05; // small buffer
+                    if (dist < radius) {
+                        const dir = new THREE.Vector3().subVectors(p.pos, center).normalize();
+                        p.pos.copy(center).add(dir.multiplyScalar(radius));
+                    }
+                } 
+                else if (currentShape === 'box') {
+                    // Simple AABB approximation or localized SDF logic
+                    // Using AABB for simplicity but mapped to sphere center logic roughly
+                    // Actually, let's do precise Box check
+                    const halfSize = (objectSize * 1.5) / 2 + 0.05;
+                    // World space AABB
+                    const min = new THREE.Vector3(center.x - halfSize, center.y - halfSize, center.z - halfSize);
+                    const max = new THREE.Vector3(center.x + halfSize, center.y + halfSize, center.z + halfSize);
+
+                    if (p.pos.x > min.x && p.pos.x < max.x &&
+                        p.pos.y > min.y && p.pos.y < max.y &&
+                        p.pos.z > min.z && p.pos.z < max.z) {
+                        
+                        // Push out to nearest face
+                        const dx1 = Math.abs(p.pos.x - min.x);
+                        const dx2 = Math.abs(p.pos.x - max.x);
+                        const dy1 = Math.abs(p.pos.y - min.y);
+                        const dy2 = Math.abs(p.pos.y - max.y);
+                        const dz1 = Math.abs(p.pos.z - min.z);
+                        const dz2 = Math.abs(p.pos.z - max.z);
+                        
+                        const minD = Math.min(dx1, dx2, dy1, dy2, dz1, dz2);
+
+                        if (minD === dx1) p.pos.x = min.x;
+                        else if (minD === dx2) p.pos.x = max.x;
+                        else if (minD === dy1) p.pos.y = min.y;
+                        else if (minD === dy2) p.pos.y = max.y;
+                        else if (minD === dz1) p.pos.z = min.z;
+                        else if (minD === dz2) p.pos.z = max.z;
+                    }
+                }
+                else if (currentShape === 'cylinder') {
+                     // Check radial distance on XZ plane
+                     const radialDist = Math.sqrt(Math.pow(p.pos.x - center.x, 2) + Math.pow(p.pos.z - center.z, 2));
+                     const halfHeight = objectSize * 2 / 2;
+                     
+                     if (p.pos.y > center.y - halfHeight && p.pos.y < center.y + halfHeight) {
+                         if (radialDist < objectSize + 0.05) {
+                             const angle = Math.atan2(p.pos.z - center.z, p.pos.x - center.x);
+                             p.pos.x = center.x + Math.cos(angle) * (objectSize + 0.05);
+                             p.pos.z = center.z + Math.sin(angle) * (objectSize + 0.05);
+                         }
+                     }
+                     // Top Cap
+                     else if (radialDist < objectSize && Math.abs(p.pos.y - (center.y + halfHeight)) < 0.1) {
+                         p.pos.y = center.y + halfHeight + 0.01;
+                     }
+                }
+            }
+        }
+
+        function updatePhysics() {
+            if (!physicsActive) return;
+
+            // Fixed time step scaled by Slow Motion
+            const dt = (16 / 1000) * timeScale; 
+
+            // 1. Update Particles
+            for (let p of particles) {
+                p.update(dt);
+            }
+
+            // 2. Resolve Constraints & Collisions Multiple times for stiffness
+            for (let i = 0; i < CONFIG.physicsSteps; i++) {
+                for (let c of constraints) {
+                    c.solve();
+                }
+                resolveCollisions();
+            }
+
+            // 3. Update Visual Mesh
+            const positions = clothMesh.geometry.attributes.position.array;
+            for (let i = 0; i < particles.length; i++) {
+                // Convert World Space back to Local Space (simplified since mesh is at 0,0,0 effectively after first frame usually, 
+                // but actually we modify vertices in world space relative to the object matrix)
+                
+                // To keep it simple: We update the mesh geometry vertices directly. 
+                // Since mesh.position was set initially, we need to handle that.
+                // Best approach: Keep mesh at 0,0,0 world and just move vertices.
+            }
+            
+            // To make things simple, we'll reset mesh position to 0,0,0 after spawn and manage all vertex positions in world space.
+            if (clothMesh.position.y !== 0) {
+                 clothMesh.position.set(0,0,0);
+                 clothMesh.updateMatrixWorld();
+            }
+
+            for (let i = 0; i < particles.length; i++) {
+                positions[i * 3] = particles[i].pos.x;
+                positions[i * 3 + 1] = particles[i].pos.y;
+                positions[i * 3 + 2] = particles[i].pos.z;
+            }
+            
+            clothMesh.geometry.attributes.position.needsUpdate = true;
+            clothMesh.geometry.computeVertexNormals();
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            updatePhysics();
+            renderer.render(scene, camera);
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        // --- UI Logic ---
+        function setupUI() {
+            // Slow Motion Toggle
+            const slowMoBtn = document.getElementById('slowMoBtn');
+            slowMoBtn.addEventListener('click', () => {
+                if (timeScale === 1.0) {
+                    timeScale = 0.2;
+                    slowMoBtn.classList.add('bg-blue-600', 'border-blue-400');
+                    slowMoBtn.classList.remove('bg-gray-700/50', 'border-white/10');
+                } else {
+                    timeScale = 1.0;
+                    slowMoBtn.classList.remove('bg-blue-600', 'border-blue-400');
+                    slowMoBtn.classList.add('bg-gray-700/50', 'border-white/10');
+                }
+            });
+
+            // Drop Button
+            document.getElementById('dropBtn').addEventListener('click', () => {
+                createCloth();
+            });
+
+            // Resolution Slider
+            const slider = document.getElementById('resolutionSlider');
+            const resVal = document.getElementById('resValue');
+            
+            slider.addEventListener('input', (e) => {
+                const val = e.target.value;
+                const faces = val * val * 2; // Approx triangle count
+                resVal.innerText = `${val}x${val} grid`;
+            });
+            
+            slider.addEventListener('change', () => {
+                // Re-create on release
+                createCloth();
+            });
+
+            // Shape Selector
+            const shapeSelect = document.getElementById('shapeSelect');
+            shapeSelect.addEventListener('change', (e) => {
+                currentShape = e.target.value;
+                createColliderObject();
+                // Reset cloth to top to avoid stuck inside
+                createCloth();
+            });
+
+            // Wireframe Toggle
+            const wfBtn = document.getElementById('wireframeBtn');
+            const wfInd = document.getElementById('wireframeIndicator');
+            
+            wfBtn.dataset.active = 'false';
+            
+            wfBtn.addEventListener('click', () => {
+                const isActive = wfBtn.dataset.active === 'true';
+                wfBtn.dataset.active = !isActive;
+                
+                if (!isActive) {
+                    wfInd.classList.remove('bg-gray-600');
+                    wfInd.classList.add('bg-green-500', 'shadow-[0_0_8px_rgba(34,197,94,0.8)]');
+                    if (clothMesh) clothMesh.material.wireframe = true;
+                } else {
+                    wfInd.classList.add('bg-gray-600');
+                    wfInd.classList.remove('bg-green-500', 'shadow-[0_0_8px_rgba(34,197,94,0.8)]');
+                    if (clothMesh) clothMesh.material.wireframe = false;
+                }
+            });
+
+            // Fullscreen
+            document.getElementById('fullscreenBtn').addEventListener('click', () => {
+                if (!document.fullscreenElement) {
+                    document.documentElement.requestFullscreen();
+                } else {
+                    if (document.exitFullscreen) {
+                        document.exitFullscreen();
+                    }
+                }
+            });
+        }
+
+        // Init App
+        init();
+
+    </script>
+</body>
+</html>

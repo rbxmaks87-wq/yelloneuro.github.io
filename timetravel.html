@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>CHRONO ECHO</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #000; font-family: 'Courier New', Courier, monospace; user-select: none; -webkit-user-select: none; }
+        #game-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+        
+        /* Scanline effect */
+        .scanlines {
+            background: linear-gradient(
+                to bottom,
+                rgba(255,255,255,0),
+                rgba(255,255,255,0) 50%,
+                rgba(0,0,0,0.1) 50%,
+                rgba(0,0,0,0.1)
+            );
+            background-size: 100% 4px;
+            pointer-events: none;
+        }
+
+        /* CRT flicker */
+        @keyframes flicker {
+            0% { opacity: 0.97; }
+            5% { opacity: 0.95; }
+            10% { opacity: 0.9; }
+            15% { opacity: 0.95; }
+            20% { opacity: 0.99; }
+            100% { opacity: 0.95; }
+        }
+        .crt-effect { animation: flicker 0.15s infinite; }
+
+        /* Joystick */
+        #joystick-zone { position: absolute; bottom: 50px; left: 50px; width: 120px; height: 120px; display: none; }
+        .nipple { background: rgba(255, 255, 255, 0.2); border: 2px solid white; border-radius: 50%; position: absolute; }
+        
+        /* Chat Bubbles */
+        .chat-bubble {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid #00ff00;
+            color: #00ff00;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            pointer-events: none;
+            transform: translate(-50%, -100%);
+            white-space: nowrap;
+            max-width: 200px;
+            text-align: center;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        /* Scrollbar for chat log */
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-track { background: #111; }
+        ::-webkit-scrollbar-thumb { background: #333; }
+    </style>
+</head>
+<body class="text-white crt-effect">
+
+    <!-- 3D Canvas -->
+    <div id="game-container"></div>
+    
+    <!-- Post FX Overlay -->
+    <div class="absolute inset-0 scanlines pointer-events-none z-10"></div>
+
+    <!-- UI Layer -->
+    <div id="ui-layer" class="absolute inset-0 pointer-events-none z-20 flex flex-col justify-between p-4">
+        
+        <!-- Top Bar: Clock & Controls -->
+        <div class="flex justify-between items-start pointer-events-auto">
+            <div class="bg-black/80 border border-green-500 p-2 text-green-500 shadow-[0_0_10px_rgba(0,255,0,0.3)]">
+                <div id="clock-display" class="text-3xl font-bold tracking-widest">00:00:00</div>
+                <div class="text-xs opacity-70 mt-1">TIMELINE: ACTIVE</div>
+            </div>
+
+            <div class="flex flex-col gap-2 items-end">
+                <button id="menu-btn" class="bg-black/50 border border-white/30 px-3 py-1 text-sm hover:bg-white/10 transition">MENU</button>
+                <div class="bg-black/80 border border-white/30 p-2 flex flex-col gap-2">
+                    <label class="text-xs text-gray-400">JUMP TO TIME</label>
+                    <div class="flex gap-1">
+                        <input id="time-input" type="text" placeholder="00:00:00" class="bg-black border border-gray-600 text-white px-2 py-1 w-24 text-center font-mono text-sm focus:outline-none focus:border-green-500">
+                        <button id="warp-btn" class="bg-green-900/50 border border-green-500 text-green-500 px-3 py-1 text-xs hover:bg-green-500 hover:text-black transition">WARP</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Center Crosshair -->
+        <div class="absolute top-1/2 left-1/2 w-2 h-2 bg-green-500 rounded-full -translate-x-1/2 -translate-y-1/2 opacity-50 pointer-events-none mix-blend-screen"></div>
+
+        <!-- Bottom UI: Chat & Controls -->
+        <div class="flex items-end justify-between w-full pointer-events-auto">
+            
+            <!-- Chat Input Area -->
+            <div class="w-full max-w-md">
+                <div id="chat-history" class="h-32 overflow-y-auto mb-2 text-xs text-gray-400 font-mono flex flex-col-reverse mask-image-b">
+                    <!-- Messages appear here -->
+                </div>
+                <form id="chat-form" class="flex gap-2">
+                    <input id="chat-input" type="text" autocomplete="off" placeholder="Say something to the future..." class="flex-1 bg-black/50 border border-white/30 px-3 py-2 text-white focus:outline-none focus:border-green-500 font-mono text-sm backdrop-blur-sm">
+                    <button type="submit" class="bg-white/10 border border-white/30 px-4 text-sm hover:bg-white/20 transition">SEND</button>
+                </form>
+            </div>
+
+            <!-- Mobile Controls Placeholder -->
+            <div id="mobile-controls-hint" class="hidden md:hidden lg:hidden text-xs text-gray-500 mb-2">
+                <!-- Virtual Joystick is added via JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Menu -->
+    <div id="main-menu" class="absolute inset-0 z-50 bg-black flex flex-col items-center justify-center pointer-events-auto">
+        <h1 class="text-6xl md:text-8xl font-bold text-transparent bg-clip-text bg-gradient-to-b from-white to-gray-600 mb-2 tracking-tighter">ECHO</h1>
+        <p class="text-green-500 font-mono mb-8 tracking-widest text-sm">TEMPORAL EXPERIMENT v1.0</p>
+        
+        <div class="flex flex-col gap-4 w-64">
+            <button id="play-btn" class="bg-white text-black font-bold py-3 hover:bg-green-500 hover:scale-105 transition duration-200">ENTER SIMULATION</button>
+            <div class="text-gray-500 text-xs text-center font-mono mt-4">
+                <p>WASD / Joystick to Move</p>
+                <p>Mouse / Touch to Look</p>
+                <p>Type to leave messages</p>
+                <p>Warp to meet yourself</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chat Container (World Space) -->
+    <div id="world-chat-container" class="absolute inset-0 pointer-events-none overflow-hidden z-10"></div>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
+
+        // --- GLOBAL STATE ---
+        const state = {
+            startTime: 0,
+            elapsedTime: 0,
+            isPlaying: false,
+            recordings: [], // Array of sessions: { frames: [], color: hex }
+            currentSession: { frames: [] },
+            ghosts: [], // Array of 3D meshes
+            playerId: Math.random().toString(36).substr(2, 9),
+            isMobile: /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
+        };
+
+        // --- CONFIG ---
+        const PLAYER_HEIGHT = 1.7;
+        const MOVEMENT_SPEED = 5.0;
+        const RECORD_FPS = 30; // Record data 30 times a second
+        const RECORD_INTERVAL = 1000 / RECORD_FPS;
+        let lastRecordTime = 0;
+
+        // --- THREE.JS SETUP ---
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x050505);
+        scene.fog = new THREE.FogExp2(0x050505, 0.035);
+
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        document.getElementById('game-container').appendChild(renderer.domElement);
+
+        // --- LIGHTING ---
+        const ambientLight = new THREE.AmbientLight(0x404040, 2);
+        scene.add(ambientLight);
+
+        const dirLight = new THREE.DirectionalLight(0xffffff, 1);
+        dirLight.position.set(10, 20, 10);
+        scene.add(dirLight);
+
+        // --- WORLD GENERATION ---
+        // Grid Floor
+        const gridHelper = new THREE.GridHelper(200, 100, 0x004400, 0x001100);
+        scene.add(gridHelper);
+
+        // Floor Plane (for reflections/shadows if we wanted)
+        const planeGeometry = new THREE.PlaneGeometry(200, 200);
+        const planeMaterial = new THREE.MeshBasicMaterial({ color: 0x020202 });
+        const plane = new THREE.Mesh(planeGeometry, planeMaterial);
+        plane.rotation.x = -Math.PI / 2;
+        plane.position.y = -0.01;
+        scene.add(plane);
+
+        // Random Pillars/Structures
+        const boxGeo = new THREE.BoxGeometry(1, 1, 1);
+        const boxMat = new THREE.MeshLambertMaterial({ color: 0x222222 });
+        
+        for (let i = 0; i < 50; i++) {
+            const mesh = new THREE.Mesh(boxGeo, boxMat);
+            const s = 1 + Math.random() * 5;
+            mesh.position.set(
+                (Math.random() - 0.5) * 100,
+                s / 2,
+                (Math.random() - 0.5) * 100
+            );
+            mesh.scale.set(s, s, s);
+            
+            // Avoid spawn area
+            if (mesh.position.length() > 10) {
+                scene.add(mesh);
+            }
+        }
+
+        // --- PLAYER CONTROLS ---
+        const controls = new PointerLockControls(camera, document.body);
+        const velocity = new THREE.Vector3();
+        const direction = new THREE.Vector3();
+        const moveState = { forward: false, backward: false, left: false, right: false };
+
+        // Keyboard Events
+        const onKeyDown = function (event) {
+            switch (event.code) {
+                case 'ArrowUp': case 'KeyW': moveState.forward = true; break;
+                case 'ArrowLeft': case 'KeyA': moveState.left = true; break;
+                case 'ArrowDown': case 'KeyS': moveState.backward = true; break;
+                case 'ArrowRight': case 'KeyD': moveState.right = true; break;
+                case 'Enter': 
+                    if (document.activeElement === document.getElementById('chat-input')) {
+                        // If already focused, submit or ignore (handled by form submit)
+                    } else {
+                        controls.unlock();
+                        setTimeout(() => document.getElementById('chat-input').focus(), 100);
+                    }
+                    break;
+            }
+        };
+
+        const onKeyUp = function (event) {
+            switch (event.code) {
+                case 'ArrowUp': case 'KeyW': moveState.forward = false; break;
+                case 'ArrowLeft': case 'KeyA': moveState.left = false; break;
+                case 'ArrowDown': case 'KeyS': moveState.backward = false; break;
+                case 'ArrowRight': case 'KeyD': moveState.right = false; break;
+            }
+        };
+
+        document.addEventListener('keydown', onKeyDown);
+        document.addEventListener('keyup', onKeyUp);
+
+        // --- MOBILE CONTROLS (Simple Virtual Joystick Logic) ---
+        let touchStartPos = null;
+        let touchCurrentPos = null;
+        let lookTouchId = null;
+        let moveTouchId = null;
+        let lookStart = { x: 0, y: 0 };
+        let lookEuler = new THREE.Euler(0, 0, 0, 'YXZ');
+
+        if (state.isMobile) {
+            const joystickZone = document.createElement('div');
+            joystickZone.id = 'joystick-zone';
+            joystickZone.style.display = 'block';
+            document.body.appendChild(joystickZone);
+
+            // Nipple
+            const nipple = document.createElement('div');
+            nipple.className = 'nipple';
+            nipple.style.width = '40px';
+            nipple.style.height = '40px';
+            nipple.style.left = '40px';
+            nipple.style.top = '40px';
+            joystickZone.appendChild(nipple);
+
+            const base = document.createElement('div');
+            base.className = 'nipple';
+            base.style.width = '80px';
+            base.style.height = '80px';
+            base.style.left = '20px';
+            base.style.top = '20px';
+            base.style.border = '2px solid rgba(255,255,255,0.1)';
+            joystickZone.appendChild(base);
+
+            // Touch Handling
+            document.addEventListener('touchstart', (e) => {
+                for (let i = 0; i < e.changedTouches.length; i++) {
+                    const t = e.changedTouches[i];
+                    if (t.clientX < window.innerWidth / 2) {
+                        // Move Zone
+                        if (moveTouchId === null) {
+                            moveTouchId = t.identifier;
+                            touchStartPos = { x: t.clientX, y: t.clientY };
+                            joystickZone.style.left = (t.clientX - 60) + 'px';
+                            joystickZone.style.top = (t.clientY - 60) + 'px';
+                            joystickZone.style.display = 'block';
+                            nipple.style.transform = `translate(0px, 0px)`;
+                        }
+                    } else {
+                        // Look Zone
+                        if (lookTouchId === null) {
+                            lookTouchId = t.identifier;
+                            lookStart = { x: t.clientX, y: t.clientY };
+                            lookEuler.setFromQuaternion(camera.quaternion);
+                        }
+                    }
+                }
+            }, { passive: false });
+
+            document.addEventListener('touchmove', (e) => {
+                e.preventDefault(); // Prevent scrolling
+                for (let i = 0; i < e.changedTouches.length; i++) {
+                    const t = e.changedTouches[i];
+                    
+                    if (t.identifier === moveTouchId) {
+                        const dx = t.clientX - touchStartPos.x;
+                        const dy = t.clientY - touchStartPos.y;
+                        const dist = Math.min(Math.sqrt(dx*dx + dy*dy), 40);
+                        const angle = Math.atan2(dy, dx);
+                        
+                        const rx = Math.cos(angle) * dist;
+                        const ry = Math.sin(angle) * dist;
+                        
+                        nipple.style.transform = `translate(${rx}px, ${ry}px)`;
+
+                        // Map to WASD
+                        moveState.right = dx > 10;
+                        moveState.left = dx < -10;
+                        moveState.backward = dy > 10;
+                        moveState.forward = dy < -10;
+
+                    } else if (t.identifier === lookTouchId) {
+                        const dx = t.clientX - lookStart.x;
+                        const dy = t.clientY - lookStart.y;
+                        
+                        lookEuler.y -= dx * 0.005;
+                        lookEuler.x -= dy * 0.005;
+                        lookEuler.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, lookEuler.x));
+                        
+                        camera.quaternion.setFromEuler(lookEuler);
+                        
+                        lookStart = { x: t.clientX, y: t.clientY };
+                    }
+                }
+            }, { passive: false });
+
+            const endTouch = (e) => {
+                for (let i = 0; i < e.changedTouches.length; i++) {
+                    if (e.changedTouches[i].identifier === moveTouchId) {
+                        moveTouchId = null;
+                        joystickZone.style.display = 'none';
+                        moveState.forward = moveState.backward = moveState.left = moveState.right = false;
+                    }
+                    if (e.changedTouches[i].identifier === lookTouchId) {
+                        lookTouchId = null;
+                    }
+                }
+            };
+            document.addEventListener('touchend', endTouch);
+            document.addEventListener('touchcancel', endTouch);
+        }
+
+
+        // --- TIME & RECORDING SYSTEM ---
+        
+        function formatTime(ms) {
+            const totalSeconds = Math.floor(ms / 1000);
+            const hours = Math.floor(totalSeconds / 3600);
+            const minutes = Math.floor((totalSeconds % 3600) / 60);
+            const seconds = totalSeconds % 60;
+            return [hours, minutes, seconds]
+                .map(v => v.toString().padStart(2, '0'))
+                .join(':');
+        }
+
+        function parseTimeInput(str) {
+            // Parses HH:MM:SS or MM:SS or SS
+            const parts = str.split(':').map(Number).reverse();
+            let seconds = 0;
+            if (parts[0]) seconds += parts[0];
+            if (parts[1]) seconds += parts[1] * 60;
+            if (parts[2]) seconds += parts[2] * 3600;
+            return seconds * 1000;
+        }
+
+        function saveFrame(msg = null) {
+            const frame = {
+                t: state.elapsedTime,
+                x: camera.position.x,
+                y: camera.position.y,
+                z: camera.position.z,
+                rx: camera.rotation.x,
+                ry: camera.rotation.y,
+                msg: msg
+            };
+            state.currentSession.frames.push(frame);
+        }
+
+        function startNewSession(startTime = 0) {
+            if (state.currentSession.frames.length > 0) {
+                // Determine a unique color for this "ghost"
+                const colors = [0xff0000, 0x00ff00, 0x0000ff, 0xffff00, 0x00ffff, 0xff00ff];
+                state.currentSession.color = colors[state.recordings.length % colors.length];
+                state.recordings.push(state.currentSession);
+                createGhost(state.currentSession);
+            }
+            
+            state.startTime = Date.now() - startTime;
+            state.elapsedTime = startTime;
+            state.currentSession = { frames: [] };
+            
+            // Clear current chat bubbles
+            document.getElementById('world-chat-container').innerHTML = '';
+        }
+
+        // --- GHOST SYSTEM ---
+        
+        function createGhost(session) {
+            // Visual representation of a player
+            const group = new THREE.Group();
+
+            // Body
+            const geometry = new THREE.CapsuleGeometry(0.4, 1, 4, 8);
+            const material = new THREE.MeshBasicMaterial({ 
+                color: session.color, 
+                wireframe: true,
+                transparent: true,
+                opacity: 0.5
+            });
+            const mesh = new THREE.Mesh(geometry, material);
+            mesh.position.y = 0.9;
+            group.add(mesh);
+
+            // Head/Visor indicating direction
+            const visorGeo = new THREE.BoxGeometry(0.5, 0.2, 0.3);
+            const visorMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+            const visor = new THREE.Mesh(visorGeo, visorMat);
+            visor.position.set(0, 1.5, -0.3); // Facing forward (-Z)
+            group.add(visor);
+
+            scene.add(group);
+            
+            state.ghosts.push({
+                mesh: group,
+                session: session,
+                currentFrameIndex: 0,
+                activeBubble: null,
+                bubbleTimer: 0
+            });
+        }
+
+        function updateGhosts() {
+            state.ghosts.forEach(ghost => {
+                const session = ghost.session;
+                let frameFound = false;
+                
+                // Find the frame corresponding to current time
+                // Optimization: Start searching from last known index
+                for (let i = ghost.currentFrameIndex; i < session.frames.length; i++) {
+                    const frame = session.frames[i];
+                    
+                    // If this frame is in the future relative to game time, stop
+                    if (frame.t > state.elapsedTime) {
+                        break;
+                    }
+                    
+                    // Update index to this frame (it's the latest valid one so far)
+                    ghost.currentFrameIndex = i;
+                    frameFound = true;
+
+                    // Handle Chat Event in this frame
+                    if (frame.msg) {
+                        showChatBubble(ghost, frame.msg);
+                    }
+                }
+
+                // If we found a frame valid for this time, update position
+                if (frameFound) {
+                    const frame = session.frames[ghost.currentFrameIndex];
+                    ghost.mesh.position.set(frame.x, frame.y - PLAYER_HEIGHT, frame.z); // Adjust for camera height
+                    ghost.mesh.rotation.y = frame.ry;
+                    // Also rotate visor head locally if we want x rotation
+                    ghost.mesh.children[1].rotation.x = frame.rx; // Simple approx
+                    ghost.mesh.visible = true;
+                    
+                    // Update chat bubble position
+                    if (ghost.activeBubble) {
+                        updateBubblePosition(ghost.activeBubble, ghost.mesh.position);
+                        
+                        // Check expiry
+                        if (Date.now() > ghost.bubbleExpiry) {
+                            ghost.activeBubble.remove();
+                            ghost.activeBubble = null;
+                        }
+                    }
+
+                } else {
+                    // Before recording started or after it ended
+                    ghost.mesh.visible = false;
+                    if (ghost.activeBubble) {
+                        ghost.activeBubble.style.display = 'none';
+                    }
+                }
+                
+                // Reset index if time looped back (warp)
+                if (state.elapsedTime < session.frames[0]?.t) {
+                    ghost.currentFrameIndex = 0;
+                    ghost.mesh.visible = false;
+                    if (ghost.activeBubble) {
+                        ghost.activeBubble.remove();
+                        ghost.activeBubble = null;
+                    }
+                }
+            });
+        }
+
+        // --- CHAT UI LOGIC ---
+
+        function showChatBubble(ghost, text) {
+            // Remove old bubble if exists
+            if (ghost.activeBubble) {
+                ghost.activeBubble.remove();
+            }
+
+            const bubble = document.createElement('div');
+            bubble.className = 'chat-bubble';
+            bubble.textContent = text;
+            document.getElementById('world-chat-container').appendChild(bubble);
+
+            // Trigger animation
+            requestAnimationFrame(() => { bubble.style.opacity = '1'; });
+
+            ghost.activeBubble = bubble;
+            ghost.bubbleExpiry = Date.now() + 4000; // 4 seconds duration
+        }
+
+        function updateBubblePosition(bubbleElement, position3D) {
+            // Clone position to not modify original
+            const pos = position3D.clone();
+            pos.y += 2.2; // Above head
+
+            // Project to 2D screen space
+            pos.project(camera);
+
+            const x = (pos.x * .5 + .5) * window.innerWidth;
+            const y = (-(pos.y * .5) + .5) * window.innerHeight;
+
+            // Check if behind camera
+            if (pos.z > 1) {
+                bubbleElement.style.display = 'none';
+            } else {
+                bubbleElement.style.display = 'block';
+                bubbleElement.style.left = `${x}px`;
+                bubbleElement.style.top = `${y}px`;
+            }
+        }
+
+        // --- MAIN LOOP ---
+        const clock = new THREE.Clock();
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            if (!state.isPlaying) return;
+
+            const dt = clock.getDelta();
+            
+            // 1. Update Time
+            state.elapsedTime = Date.now() - state.startTime;
+            document.getElementById('clock-display').innerText = formatTime(state.elapsedTime);
+
+            // 2. Physics / Movement
+            if (controls.isLocked || state.isMobile) {
+                velocity.x -= velocity.x * 10.0 * dt;
+                velocity.z -= velocity.z * 10.0 * dt;
+                velocity.y -= 9.8 * 10.0 * dt; // Gravity (simple)
+
+                direction.z = Number(moveState.forward) - Number(moveState.backward);
+                direction.x = Number(moveState.right) - Number(moveState.left);
+                direction.normalize();
+
+                if (moveState.forward || moveState.backward) velocity.z -= direction.z * 400.0 * dt;
+                if (moveState.left || moveState.right) velocity.x -= direction.x * 400.0 * dt;
+
+                controls.moveRight(-velocity.x * dt);
+                controls.moveForward(-velocity.z * dt);
+            }
+
+            // Simple floor collision
+            if (camera.position.y < PLAYER_HEIGHT) {
+                velocity.y = 0;
+                camera.position.y = PLAYER_HEIGHT;
+            }
+
+            // 3. Recording
+            const now = Date.now();
+            if (now - lastRecordTime > RECORD_INTERVAL) {
+                saveFrame();
+                lastRecordTime = now;
+            }
+
+            // 4. Ghost Replay
+            updateGhosts();
+
+            renderer.render(scene, camera);
+        }
+
+        // --- UI EVENT LISTENERS ---
+
+        // Play Button
+        document.getElementById('play-btn').addEventListener('click', () => {
+            document.getElementById('main-menu').classList.add('hidden');
+            state.isPlaying = true;
+            state.startTime = Date.now();
+            
+            if (!state.isMobile) {
+                controls.lock();
+            }
+        });
+
+        // Chat Form
+        const chatForm = document.getElementById('chat-form');
+        const chatInput = document.getElementById('chat-input');
+        
+        // Prevent pointer lock release when clicking input
+        chatInput.addEventListener('focus', () => {
+            // We want to type, so we might need to unlock temporarily on PC?
+            // Actually PointerLock API usually unlocks on Escape. 
+            // Let's keep it simple: Typing requires unlocking or overlay mode.
+        });
+
+        chatForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const text = chatInput.value.trim();
+            if (text) {
+                // Add to history
+                const li = document.createElement('div');
+                li.innerHTML = `<span class="text-green-500">[${formatTime(state.elapsedTime)}]</span> YOU: ${text}`;
+                document.getElementById('chat-history').prepend(li);
+                
+                // Save to current recording frame immediately
+                // We force a saveFrame here to ensure the message is synced exactly
+                saveFrame(text);
+                
+                chatInput.value = '';
+                chatInput.blur();
+                
+                if (!state.isMobile) {
+                    controls.lock();
+                }
+            }
+        });
+
+        // Warp Button
+        document.getElementById('warp-btn').addEventListener('click', () => {
+            const input = document.getElementById('time-input').value;
+            const targetTime = parseTimeInput(input);
+            
+            // Visual feedback
+            const overlay = document.querySelector('.scanlines');
+            overlay.style.backgroundColor = 'white';
+            setTimeout(() => overlay.style.backgroundColor = 'transparent', 100);
+
+            startNewSession(targetTime);
+            
+            // Add system message
+            const li = document.createElement('div');
+            li.innerHTML = `<span class="text-yellow-500">>> SYSTEM: TIME JUMP TO ${formatTime(targetTime)}</span>`;
+            document.getElementById('chat-history').prepend(li);
+        });
+
+        // Menu Toggle
+        document.getElementById('menu-btn').addEventListener('click', () => {
+            document.getElementById('main-menu').classList.remove('hidden');
+            state.isPlaying = false;
+            controls.unlock();
+        });
+
+        // Resize
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // Start Loop
+        animate();
+
+    </script>
+</body>
+</html>

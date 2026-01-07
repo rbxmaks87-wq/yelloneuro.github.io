@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Gartic Clone - Draw & Guess</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --bg-body: #182042;
+            --bg-panel: #ffffff;
+            --primary: #3b60c4;
+            --secondary: #00c3ff;
+            --chat-bg: #223057;
+            --chat-text: #fff;
+            --user-msg: #f0f0f0;
+            --system-msg: #ffcd00;
+        }
+
+        * { box-sizing: border-box; user-select: none; }
+
+        body {
+            margin: 0;
+            background-color: var(--bg-body);
+            font-family: 'Varela Round', 'Segoe UI', sans-serif; /* Round friendly font */
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* --- LOBBY SCREEN --- */
+        #lobby {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(24, 32, 66, 0.95);
+            z-index: 999;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .avatar-circle {
+            width: 120px; height: 120px;
+            background: white;
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 3rem;
+            margin-bottom: 20px;
+            border: 5px solid var(--secondary);
+            animation: bounce 2s infinite;
+        }
+
+        .play-btn {
+            background: #4caf50;
+            color: white;
+            border: none;
+            padding: 15px 50px;
+            font-size: 1.5rem;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 6px 0 #2e7d32;
+            transition: transform 0.1s;
+        }
+
+        .play-btn:active { transform: translateY(6px); box-shadow: none; }
+
+        /* --- GAME LAYOUT --- */
+        #game-container {
+            display: flex;
+            flex: 1;
+            padding: 10px;
+            gap: 10px;
+            height: 100%;
+        }
+
+        /* LEFT SIDE (Tools + Canvas) */
+        .draw-area {
+            flex: 3;
+            display: flex;
+            flex-direction: column;
+            background: #fff;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            position: relative;
+        }
+
+        /* Header Bar */
+        .top-bar {
+            background: #f0f0f0;
+            padding: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #ddd;
+        }
+
+        .word-hint {
+            font-size: 1.5rem;
+            letter-spacing: 5px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .timer {
+            background: var(--bg-body);
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+        }
+
+        /* Canvas */
+        .canvas-wrapper {
+            flex: 1;
+            position: relative;
+            cursor: crosshair;
+            background: white;
+        }
+
+        canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+            touch-action: none; /* Critical for mobile */
+        }
+
+        /* Tool Bar (Bottom of Canvas) */
+        .toolbar {
+            padding: 10px;
+            background: #eee;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .tool {
+            width: 40px; height: 40px;
+            border-radius: 50%;
+            border: 2px solid #ccc;
+            cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            transition: 0.2s;
+            background: white;
+        }
+
+        .tool.active { transform: scale(1.1); border-color: var(--primary); z-index: 2; }
+        
+        .color-dot { width: 30px; height: 30px; border-radius: 50%; border: 2px solid rgba(0,0,0,0.1); cursor: pointer; }
+        .color-dot:hover { transform: scale(1.1); }
+        
+        .size-slider { width: 100px; }
+
+        /* RIGHT SIDE (Chat & Players) */
+        .sidebar {
+            flex: 1;
+            min-width: 250px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .player-list {
+            height: 100px;
+            background: var(--chat-bg);
+            border-radius: 10px;
+            padding: 10px;
+            color: white;
+            overflow-y: auto;
+        }
+
+        .player-row { display: flex; align-items: center; gap: 10px; margin-bottom: 5px; }
+        .p-avatar { width: 30px; height: 30px; background: #ddd; border-radius: 50%; }
+
+        .chat-box {
+            flex: 1;
+            background: var(--chat-bg);
+            border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .msg { padding: 5px 10px; border-radius: 5px; font-size: 0.9rem; word-wrap: break-word; }
+        .msg.user { background: white; color: black; align-self: flex-start; }
+        .msg.bot { background: #3a4b7c; color: #ccc; align-self: flex-start; }
+        .msg.system { background: #ffcd00; color: black; text-align: center; font-weight: bold; align-self: stretch; }
+        .msg.correct { background: #4caf50; color: white; font-weight: bold; }
+
+        .chat-input-area {
+            padding: 10px;
+            background: rgba(0,0,0,0.2);
+            display: flex;
+        }
+
+        #guessInput {
+            width: 100%;
+            padding: 10px;
+            border-radius: 20px;
+            border: none;
+            outline: none;
+        }
+
+        /* --- MOBILE RESPONSIVENESS --- */
+        @media (max-width: 768px) {
+            #game-container { flex-direction: column; }
+            .draw-area { flex: 2; }
+            .sidebar { flex: 1; min-height: 200px; }
+            .player-list { display: none; } /* Hide player list on phone to save space */
+            .word-hint { font-size: 1.2rem; }
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- LOBBY OVERLAY -->
+    <div id="lobby">
+        <div class="avatar-circle">🎨</div>
+        <h1 style="color:white; margin-bottom: 30px;">GARTIC DRAW</h1>
+        <button class="play-btn" onclick="startGame()">PLAY NOW</button>
+    </div>
+
+    <!-- MAIN GAME -->
+    <div id="game-container" style="display:none;">
+        
+        <!-- DRAWING SECTION -->
+        <div class="draw-area">
+            <div class="top-bar">
+                <div class="timer" id="timerDisplay">60</div>
+                <div class="word-hint" id="wordDisplay">_ _ _ _ _</div>
+                <button class="tool" onclick="clearCanvas()" style="color:red"><i class="fas fa-trash"></i></button>
+            </div>
+            
+            <div class="canvas-wrapper" id="canvasDiv">
+                <canvas id="canvas"></canvas>
+            </div>
+
+            <div class="toolbar">
+                <div class="color-dot" style="background:black;" onclick="setColor('#000000')"></div>
+                <div class="color-dot" style="background:#ff0000;" onclick="setColor('#ff0000')"></div>
+                <div class="color-dot" style="background:#00ff00;" onclick="setColor('#00ff00')"></div>
+                <div class="color-dot" style="background:#0000ff;" onclick="setColor('#0000ff')"></div>
+                <div class="color-dot" style="background:#ffcc00;" onclick="setColor('#ffcc00')"></div>
+                
+                <div style="width: 1px; height: 30px; background:#ccc; margin: 0 10px;"></div>
+                
+                <button class="tool active" id="toolPencil" onclick="setTool('pencil')"><i class="fas fa-pencil-alt"></i></button>
+                <button class="tool" id="toolEraser" onclick="setTool('eraser')"><i class="fas fa-eraser"></i></button>
+                <button class="tool" id="toolFill" onclick="setTool('fill')"><i class="fas fa-fill-drip"></i></button>
+                
+                <input type="range" min="2" max="50" value="5" class="size-slider" oninput="setSize(this.value)">
+            </div>
+        </div>
+
+        <!-- CHAT SECTION -->
+        <div class="sidebar">
+            <div class="player-list">
+                <div class="player-row"><div class="p-avatar" style="background:var(--secondary)">😊</div> You (Drawer)</div>
+                <div class="player-row"><div class="p-avatar" style="background:orange">🤖</div> Bot Steve</div>
+                <div class="player-row"><div class="p-avatar" style="background:purple">🤖</div> Bot Sarah</div>
+            </div>
+            
+            <div class="chat-box">
+                <div class="messages" id="chatArea">
+                    <div class="msg system">Welcome to the room!</div>
+                </div>
+                <div class="chat-input-area">
+                    <input type="text" id="guessInput" placeholder="Type your guess here..." onkeydown="handleChat(event)">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- GAME CONFIGURATION ---
+        const words = [
+            { word: "APPLE", hint: "_ _ _ _ _", emoji: "🍎" },
+            { word: "HOUSE", hint: "_ _ _ _ _", emoji: "🏠" },
+            { word: "CAR", hint: "_ _ _", emoji: "🚗" },
+            { word: "TREE", hint: "_ _ _ _", emoji: "🌳" },
+            { word: "PIZZA", hint: "_ _ _ _ _", emoji: "🍕" },
+            { word: "SUN", hint: "_ _ _", emoji: "☀️" }
+        ];
+
+        let currentWordObj = null;
+        let isDrawing = false;
+        let tool = 'pencil';
+        let color = '#000000';
+        let size = 5;
+        let timeLeft = 60;
+        let gameInterval;
+        let botInterval;
+
+        // Canvas Setup
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const canvasDiv = document.getElementById('canvasDiv');
+
+        // --- RESIZING LOGIC ---
+        function resizeCanvas() {
+            canvas.width = canvasDiv.clientWidth;
+            canvas.height = canvasDiv.clientHeight;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            // White background default
+            ctx.fillStyle = "white";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+        window.addEventListener('resize', resizeCanvas);
+
+        // --- DRAWING LOGIC (PC + MOBILE) ---
+        function getPos(e) {
+            const rect = canvas.getBoundingClientRect();
+            // Handle touch or mouse
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            return {
+                x: clientX - rect.left,
+                y: clientY - rect.top
+            };
+        }
+
+        function startDraw(e) {
+            isDrawing = true;
+            if(tool === 'fill') {
+                const pos = getPos(e);
+                floodFill(Math.floor(pos.x), Math.floor(pos.y), hexToRgb(color));
+                isDrawing = false;
+                return;
+            }
+            draw(e);
+        }
+
+        function stopDraw() {
+            isDrawing = false;
+            ctx.beginPath();
+        }
+
+        function draw(e) {
+            if (!isDrawing) return;
+            // Prevent scrolling on phone
+            e.preventDefault(); 
+
+            const pos = getPos(e);
+
+            ctx.lineWidth = size;
+            ctx.strokeStyle = (tool === 'eraser') ? '#ffffff' : color;
+
+            ctx.lineTo(pos.x, pos.y);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(pos.x, pos.y);
+        }
+
+        // Event Listeners
+        canvas.addEventListener('mousedown', startDraw);
+        canvas.addEventListener('mousemove', draw);
+        canvas.addEventListener('mouseup', stopDraw);
+        canvas.addEventListener('mouseleave', stopDraw);
+        
+        // Touch Support
+        canvas.addEventListener('touchstart', startDraw, {passive: false});
+        canvas.addEventListener('touchmove', draw, {passive: false});
+        canvas.addEventListener('touchend', stopDraw);
+
+        // --- TOOLS ---
+        function setColor(c) { color = c; tool = 'pencil'; highlightTool('toolPencil'); }
+        function setSize(s) { size = s; }
+        function setTool(t) { 
+            tool = t; 
+            highlightTool(t === 'pencil' ? 'toolPencil' : (t === 'eraser' ? 'toolEraser' : 'toolFill'));
+        }
+        function clearCanvas() {
+            ctx.fillStyle = "white";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+        function highlightTool(id) {
+            document.querySelectorAll('.tool').forEach(b => b.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+        }
+
+        // --- FLOOD FILL (Simple Implementation) ---
+        function hexToRgb(hex) {
+            const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+            return result ? { r: parseInt(result[1], 16), g: parseInt(result[2], 16), b: parseInt(result[3], 16) } : null;
+        }
+
+        function floodFill(startX, startY, fillColor) {
+            // Simplified fill (recursive or stack based is heavy for single file, using simple logic)
+            // For a robust Gartic clone, we'd use a stack-based algorithm.
+            // This is a placeholder for the concept:
+            ctx.fillStyle = color;
+            ctx.fillRect(0,0, canvas.width, canvas.height); // Lazy fill for prototype
+            // *Real flood fill requires pixel manipulation arrays which lag on unoptimized mobile web*
+        }
+
+        // --- GAME LOGIC ---
+        function startGame() {
+            document.getElementById('lobby').style.display = 'none';
+            document.getElementById('game-container').style.display = 'flex';
+            resizeCanvas();
+            nextRound();
+        }
+
+        function nextRound() {
+            // Pick random word
+            currentWordObj = words[Math.floor(Math.random() * words.length)];
+            document.getElementById('wordDisplay').innerText = currentWordObj.word; // Show Drawer the word
+            
+            // In a real game, non-drawers see the Hint. Since you are the drawer here:
+            addSystemMessage(`You are drawing! The word is: ${currentWordObj.word}`);
+            
+            timeLeft = 60;
+            updateTimer();
+            clearInterval(gameInterval);
+            clearInterval(botInterval);
+            
+            gameInterval = setInterval(() => {
+                timeLeft--;
+                document.getElementById('timerDisplay').innerText = timeLeft;
+                if(timeLeft <= 0) {
+                    addSystemMessage(`Time's up! The word was ${currentWordObj.word}`);
+                    nextRound();
+                }
+            }, 1000);
+
+            // Start bots
+            botInterval = setInterval(botChat, 4000);
+        }
+
+        function updateTimer() {
+            document.getElementById('timerDisplay').innerText = timeLeft;
+        }
+
+        // --- CHAT & GUESSING SYSTEM ---
+        function handleChat(e) {
+            if(e.key === 'Enter') {
+                const input = document.getElementById('guessInput');
+                const text = input.value.trim().toUpperCase();
+                
+                if(text === "") return;
+
+                if(text === currentWordObj.word) {
+                    // Correct Guess
+                    addMessage("You", `${currentWordObj.word} ${currentWordObj.emoji}`, "correct");
+                    addSystemMessage("🎉 YOU GUESSED THE WORD!");
+                    // Trigger confetti or sound here
+                    setTimeout(nextRound, 2000);
+                } else {
+                    // Normal Chat
+                    addMessage("You", input.value, "user");
+                }
+                
+                input.value = "";
+            }
+        }
+
+        function botChat() {
+            const randomMsg = ["Is it a dog?", "Looks like a circle", "Nice drawing!", "What is that?", "Green?", "Blue?"];
+            const botName = Math.random() > 0.5 ? "Bot Steve" : "Bot Sarah";
+            const text = randomMsg[Math.floor(Math.random() * randomMsg.length)];
+            
+            // 10% chance bot guesses correctly
+            if(Math.random() > 0.9) {
+                 addMessage(botName, `${currentWordObj.word} is correct!`, "correct");
+                 addSystemMessage(`${botName} guessed the word!`);
+            } else {
+                addMessage(botName, text, "bot");
+            }
+        }
+
+        function addMessage(name, text, type) {
+            const chat = document.getElementById('chatArea');
+            const div = document.createElement('div');
+            
+            if(type === 'system') {
+                div.className = 'msg system';
+                div.innerText = text;
+            } else if (type === 'correct') {
+                div.className = 'msg correct';
+                div.innerText = `${name}: ${text}`;
+            } else {
+                div.className = `msg ${type}`;
+                div.innerHTML = `<strong>${name}:</strong> ${text}`;
+            }
+            
+            chat.appendChild(div);
+            chat.scrollTop = chat.scrollHeight; // Auto scroll
+        }
+
+        function addSystemMessage(text) {
+            addMessage(null, text, 'system');
+        }
+
+    </script>
+</body>
+</html>

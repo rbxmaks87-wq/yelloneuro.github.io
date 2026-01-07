@@ -1,0 +1,1893 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Minecraft 2D</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
+        
+        @font-face {
+            font-family: 'Minecraft';
+            src: local('VT323'), url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'VT323', monospace;
+            image-rendering: pixelated;
+        }
+        
+        body {
+            background: #1a1a2e;
+            overflow: hidden;
+            touch-action: none;
+        }
+        
+        #mainMenu {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(180deg, #87CEEB 0%, #4a9eff 50%, #2d5a87 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        
+        .menu-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: repeating-linear-gradient(
+                0deg,
+                transparent,
+                transparent 32px,
+                rgba(0,0,0,0.1) 32px,
+                rgba(0,0,0,0.1) 64px
+            );
+            animation: scrollBg 20s linear infinite;
+        }
+        
+        @keyframes scrollBg {
+            0% { background-position: 0 0; }
+            100% { background-position: 0 640px; }
+        }
+        
+        .menu-title {
+            font-size: 72px;
+            color: #fff;
+            text-shadow: 4px 4px 0 #3f3f3f, 8px 8px 0 #1a1a1a;
+            margin-bottom: 50px;
+            z-index: 1;
+            letter-spacing: 4px;
+        }
+        
+        .menu-subtitle {
+            font-size: 24px;
+            color: #ffff00;
+            margin-top: -40px;
+            margin-bottom: 40px;
+            z-index: 1;
+        }
+        
+        .menu-btn {
+            width: 400px;
+            max-width: 90vw;
+            padding: 15px 30px;
+            margin: 8px;
+            font-size: 24px;
+            background: linear-gradient(180deg, #7d7d7d 0%, #595959 50%, #3d3d3d 100%);
+            border: 4px solid #1a1a1a;
+            color: #fff;
+            cursor: pointer;
+            z-index: 1;
+            text-shadow: 2px 2px 0 #3f3f3f;
+            transition: all 0.1s;
+        }
+        
+        .menu-btn:hover {
+            background: linear-gradient(180deg, #8d8dff 0%, #6969ff 50%, #4d4dff 100%);
+            border-color: #fff;
+        }
+        
+        .menu-btn:active {
+            transform: scale(0.98);
+        }
+        
+        #gameContainer {
+            display: none;
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        #gameCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+        
+        #uiLayer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+        
+        #hotbar {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            background: rgba(0,0,0,0.7);
+            border: 4px solid #555;
+            pointer-events: auto;
+        }
+        
+        .hotbar-slot {
+            width: 50px;
+            height: 50px;
+            border: 2px solid #333;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            cursor: pointer;
+        }
+        
+        .hotbar-slot.selected {
+            border: 3px solid #fff;
+            background: rgba(255,255,255,0.2);
+        }
+        
+        .hotbar-slot .count {
+            position: absolute;
+            bottom: 2px;
+            right: 4px;
+            color: #fff;
+            font-size: 14px;
+            text-shadow: 1px 1px 0 #000;
+        }
+        
+        #healthBar, #hungerBar {
+            position: absolute;
+            bottom: 75px;
+            display: flex;
+            gap: 2px;
+        }
+        
+        #healthBar { left: calc(50% - 190px); }
+        #hungerBar { left: calc(50% + 10px); }
+        
+        .heart, .hunger {
+            width: 18px;
+            height: 18px;
+            font-size: 18px;
+        }
+        
+        #expBar {
+            position: absolute;
+            bottom: 65px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 364px;
+            height: 8px;
+            background: #222;
+            border: 2px solid #111;
+        }
+        
+        #expFill {
+            height: 100%;
+            background: #7fff00;
+            width: 0%;
+        }
+        
+        #expLevel {
+            position: absolute;
+            bottom: 62px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #7fff00;
+            font-size: 16px;
+            text-shadow: 1px 1px 0 #000;
+        }
+        
+        #timeDisplay {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            color: #fff;
+            font-size: 20px;
+            text-shadow: 2px 2px 0 #000;
+            background: rgba(0,0,0,0.5);
+            padding: 5px 10px;
+        }
+        
+        #coordinates {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: #fff;
+            font-size: 16px;
+            text-shadow: 1px 1px 0 #000;
+        }
+        
+        #chat {
+            position: absolute;
+            bottom: 130px;
+            left: 10px;
+            width: 400px;
+            max-width: 80vw;
+            pointer-events: auto;
+        }
+        
+        #chatMessages {
+            max-height: 200px;
+            overflow-y: auto;
+            background: rgba(0,0,0,0.5);
+            padding: 5px;
+            display: none;
+        }
+        
+        #chatMessages.active {
+            display: block;
+        }
+        
+        .chat-msg {
+            color: #fff;
+            font-size: 16px;
+            margin: 2px 0;
+            text-shadow: 1px 1px 0 #000;
+        }
+        
+        #chatInput {
+            width: 100%;
+            padding: 8px;
+            font-size: 16px;
+            background: rgba(0,0,0,0.7);
+            border: 2px solid #555;
+            color: #fff;
+            display: none;
+            font-family: 'VT323', monospace;
+        }
+        
+        #chatInput.active {
+            display: block;
+        }
+        
+        #pauseMenu {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            pointer-events: auto;
+        }
+        
+        #pauseMenu.active {
+            display: flex;
+        }
+        
+        #inventory {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #c6c6c6;
+            border: 4px solid #555;
+            padding: 20px;
+            display: none;
+            z-index: 50;
+            pointer-events: auto;
+        }
+        
+        #inventory.active {
+            display: block;
+        }
+        
+        .inv-title {
+            font-size: 24px;
+            margin-bottom: 15px;
+            color: #404040;
+        }
+        
+        .inv-grid {
+            display: grid;
+            grid-template-columns: repeat(9, 45px);
+            gap: 4px;
+        }
+        
+        .inv-slot {
+            width: 45px;
+            height: 45px;
+            background: #8b8b8b;
+            border: 2px solid #373737;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            position: relative;
+        }
+        
+        .inv-slot:hover {
+            border-color: #fff;
+        }
+        
+        #mobileControls {
+            display: none;
+            position: absolute;
+            bottom: 150px;
+            left: 20px;
+            pointer-events: auto;
+        }
+        
+        @media (max-width: 768px) {
+            #mobileControls { display: block; }
+        }
+        
+        .mobile-btn {
+            width: 60px;
+            height: 60px;
+            background: rgba(255,255,255,0.3);
+            border: 3px solid rgba(255,255,255,0.5);
+            border-radius: 10px;
+            font-size: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            margin: 5px;
+        }
+        
+        .dpad {
+            display: grid;
+            grid-template-columns: repeat(3, 60px);
+            grid-template-rows: repeat(3, 60px);
+            gap: 5px;
+        }
+        
+        .dpad .mobile-btn:nth-child(1) { grid-column: 2; grid-row: 1; }
+        .dpad .mobile-btn:nth-child(2) { grid-column: 1; grid-row: 2; }
+        .dpad .mobile-btn:nth-child(3) { grid-column: 3; grid-row: 2; }
+        .dpad .mobile-btn:nth-child(4) { grid-column: 2; grid-row: 3; }
+        
+        #mobileActions {
+            display: none;
+            position: absolute;
+            bottom: 150px;
+            right: 20px;
+            pointer-events: auto;
+        }
+        
+        @media (max-width: 768px) {
+            #mobileActions { display: flex; flex-direction: column; }
+        }
+        
+        #fullscreenBtn {
+            position: absolute;
+            top: 10px;
+            right: 120px;
+            background: rgba(0,0,0,0.5);
+            color: #fff;
+            border: 2px solid #555;
+            padding: 5px 15px;
+            font-size: 18px;
+            cursor: pointer;
+            pointer-events: auto;
+        }
+        
+        .loading {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+        
+        .loading-text {
+            color: #fff;
+            font-size: 32px;
+            margin-bottom: 20px;
+        }
+        
+        .loading-bar {
+            width: 300px;
+            height: 20px;
+            background: #333;
+            border: 2px solid #555;
+        }
+        
+        .loading-fill {
+            height: 100%;
+            background: #4CAF50;
+            width: 0%;
+            transition: width 0.3s;
+        }
+    </style>
+</head>
+<body>
+    <div id="loading" class="loading">
+        <div class="loading-text">Загрузка Minecraft 2D...</div>
+        <div class="loading-bar">
+            <div class="loading-fill" id="loadingFill"></div>
+        </div>
+    </div>
+
+    <div id="mainMenu">
+        <div class="menu-bg"></div>
+        <h1 class="menu-title">MINECRAFT</h1>
+        <p class="menu-subtitle">2D Edition</p>
+        <button class="menu-btn" onclick="startGame('survival')">Выживание</button>
+        <button class="menu-btn" onclick="startGame('creative')">Творческий режим</button>
+        <button class="menu-btn" onclick="toggleFullscreen()">Полный экран</button>
+    </div>
+
+    <div id="gameContainer">
+        <canvas id="gameCanvas"></canvas>
+        
+        <div id="uiLayer">
+            <div id="coordinates">X: 0 Y: 0</div>
+            <div id="timeDisplay">День 1 - 06:00</div>
+            <button id="fullscreenBtn" onclick="toggleFullscreen()">⛶</button>
+            
+            <div id="healthBar"></div>
+            <div id="hungerBar"></div>
+            <div id="expBar"><div id="expFill"></div></div>
+            <div id="expLevel">0</div>
+            
+            <div id="hotbar"></div>
+            
+            <div id="chat">
+                <div id="chatMessages"></div>
+                <input type="text" id="chatInput" placeholder="Введите сообщение или команду...">
+            </div>
+            
+            <div id="mobileControls">
+                <div class="dpad">
+                    <button class="mobile-btn" data-key="jump">⬆</button>
+                    <button class="mobile-btn" data-key="left">⬅</button>
+                    <button class="mobile-btn" data-key="right">➡</button>
+                    <button class="mobile-btn" data-key="down">⬇</button>
+                </div>
+            </div>
+            
+            <div id="mobileActions">
+                <button class="mobile-btn" data-action="break">⛏</button>
+                <button class="mobile-btn" data-action="place">🧱</button>
+                <button class="mobile-btn" data-action="inventory">📦</button>
+            </div>
+            
+            <div id="pauseMenu">
+                <h2 style="color:#fff;font-size:48px;margin-bottom:30px;">Игра на паузе</h2>
+                <button class="menu-btn" onclick="resumeGame()">Продолжить</button>
+                <button class="menu-btn" onclick="toggleFullscreen()">Полный экран</button>
+                <button class="menu-btn" onclick="quitGame()">Выйти в меню</button>
+            </div>
+            
+            <div id="inventory">
+                <div class="inv-title">Инвентарь</div>
+                <div class="inv-grid" id="invGrid"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+// ==================== GAME CONSTANTS ====================
+const BLOCK_SIZE = 32;
+const WORLD_WIDTH = 512;
+const WORLD_HEIGHT = 256;
+const CHUNK_SIZE = 16;
+const DAY_LENGTH = 8 * 60 * 1000; // 8 minutes
+const NIGHT_LENGTH = 6 * 60 * 1000; // 6 minutes
+const CYCLE_LENGTH = DAY_LENGTH + NIGHT_LENGTH;
+
+// ==================== BLOCK DEFINITIONS (50+ blocks) ====================
+const BLOCKS = {
+    0: { name: 'air', solid: false, transparent: true },
+    1: { name: 'stone', solid: true, color: '#7d7d7d', drops: 4 },
+    2: { name: 'grass', solid: true, color: '#5d9c3c', topColor: '#7ec850', drops: 3 },
+    3: { name: 'dirt', solid: true, color: '#8b6914' },
+    4: { name: 'cobblestone', solid: true, color: '#6b6b6b' },
+    5: { name: 'oak_planks', solid: true, color: '#b8945f' },
+    6: { name: 'oak_log', solid: true, color: '#6b5234', innerColor: '#b8945f' },
+    7: { name: 'bedrock', solid: true, color: '#2a2a2a', unbreakable: true },
+    8: { name: 'water', solid: false, color: 'rgba(32, 96, 192, 0.7)', liquid: true },
+    9: { name: 'lava', solid: false, color: '#ff6600', liquid: true, light: 15, damage: 4 },
+    10: { name: 'sand', solid: true, color: '#e8d9a0', gravity: true },
+    11: { name: 'gravel', solid: true, color: '#8a8074', gravity: true },
+    12: { name: 'gold_ore', solid: true, color: '#7d7d7d', oreColor: '#fcee4b' },
+    13: { name: 'iron_ore', solid: true, color: '#7d7d7d', oreColor: '#d8af93' },
+    14: { name: 'coal_ore', solid: true, color: '#7d7d7d', oreColor: '#2a2a2a' },
+    15: { name: 'diamond_ore', solid: true, color: '#7d7d7d', oreColor: '#5decf5' },
+    16: { name: 'redstone_ore', solid: true, color: '#7d7d7d', oreColor: '#ff0000' },
+    17: { name: 'emerald_ore', solid: true, color: '#7d7d7d', oreColor: '#17dd62' },
+    18: { name: 'lapis_ore', solid: true, color: '#7d7d7d', oreColor: '#1c4d9c' },
+    19: { name: 'oak_leaves', solid: true, color: '#4a8c2e', transparent: true },
+    20: { name: 'glass', solid: true, color: 'rgba(200,230,255,0.4)', transparent: true },
+    21: { name: 'bricks', solid: true, color: '#9c5e4a' },
+    22: { name: 'tnt', solid: true, color: '#ff2222', explosive: true },
+    23: { name: 'bookshelf', solid: true, color: '#b8945f' },
+    24: { name: 'mossy_cobblestone', solid: true, color: '#5c7d5c' },
+    25: { name: 'obsidian', solid: true, color: '#1a0a2e', hardness: 50 },
+    26: { name: 'crafting_table', solid: true, color: '#b8945f', interactive: true },
+    27: { name: 'furnace', solid: true, color: '#7d7d7d', interactive: true },
+    28: { name: 'chest', solid: true, color: '#8b6914', interactive: true },
+    29: { name: 'snow', solid: true, color: '#f0f0f0' },
+    30: { name: 'ice', solid: true, color: 'rgba(150,200,255,0.8)', slippery: true },
+    31: { name: 'cactus', solid: true, color: '#0b7a0b', damage: 1 },
+    32: { name: 'clay', solid: true, color: '#9ea4b0' },
+    33: { name: 'pumpkin', solid: true, color: '#e08020' },
+    34: { name: 'netherrack', solid: true, color: '#6b2020' },
+    35: { name: 'soul_sand', solid: true, color: '#4a3c28', slow: true },
+    36: { name: 'glowstone', solid: true, color: '#ffcc4d', light: 15 },
+    37: { name: 'nether_bricks', solid: true, color: '#2d1b21' },
+    38: { name: 'end_stone', solid: true, color: '#dde6a5' },
+    39: { name: 'spruce_log', solid: true, color: '#3d2813', innerColor: '#7a5a3a' },
+    40: { name: 'birch_log', solid: true, color: '#d5cdb4', innerColor: '#c8b77a' },
+    41: { name: 'spruce_planks', solid: true, color: '#6b5234' },
+    42: { name: 'birch_planks', solid: true, color: '#c8b77a' },
+    43: { name: 'spruce_leaves', solid: true, color: '#3d5c3d', transparent: true },
+    44: { name: 'birch_leaves', solid: true, color: '#6b9c3c', transparent: true },
+    45: { name: 'wool_white', solid: true, color: '#e8e8e8' },
+    46: { name: 'wool_red', solid: true, color: '#b02020' },
+    47: { name: 'wool_blue', solid: true, color: '#2040b0' },
+    48: { name: 'wool_green', solid: true, color: '#40b040' },
+    49: { name: 'wool_yellow', solid: true, color: '#e0e020' },
+    50: { name: 'wool_black', solid: true, color: '#1a1a1a' },
+    51: { name: 'gold_block', solid: true, color: '#f9d92f' },
+    52: { name: 'iron_block', solid: true, color: '#d8d8d8' },
+    53: { name: 'diamond_block', solid: true, color: '#5decf5' },
+    54: { name: 'emerald_block', solid: true, color: '#17dd62' },
+    55: { name: 'torch', solid: false, color: '#ffcc00', light: 14, placeable: true },
+    56: { name: 'flower_red', solid: false, color: '#ff3333', transparent: true },
+    57: { name: 'flower_yellow', solid: false, color: '#ffff33', transparent: true },
+    58: { name: 'mushroom_red', solid: false, color: '#cc3333', transparent: true },
+    59: { name: 'mushroom_brown', solid: false, color: '#8b6914', transparent: true },
+    60: { name: 'tall_grass', solid: false, color: '#4a8c2e', transparent: true },
+    61: { name: 'dead_bush', solid: false, color: '#8b6914', transparent: true },
+    62: { name: 'sponge', solid: true, color: '#c9c93d' },
+    63: { name: 'melon', solid: true, color: '#6ba31e' },
+    64: { name: 'mycelium', solid: true, color: '#7c6580', topColor: '#8b6b8f' },
+    65: { name: 'lily_pad', solid: false, color: '#0b7a0b', transparent: true },
+    66: { name: 'nether_wart_block', solid: true, color: '#6b0000' },
+    67: { name: 'bone_block', solid: true, color: '#e0ddd0' },
+    68: { name: 'concrete_white', solid: true, color: '#cfd5d6' },
+    69: { name: 'concrete_black', solid: true, color: '#080a0f' },
+    70: { name: 'hay_block', solid: true, color: '#b5970c' },
+    71: { name: 'terracotta', solid: true, color: '#985e43' },
+    72: { name: 'prismarine', solid: true, color: '#5a9c9c' },
+    73: { name: 'sea_lantern', solid: true, color: '#d5f3ef', light: 15 },
+    74: { name: 'magma_block', solid: true, color: '#8a3000', light: 3, damage: 1 },
+    75: { name: 'copper_ore', solid: true, color: '#7d7d7d', oreColor: '#c77b56' }
+};
+
+// ==================== MOB DEFINITIONS (20+ mobs) ====================
+const MOBS = {
+    // Passive mobs
+    pig: { hp: 10, speed: 1, hostile: false, color: '#f0a0a0', size: 0.9, drops: ['porkchop'] },
+    cow: { hp: 10, speed: 0.8, hostile: false, color: '#4a3728', size: 1, drops: ['beef', 'leather'] },
+    sheep: { hp: 8, speed: 1, hostile: false, color: '#e8e8e8', size: 0.9, drops: ['wool', 'mutton'] },
+    chicken: { hp: 4, speed: 1.2, hostile: false, color: '#fff', size: 0.5, drops: ['chicken', 'feather'] },
+    rabbit: { hp: 3, speed: 1.5, hostile: false, color: '#b08860', size: 0.4, drops: ['rabbit'] },
+    horse: { hp: 20, speed: 2, hostile: false, color: '#8b4513', size: 1.2, rideable: true },
+    donkey: { hp: 15, speed: 1.5, hostile: false, color: '#5a4a3a', size: 1.1, rideable: true },
+    wolf: { hp: 8, speed: 1.3, hostile: false, color: '#a0a0a0', size: 0.8, tameable: true },
+    cat: { hp: 10, speed: 1.4, hostile: false, color: '#ffa500', size: 0.5, tameable: true },
+    parrot: { hp: 6, speed: 1, hostile: false, color: '#ff3333', size: 0.4, flying: true },
+    squid: { hp: 10, speed: 0.5, hostile: false, color: '#2a4a6a', size: 0.8, aquatic: true },
+    fish: { hp: 3, speed: 1.5, hostile: false, color: '#ffa020', size: 0.3, aquatic: true },
+    turtle: { hp: 30, speed: 0.3, hostile: false, color: '#2a8a2a', size: 0.7 },
+    bee: { hp: 10, speed: 1.5, hostile: false, color: '#ffcc00', size: 0.4, flying: true },
+    
+    // Hostile mobs
+    zombie: { hp: 20, speed: 0.8, hostile: true, color: '#2a6a2a', size: 1, damage: 3, burnsInSun: true },
+    skeleton: { hp: 20, speed: 1, hostile: true, color: '#c8c8c8', size: 1, damage: 2, ranged: true, burnsInSun: true },
+    creeper: { hp: 20, speed: 0.9, hostile: true, color: '#4a8b4a', size: 1, explosive: true, burnsInSun: false },
+    spider: { hp: 16, speed: 1.3, hostile: true, color: '#3a3a3a', size: 0.8, damage: 2, burnsInSun: false },
+    enderman: { hp: 40, speed: 1.5, hostile: true, color: '#0a0a0a', size: 1.4, damage: 4, teleport: true, burnsInSun: false },
+    slime: { hp: 16, speed: 0.7, hostile: true, color: '#7fcc19', size: 1, damage: 2, burnsInSun: false },
+    witch: { hp: 26, speed: 0.8, hostile: true, color: '#340c4a', size: 1, ranged: true, burnsInSun: false },
+    phantom: { hp: 20, speed: 2, hostile: true, color: '#4a4a8a', size: 0.8, flying: true, burnsInSun: true },
+    drowned: { hp: 20, speed: 0.9, hostile: true, color: '#3a6a6a', size: 1, damage: 3, aquatic: true, burnsInSun: true },
+    blaze: { hp: 20, speed: 0.6, hostile: true, color: '#ffaa00', size: 1, ranged: true, flying: true, burnsInSun: false },
+    ghast: { hp: 10, speed: 0.5, hostile: true, color: '#f0f0f0', size: 2, ranged: true, flying: true, burnsInSun: false },
+    wither_skeleton: { hp: 20, speed: 1, hostile: true, color: '#3a3a3a', size: 1.2, damage: 5, burnsInSun: false },
+    magma_cube: { hp: 16, speed: 0.8, hostile: true, color: '#cc3300', size: 1, damage: 3, burnsInSun: false },
+    piglin: { hp: 16, speed: 1, hostile: true, color: '#e0a080', size: 1, damage: 3, burnsInSun: false }
+};
+
+// ==================== GAME STATE ====================
+let gameState = {
+    mode: 'survival',
+    paused: false,
+    world: [],
+    entities: [],
+    player: {
+        x: WORLD_WIDTH * BLOCK_SIZE / 2,
+        y: 0,
+        vx: 0,
+        vy: 0,
+        width: 28,
+        height: 56,
+        health: 20,
+        maxHealth: 20,
+        hunger: 20,
+        maxHunger: 20,
+        exp: 0,
+        level: 0,
+        inventory: [],
+        hotbar: [],
+        selectedSlot: 0,
+        grounded: false,
+        flying: false
+    },
+    camera: { x: 0, y: 0 },
+    time: 0,
+    day: 1,
+    keys: {},
+    mouse: { x: 0, y: 0, down: false, button: 0 }
+};
+
+let canvas, ctx;
+let lastTime = 0;
+let gameStartTime = 0;
+
+// ==================== INITIALIZATION ====================
+function init() {
+    canvas = document.getElementById('gameCanvas');
+    ctx = canvas.getContext('2d');
+    
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+    
+    // Initialize hotbar and inventory
+    for (let i = 0; i < 9; i++) {
+        gameState.player.hotbar.push(null);
+    }
+    for (let i = 0; i < 36; i++) {
+        gameState.player.inventory.push(null);
+    }
+    
+    setupControls();
+    simulateLoading();
+}
+
+function simulateLoading() {
+    let progress = 0;
+    const interval = setInterval(() => {
+        progress += Math.random() * 15;
+        if (progress >= 100) {
+            progress = 100;
+            clearInterval(interval);
+            setTimeout(() => {
+                document.getElementById('loading').style.display = 'none';
+            }, 500);
+        }
+        document.getElementById('loadingFill').style.width = progress + '%';
+    }, 200);
+}
+
+function resizeCanvas() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+}
+
+// ==================== WORLD GENERATION ====================
+function generateWorld() {
+    gameState.world = [];
+    
+    for (let x = 0; x < WORLD_WIDTH; x++) {
+        gameState.world[x] = [];
+        for (let y = 0; y < WORLD_HEIGHT; y++) {
+            gameState.world[x][y] = 0;
+        }
+    }
+    
+    // Generate terrain with Perlin-like noise
+    const heights = [];
+    let height = 128;
+    
+    for (let x = 0; x < WORLD_WIDTH; x++) {
+        height += (Math.random() - 0.5) * 4;
+        height = Math.max(80, Math.min(160, height));
+        heights[x] = Math.floor(height);
+    }
+    
+    // Smooth heights
+    for (let i = 0; i < 3; i++) {
+        for (let x = 1; x < WORLD_WIDTH - 1; x++) {
+            heights[x] = (heights[x-1] + heights[x] + heights[x+1]) / 3;
+        }
+    }
+    
+    // Fill terrain
+    for (let x = 0; x < WORLD_WIDTH; x++) {
+        const surfaceY = Math.floor(heights[x]);
+        
+        for (let y = 0; y < WORLD_HEIGHT; y++) {
+            if (y === WORLD_HEIGHT - 1) {
+                gameState.world[x][y] = 7; // Bedrock
+            } else if (y > surfaceY + 5) {
+                // Underground
+                if (y > WORLD_HEIGHT - 5) {
+                    gameState.world[x][y] = 7; // Bedrock layer
+                } else {
+                    gameState.world[x][y] = 1; // Stone
+                    
+                    // Add ores
+                    const rand = Math.random();
+                    if (rand < 0.008 && y > WORLD_HEIGHT - 20) {
+                        gameState.world[x][y] = 15; // Diamond
+                    } else if (rand < 0.015 && y > WORLD_HEIGHT - 40) {
+                        gameState.world[x][y] = 12; // Gold
+                    } else if (rand < 0.025 && y > WORLD_HEIGHT - 50) {
+                        gameState.world[x][y] = 16; // Redstone
+                    } else if (rand < 0.04) {
+                        gameState.world[x][y] = 13; // Iron
+                    } else if (rand < 0.07) {
+                        gameState.world[x][y] = 14; // Coal
+                    } else if (rand < 0.012 && y > WORLD_HEIGHT - 30) {
+                        gameState.world[x][y] = 17; // Emerald
+                    } else if (rand < 0.018 && y > WORLD_HEIGHT - 35) {
+                        gameState.world[x][y] = 18; // Lapis
+                    } else if (rand < 0.025) {
+                        gameState.world[x][y] = 75; // Copper
+                    }
+                }
+            } else if (y > surfaceY + 2) {
+                gameState.world[x][y] = 3; // Dirt
+            } else if (y > surfaceY) {
+                gameState.world[x][y] = 3; // Dirt
+            } else if (y === surfaceY) {
+                gameState.world[x][y] = 2; // Grass
+            }
+        }
+    }
+    
+    // Generate caves
+    for (let i = 0; i < 500; i++) {
+        let cx = Math.random() * WORLD_WIDTH;
+        let cy = Math.random() * (WORLD_HEIGHT - 100) + 80;
+        let length = Math.random() * 100 + 50;
+        let angle = Math.random() * Math.PI * 2;
+        
+        for (let j = 0; j < length; j++) {
+            const radius = Math.random() * 3 + 2;
+            for (let dx = -radius; dx <= radius; dx++) {
+                for (let dy = -radius; dy <= radius; dy++) {
+                    if (dx*dx + dy*dy < radius*radius) {
+                        const x = Math.floor(cx + dx);
+                        const y = Math.floor(cy + dy);
+                        if (x >= 0 && x < WORLD_WIDTH && y >= 0 && y < WORLD_HEIGHT - 5) {
+                            if (gameState.world[x][y] !== 7) {
+                                gameState.world[x][y] = 0;
+                            }
+                        }
+                    }
+                }
+            }
+            cx += Math.cos(angle) * 2;
+            cy += Math.sin(angle) * 2;
+            angle += (Math.random() - 0.5) * 0.5;
+        }
+    }
+    
+    // Generate trees
+    for (let x = 5; x < WORLD_WIDTH - 5; x += Math.floor(Math.random() * 8) + 4) {
+        const surfaceY = Math.floor(heights[x]);
+        if (gameState.world[x][surfaceY] === 2 && Math.random() < 0.4) {
+            generateTree(x, surfaceY);
+        }
+    }
+    
+    // Add water in low areas
+    const waterLevel = 140;
+    for (let x = 0; x < WORLD_WIDTH; x++) {
+        for (let y = waterLevel; y < WORLD_HEIGHT; y++) {
+            if (gameState.world[x][y] === 0 && y > 100) {
+                gameState.world[x][y] = 8;
+            }
+        }
+    }
+    
+    // Add flowers and grass
+    for (let x = 0; x < WORLD_WIDTH; x++) {
+        for (let y = 0; y < WORLD_HEIGHT; y++) {
+            if (gameState.world[x][y] === 2 && y > 0 && gameState.world[x][y-1] === 0) {
+                const rand = Math.random();
+                if (rand < 0.1) {
+                    gameState.world[x][y-1] = 60; // Tall grass
+                } else if (rand < 0.13) {
+                    gameState.world[x][y-1] = 56; // Red flower
+                } else if (rand < 0.16) {
+                    gameState.world[x][y-1] = 57; // Yellow flower
+                }
+            }
+        }
+    }
+    
+    // Spawn initial mobs
+    spawnInitialMobs();
+    
+    // Set player spawn
+    for (let x = WORLD_WIDTH / 2; x < WORLD_WIDTH; x++) {
+        for (let y = 0; y < WORLD_HEIGHT; y++) {
+            if (gameState.world[x][y] !== 0 && BLOCKS[gameState.world[x][y]].solid) {
+                gameState.player.x = x * BLOCK_SIZE;
+                gameState.player.y = (y - 3) * BLOCK_SIZE;
+                return;
+            }
+        }
+    }
+}
+
+function generateTree(x, y) {
+    const treeType = Math.random();
+    let logType = 6, leavesType = 19;
+    
+    if (treeType < 0.3) {
+        logType = 39; leavesType = 43; // Spruce
+    } else if (treeType < 0.5) {
+        logType = 40; leavesType = 44; // Birch
+    }
+    
+    const height = Math.floor(Math.random() * 3) + 4;
+    
+    // Trunk
+    for (let i = 1; i <= height; i++) {
+        if (y - i >= 0) {
+            gameState.world[x][y - i] = logType;
+        }
+    }
+    
+    // Leaves
+    for (let dx = -2; dx <= 2; dx++) {
+        for (let dy = -2; dy <= 1; dy++) {
+            const lx = x + dx;
+            const ly = y - height + dy;
+            if (lx >= 0 && lx < WORLD_WIDTH && ly >= 0 && ly < WORLD_HEIGHT) {
+                if (gameState.world[lx][ly] === 0 && Math.abs(dx) + Math.abs(dy) < 4) {
+                    gameState.world[lx][ly] = leavesType;
+                }
+            }
+        }
+    }
+}
+
+function spawnInitialMobs() {
+    const mobTypes = Object.keys(MOBS);
+    const passiveMobs = mobTypes.filter(m => !MOBS[m].hostile && !MOBS[m].aquatic && !MOBS[m].flying);
+    
+    for (let i = 0; i < 30; i++) {
+        const mobType = passiveMobs[Math.floor(Math.random() * passiveMobs.length)];
+        const x = Math.random() * WORLD_WIDTH * BLOCK_SIZE;
+        let y = 0;
+        
+        for (let ty = 0; ty < WORLD_HEIGHT; ty++) {
+            const bx = Math.floor(x / BLOCK_SIZE);
+            if (bx >= 0 && bx < WORLD_WIDTH && gameState.world[bx][ty] !== 0) {
+                y = (ty - 1) * BLOCK_SIZE;
+                break;
+            }
+        }
+        
+        spawnMob(mobType, x, y);
+    }
+}
+
+function spawnMob(type, x, y) {
+    const mobData = MOBS[type];
+    if (!mobData) return;
+    
+    gameState.entities.push({
+        type: type,
+        x: x,
+        y: y,
+        vx: 0,
+        vy: 0,
+        width: BLOCK_SIZE * mobData.size,
+        height: BLOCK_SIZE * mobData.size * (type === 'enderman' ? 1.4 : 1),
+        hp: mobData.hp,
+        maxHp: mobData.hp,
+        hostile: mobData.hostile,
+        speed: mobData.speed,
+        color: mobData.color,
+        burnsInSun: mobData.burnsInSun,
+        ai: { targetX: x, moveTimer: 0, attackTimer: 0 },
+        grounded: false
+    });
+}
+
+// ==================== GAME LOOP ====================
+function gameLoop(timestamp) {
+    if (!gameState.paused) {
+        const dt = Math.min((timestamp - lastTime) / 1000, 0.1);
+        lastTime = timestamp;
+        
+        update(dt);
+        render();
+    }
+    
+    requestAnimationFrame(gameLoop);
+}
+
+function update(dt) {
+    updateTime();
+    updatePlayer(dt);
+    updateEntities(dt);
+    updateCamera();
+    spawnMobsNatural();
+}
+
+function updateTime() {
+    const elapsed = Date.now() - gameStartTime;
+    gameState.time = elapsed % CYCLE_LENGTH;
+    gameState.day = Math.floor(elapsed / CYCLE_LENGTH) + 1;
+    
+    // Update time display
+    const isDay = gameState.time < DAY_LENGTH;
+    const cycleTime = isDay ? gameState.time : gameState.time - DAY_LENGTH;
+    const cycleLength = isDay ? DAY_LENGTH : NIGHT_LENGTH;
+    const progress = cycleTime / cycleLength;
+    
+    let hours, minutes;
+    if (isDay) {
+        hours = Math.floor(6 + progress * 12);
+        minutes = Math.floor((6 + progress * 12 - hours) * 60);
+    } else {
+        hours = Math.floor(18 + progress * 12) % 24;
+        minutes = Math.floor(((18 + progress * 12) % 24 - hours) * 60);
+    }
+    
+    document.getElementById('timeDisplay').textContent = 
+        `День ${gameState.day} - ${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+}
+
+function updatePlayer(dt) {
+    const p = gameState.player;
+    const speed = p.flying ? 400 : 200;
+    const gravity = p.flying ? 0 : 1200;
+    const jumpForce = -450;
+    
+    // Horizontal movement
+    p.vx = 0;
+    if (gameState.keys['a'] || gameState.keys['arrowleft']) p.vx = -speed;
+    if (gameState.keys['d'] || gameState.keys['arrowright']) p.vx = speed;
+    
+    // Vertical movement (flying mode)
+    if (p.flying) {
+        p.vy = 0;
+        if (gameState.keys['w'] || gameState.keys['arrowup'] || gameState.keys[' ']) p.vy = -speed;
+        if (gameState.keys['s'] || gameState.keys['arrowdown']) p.vy = speed;
+    } else {
+        // Jumping
+        if ((gameState.keys['w'] || gameState.keys[' '] || gameState.keys['arrowup']) && p.grounded) {
+            p.vy = jumpForce;
+            p.grounded = false;
+        }
+        
+        // Gravity
+        p.vy += gravity * dt;
+    }
+    
+    // Apply movement with collision
+    moveEntity(p, dt);
+    
+    // Update coordinates display
+    const bx = Math.floor(p.x / BLOCK_SIZE);
+    const by = Math.floor(p.y / BLOCK_SIZE);
+    document.getElementById('coordinates').textContent = `X: ${bx} Y: ${WORLD_HEIGHT - by}`;
+    
+    // Survival mode effects
+    if (gameState.mode === 'survival') {
+        // Hunger drain
+        if (Math.random() < 0.001) {
+            p.hunger = Math.max(0, p.hunger - 0.5);
+        }
+        
+        // Health regen
+        if (p.hunger >= 18 && p.health < p.maxHealth) {
+            p.health = Math.min(p.maxHealth, p.health + dt * 0.5);
+        }
+        
+        // Starvation damage
+        if (p.hunger <= 0) {
+            p.health = Math.max(0, p.health - dt * 0.5);
+        }
+        
+        updateHealthDisplay();
+        updateHungerDisplay();
+    }
+}
+
+function moveEntity(entity, dt) {
+    // Move X
+    entity.x += entity.vx * dt;
+    resolveCollision(entity, 'x');
+    
+    // Move Y
+    entity.y += entity.vy * dt;
+    entity.grounded = false;
+    resolveCollision(entity, 'y');
+    
+    // Clamp to world bounds
+    entity.x = Math.max(0, Math.min((WORLD_WIDTH - 1) * BLOCK_SIZE, entity.x));
+    entity.y = Math.max(0, Math.min((WORLD_HEIGHT - 1) * BLOCK_SIZE, entity.y));
+}
+
+function resolveCollision(entity, axis) {
+    const left = Math.floor(entity.x / BLOCK_SIZE);
+    const right = Math.floor((entity.x + entity.width) / BLOCK_SIZE);
+    const top = Math.floor(entity.y / BLOCK_SIZE);
+    const bottom = Math.floor((entity.y + entity.height) / BLOCK_SIZE);
+    
+    for (let bx = left; bx <= right; bx++) {
+        for (let by = top; by <= bottom; by++) {
+            if (bx < 0 || bx >= WORLD_WIDTH || by < 0 || by >= WORLD_HEIGHT) continue;
+            
+            const block = gameState.world[bx][by];
+            if (block === 0 || !BLOCKS[block].solid) continue;
+            
+            const blockLeft = bx * BLOCK_SIZE;
+            const blockRight = (bx + 1) * BLOCK_SIZE;
+            const blockTop = by * BLOCK_SIZE;
+            const blockBottom = (by + 1) * BLOCK_SIZE;
+            
+            if (entity.x < blockRight && entity.x + entity.width > blockLeft &&
+                entity.y < blockBottom && entity.y + entity.height > blockTop) {
+                
+                if (axis === 'x') {
+                    if (entity.vx > 0) {
+                        entity.x = blockLeft - entity.width;
+                    } else if (entity.vx < 0) {
+                        entity.x = blockRight;
+                    }
+                    entity.vx = 0;
+                } else if (axis === 'y') {
+                    if (entity.vy > 0) {
+                        entity.y = blockTop - entity.height;
+                        entity.grounded = true;
+                    } else if (entity.vy < 0) {
+                        entity.y = blockBottom;
+                    }
+                    entity.vy = 0;
+                }
+            }
+        }
+    }
+}
+
+function updateEntities(dt) {
+    const isDay = gameState.time < DAY_LENGTH;
+    
+    for (let i = gameState.entities.length - 1; i >= 0; i--) {
+        const e = gameState.entities[i];
+        
+        // Burn in sunlight
+        if (isDay && e.burnsInSun) {
+            const bx = Math.floor(e.x / BLOCK_SIZE);
+            const by = Math.floor(e.y / BLOCK_SIZE);
+            let exposed = true;
+            
+            for (let y = 0; y < by; y++) {
+                if (bx >= 0 && bx < WORLD_WIDTH && gameState.world[bx][y] !== 0) {
+                    exposed = false;
+                    break;
+                }
+            }
+            
+            if (exposed) {
+                e.hp -= dt * 5;
+            }
+        }
+        
+        // AI
+        e.ai.moveTimer -= dt;
+        if (e.ai.moveTimer <= 0) {
+            e.ai.moveTimer = Math.random() * 3 + 1;
+            e.ai.targetX = e.x + (Math.random() - 0.5) * 200;
+            
+            if (e.hostile) {
+                const dist = Math.hypot(gameState.player.x - e.x, gameState.player.y - e.y);
+                if (dist < 300) {
+                    e.ai.targetX = gameState.player.x;
+                }
+            }
+        }
+        
+        // Movement
+        const dx = e.ai.targetX - e.x;
+        if (Math.abs(dx) > 5) {
+            e.vx = Math.sign(dx) * e.speed * 60;
+        } else {
+            e.vx = 0;
+        }
+        
+        // Gravity
+        e.vy += 1200 * dt;
+        
+        // Jump over obstacles
+        if (e.grounded && Math.random() < 0.05) {
+            e.vy = -300;
+        }
+        
+        moveEntity(e, dt);
+        
+        // Attack player
+        if (e.hostile && gameState.mode === 'survival') {
+            const dist = Math.hypot(gameState.player.x - e.x, gameState.player.y - e.y);
+            if (dist < 40) {
+                e.ai.attackTimer -= dt;
+                if (e.ai.attackTimer <= 0) {
+                    e.ai.attackTimer = 1;
+                    gameState.player.health -= MOBS[e.type].damage || 2;
+                    updateHealthDisplay();
+                }
+            }
+        }
+        
+        // Remove dead entities
+        if (e.hp <= 0) {
+            gameState.entities.splice(i, 1);
+            gameState.player.exp += 5;
+            updateExpDisplay();
+        }
+    }
+}
+
+function spawnMobsNatural() {
+    if (Math.random() > 0.002) return;
+    
+    const isNight = gameState.time >= DAY_LENGTH;
+    const mobTypes = Object.keys(MOBS);
+    
+    let validMobs;
+    if (isNight) {
+        validMobs = mobTypes.filter(m => MOBS[m].hostile);
+    } else {
+        validMobs = mobTypes.filter(m => !MOBS[m].hostile && !MOBS[m].aquatic);
+    }
+    
+    if (validMobs.length === 0) return;
+    
+    const mobType = validMobs[Math.floor(Math.random() * validMobs.length)];
+    const x = gameState.player.x + (Math.random() - 0.5) * 1000;
+    let y = 0;
+    
+    for (let ty = 0; ty < WORLD_HEIGHT; ty++) {
+        const bx = Math.floor(x / BLOCK_SIZE);
+        if (bx >= 0 && bx < WORLD_WIDTH && gameState.world[bx][ty] !== 0) {
+            y = (ty - 1) * BLOCK_SIZE;
+            break;
+        }
+    }
+    
+    if (gameState.entities.length < 100) {
+        spawnMob(mobType, x, y);
+    }
+}
+
+function updateCamera() {
+    const p = gameState.player;
+    gameState.camera.x = p.x - canvas.width / 2;
+    gameState.camera.y = p.y - canvas.height / 2;
+    
+    gameState.camera.x = Math.max(0, Math.min(WORLD_WIDTH * BLOCK_SIZE - canvas.width, gameState.camera.x));
+    gameState.camera.y = Math.max(0, Math.min(WORLD_HEIGHT * BLOCK_SIZE - canvas.height, gameState.camera.y));
+}
+
+// ==================== RENDERING ====================
+function render() {
+    // Sky color based on time
+    const isDay = gameState.time < DAY_LENGTH;
+    const progress = isDay ? gameState.time / DAY_LENGTH : (gameState.time - DAY_LENGTH) / NIGHT_LENGTH;
+    
+    let skyColor;
+    if (isDay) {
+        if (progress < 0.1) {
+            skyColor = lerpColor('#1a1a3a', '#87CEEB', progress * 10);
+        } else if (progress > 0.9) {
+            skyColor = lerpColor('#87CEEB', '#ff7744', (progress - 0.9) * 10);
+        } else {
+            skyColor = '#87CEEB';
+        }
+    } else {
+        if (progress < 0.1) {
+            skyColor = lerpColor('#ff7744', '#1a1a3a', progress * 10);
+        } else if (progress > 0.9) {
+            skyColor = lerpColor('#1a1a3a', '#1a1a3a', (progress - 0.9) * 10);
+        } else {
+            skyColor = '#1a1a3a';
+        }
+    }
+    
+    ctx.fillStyle = skyColor;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // Draw sun/moon
+    const celestialProgress = isDay ? progress : progress;
+    const celestialX = canvas.width * celestialProgress;
+    const celestialY = 100 + Math.sin(celestialProgress * Math.PI) * -80;
+    
+    ctx.beginPath();
+    ctx.arc(celestialX, celestialY, 40, 0, Math.PI * 2);
+    ctx.fillStyle = isDay ? '#ffff44' : '#dddddd';
+    ctx.fill();
+    
+    // Draw stars at night
+    if (!isDay) {
+        ctx.fillStyle = '#fff';
+        for (let i = 0; i < 100; i++) {
+            const sx = (i * 137) % canvas.width;
+            const sy = (i * 89) % (canvas.height * 0.6);
+            ctx.fillRect(sx, sy, 2, 2);
+        }
+    }
+    
+    // Draw blocks
+    const startX = Math.floor(gameState.camera.x / BLOCK_SIZE) - 1;
+    const endX = Math.ceil((gameState.camera.x + canvas.width) / BLOCK_SIZE) + 1;
+    const startY = Math.floor(gameState.camera.y / BLOCK_SIZE) - 1;
+    const endY = Math.ceil((gameState.camera.y + canvas.height) / BLOCK_SIZE) + 1;
+    
+    for (let x = startX; x <= endX; x++) {
+        for (let y = startY; y <= endY; y++) {
+            if (x < 0 || x >= WORLD_WIDTH || y < 0 || y >= WORLD_HEIGHT) continue;
+            
+            const block = gameState.world[x][y];
+            if (block === 0) continue;
+            
+            const screenX = x * BLOCK_SIZE - gameState.camera.x;
+            const screenY = y * BLOCK_SIZE - gameState.camera.y;
+            
+            drawBlock(block, screenX, screenY);
+        }
+    }
+    
+    // Draw entities
+    for (const e of gameState.entities) {
+        const screenX = e.x - gameState.camera.x;
+        const screenY = e.y - gameState.camera.y;
+        
+        if (screenX > -100 && screenX < canvas.width + 100 &&
+            screenY > -100 && screenY < canvas.height + 100) {
+            drawMob(e, screenX, screenY);
+        }
+    }
+    
+    // Draw player
+    drawPlayer();
+    
+    // Night overlay
+    if (!isDay) {
+        ctx.fillStyle = `rgba(0, 0, 30, ${0.3 + progress * 0.2})`;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+    
+    // Block selection highlight
+    if (gameState.mouse.x && gameState.mouse.y) {
+        const bx = Math.floor((gameState.mouse.x + gameState.camera.x) / BLOCK_SIZE);
+        const by = Math.floor((gameState.mouse.y + gameState.camera.y) / BLOCK_SIZE);
+        const screenX = bx * BLOCK_SIZE - gameState.camera.x;
+        const screenY = by * BLOCK_SIZE - gameState.camera.y;
+        
+        ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(screenX, screenY, BLOCK_SIZE, BLOCK_SIZE);
+    }
+}
+
+function drawBlock(blockId, x, y) {
+    const block = BLOCKS[blockId];
+    if (!block) return;
+    
+    ctx.fillStyle = block.color;
+    ctx.fillRect(x, y, BLOCK_SIZE, BLOCK_SIZE);
+    
+    // Special rendering for different block types
+    if (block.topColor && blockId === 2) {
+        ctx.fillStyle = block.topColor;
+        ctx.fillRect(x, y, BLOCK_SIZE, 8);
+    }
+    
+    if (block.oreColor) {
+        ctx.fillStyle = block.oreColor;
+        for (let i = 0; i < 5; i++) {
+            const ox = x + (blockId * 13 + i * 7) % 24 + 4;
+            const oy = y + (blockId * 11 + i * 5) % 24 + 4;
+            ctx.fillRect(ox, oy, 5, 5);
+        }
+    }
+    
+    if (block.innerColor) {
+        ctx.fillStyle = block.innerColor;
+        ctx.fillRect(x + 6, y + 6, 20, 20);
+    }
+    
+    // Block shading
+    ctx.fillStyle = 'rgba(0,0,0,0.1)';
+    ctx.fillRect(x, y + BLOCK_SIZE - 4, BLOCK_SIZE, 4);
+    ctx.fillRect(x + BLOCK_SIZE - 4, y, 4, BLOCK_SIZE);
+    
+    ctx.fillStyle = 'rgba(255,255,255,0.1)';
+    ctx.fillRect(x, y, BLOCK_SIZE, 4);
+    ctx.fillRect(x, y, 4, BLOCK_SIZE);
+}
+
+function drawMob(entity, x, y) {
+    ctx.fillStyle = entity.color;
+    ctx.fillRect(x, y, entity.width, entity.height);
+    
+    // Eyes
+    ctx.fillStyle = '#fff';
+    const eyeSize = entity.width * 0.15;
+    ctx.fillRect(x + entity.width * 0.2, y + entity.height * 0.2, eyeSize, eyeSize);
+    ctx.fillRect(x + entity.width * 0.6, y + entity.height * 0.2, eyeSize, eyeSize);
+    
+    ctx.fillStyle = '#000';
+    ctx.fillRect(x + entity.width * 0.25, y + entity.height * 0.25, eyeSize * 0.5, eyeSize * 0.5);
+    ctx.fillRect(x + entity.width * 0.65, y + entity.height * 0.25, eyeSize * 0.5, eyeSize * 0.5);
+    
+    // Health bar for damaged mobs
+    if (entity.hp < entity.maxHp) {
+        ctx.fillStyle = '#333';
+        ctx.fillRect(x, y - 8, entity.width, 5);
+        ctx.fillStyle = '#ff0000';
+        ctx.fillRect(x, y - 8, entity.width * (entity.hp / entity.maxHp), 5);
+    }
+}
+
+function drawPlayer() {
+    const p = gameState.player;
+    const x = p.x - gameState.camera.x;
+    const y = p.y - gameState.camera.y;
+    
+    // Body
+    ctx.fillStyle = '#3b5998';
+    ctx.fillRect(x + 4, y + 24, 20, 24);
+    
+    // Head
+    ctx.fillStyle = '#c69c6d';
+    ctx.fillRect(x + 6, y, 16, 20);
+    
+    // Hair
+    ctx.fillStyle = '#4a3728';
+    ctx.fillRect(x + 6, y, 16, 6);
+    
+    // Eyes
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(x + 8, y + 8, 4, 4);
+    ctx.fillRect(x + 16, y + 8, 4, 4);
+    ctx.fillStyle = '#000';
+    ctx.fillRect(x + 10, y + 10, 2, 2);
+    ctx.fillRect(x + 16, y + 10, 2, 2);
+    
+    // Arms
+    ctx.fillStyle = '#c69c6d';
+    ctx.fillRect(x, y + 24, 4, 16);
+    ctx.fillRect(x + 24, y + 24, 4, 16);
+    
+    // Legs
+    ctx.fillStyle = '#1a1a4a';
+    ctx.fillRect(x + 6, y + 48, 8, 8);
+    ctx.fillRect(x + 14, y + 48, 8, 8);
+}
+
+function lerpColor(a, b, t) {
+    const ah = parseInt(a.replace('#', ''), 16);
+    const bh = parseInt(b.replace('#', ''), 16);
+    
+    const ar = ah >> 16, ag = (ah >> 8) & 0xff, ab = ah & 0xff;
+    const br = bh >> 16, bg = (bh >> 8) & 0xff, bb = bh & 0xff;
+    
+    const rr = Math.round(ar + (br - ar) * t);
+    const rg = Math.round(ag + (bg - ag) * t);
+    const rb = Math.round(ab + (bb - ab) * t);
+    
+    return `#${((rr << 16) + (rg << 8) + rb).toString(16).padStart(6, '0')}`;
+}
+
+// ==================== UI UPDATES ====================
+function updateHealthDisplay() {
+    const container = document.getElementById('healthBar');
+    container.innerHTML = '';
+    for (let i = 0; i < 10; i++) {
+        const heart = document.createElement('span');
+        heart.className = 'heart';
+        const health = gameState.player.health - i * 2;
+        if (health >= 2) heart.textContent = '❤️';
+        else if (health >= 1) heart.textContent = '💔';
+        else heart.textContent = '🖤';
+        container.appendChild(heart);
+    }
+}
+
+function updateHungerDisplay() {
+    const container = document.getElementById('hungerBar');
+    container.innerHTML = '';
+    for (let i = 0; i < 10; i++) {
+        const hunger = document.createElement('span');
+        hunger.className = 'hunger';
+        const h = gameState.player.hunger - i * 2;
+        if (h >= 2) hunger.textContent = '🍖';
+        else if (h >= 1) hunger.textContent = '🍗';
+        else hunger.textContent = '🦴';
+        container.appendChild(hunger);
+    }
+}
+
+function updateExpDisplay() {
+    const expForLevel = (gameState.player.level + 1) * 10;
+    const progress = (gameState.player.exp % expForLevel) / expForLevel * 100;
+    document.getElementById('expFill').style.width = progress + '%';
+    gameState.player.level = Math.floor(gameState.player.exp / 10);
+    document.getElementById('expLevel').textContent = gameState.player.level;
+}
+
+function updateHotbar() {
+    const container = document.getElementById('hotbar');
+    container.innerHTML = '';
+    
+    const items = gameState.mode === 'creative' ? 
+        Object.keys(BLOCKS).slice(1, 10).map(id => ({ id: parseInt(id), count: 64 })) :
+        gameState.player.hotbar;
+    
+    for (let i = 0; i < 9; i++) {
+        const slot = document.createElement('div');
+        slot.className = 'hotbar-slot' + (i === gameState.player.selectedSlot ? ' selected' : '');
+        
+        if (items[i]) {
+            const block = BLOCKS[items[i].id || items[i]];
+            if (block) {
+                slot.style.backgroundColor = block.color;
+                if (items[i].count) {
+                    const count = document.createElement('span');
+                    count.className = 'count';
+                    count.textContent = items[i].count;
+                    slot.appendChild(count);
+                }
+            }
+        }
+        
+        slot.onclick = () => {
+            gameState.player.selectedSlot = i;
+            updateHotbar();
+        };
+        
+        container.appendChild(slot);
+    }
+}
+
+function updateInventory() {
+    const grid = document.getElementById('invGrid');
+    grid.innerHTML = '';
+    
+    const allBlocks = Object.keys(BLOCKS).slice(1);
+    
+    for (let i = 0; i < 36; i++) {
+        const slot = document.createElement('div');
+        slot.className = 'inv-slot';
+        
+        if (gameState.mode === 'creative' && i < allBlocks.length) {
+            const blockId = parseInt(allBlocks[i]);
+            const block = BLOCKS[blockId];
+            slot.style.backgroundColor = block.color;
+            slot.onclick = () => {
+                gameState.player.hotbar[gameState.player.selectedSlot] = { id: blockId, count: 64 };
+                updateHotbar();
+            };
+        } else if (gameState.player.inventory[i]) {
+            const item = gameState.player.inventory[i];
+            const block = BLOCKS[item.id];
+            if (block) {
+                slot.style.backgroundColor = block.color;
+            }
+        }
+        
+        grid.appendChild(slot);
+    }
+}
+
+// ==================== CONTROLS ====================
+function setupControls() {
+    // Keyboard
+    document.addEventListener('keydown', (e) => {
+        const key = e.key.toLowerCase();
+        gameState.keys[key] = true;
+        
+        if (key === 'escape') {
+            if (document.getElementById('inventory').classList.contains('active')) {
+                document.getElementById('inventory').classList.remove('active');
+            } else if (document.getElementById('chatInput').classList.contains('active')) {
+                document.getElementById('chatInput').classList.remove('active');
+                document.getElementById('chatMessages').classList.remove('active');
+            } else {
+                togglePause();
+            }
+        }
+        
+        if (key === 'e') {
+            document.getElementById('inventory').classList.toggle('active');
+            updateInventory();
+        }
+        
+        if (key === 't' || key === '/') {
+            e.preventDefault();
+            document.getElementById('chatInput').classList.add('active');
+            document.getElementById('chatMessages').classList.add('active');
+            document.getElementById('chatInput').focus();
+            if (key === '/') {
+                document.getElementById('chatInput').value = '/';
+            }
+        }
+        
+        // Hotbar selection
+        if (key >= '1' && key <= '9') {
+            gameState.player.selectedSlot = parseInt(key) - 1;
+            updateHotbar();
+        }
+    });
+    
+    document.addEventListener('keyup', (e) => {
+        gameState.keys[e.key.toLowerCase()] = false;
+    });
+    
+    // Chat input
+    document.getElementById('chatInput').addEventListener('keydown', (e) => {
+        e.stopPropagation();
+        if (e.key === 'Enter') {
+            const input = e.target.value;
+            processChat(input);
+            e.target.value = '';
+            e.target.classList.remove('active');
+            document.getElementById('chatMessages').classList.remove('active');
+        }
+    });
+    
+    // Mouse
+    canvas.addEventListener('mousemove', (e) => {
+        gameState.mouse.x = e.clientX;
+        gameState.mouse.y = e.clientY;
+    });
+    
+    canvas.addEventListener('mousedown', (e) => {
+        gameState.mouse.down = true;
+        gameState.mouse.button = e.button;
+        handleBlockInteraction(e.button);
+    });
+    
+    canvas.addEventListener('mouseup', () => {
+        gameState.mouse.down = false;
+    });
+    
+    canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+    
+    // Touch controls
+    setupMobileControls();
+}
+
+function setupMobileControls() {
+    const dpad = document.querySelectorAll('.dpad .mobile-btn');
+    
+    dpad.forEach(btn => {
+        const key = btn.dataset.key;
+        
+        btn.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            if (key === 'jump') gameState.keys[' '] = true;
+            if (key === 'left') gameState.keys['a'] = true;
+            if (key === 'right') gameState.keys['d'] = true;
+            if (key === 'down') gameState.keys['s'] = true;
+        });
+        
+        btn.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            if (key === 'jump') gameState.keys[' '] = false;
+            if (key === 'left') gameState.keys['a'] = false;
+            if (key === 'right') gameState.keys['d'] = false;
+            if (key === 'down') gameState.keys['s'] = false;
+        });
+    });
+    
+    document.querySelectorAll('#mobileActions .mobile-btn').forEach(btn => {
+        btn.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            if (btn.dataset.action === 'break') handleBlockInteraction(0);
+            if (btn.dataset.action === 'place') handleBlockInteraction(2);
+            if (btn.dataset.action === 'inventory') {
+                document.getElementById('inventory').classList.toggle('active');
+                updateInventory();
+            }
+        });
+    });
+    
+    // Touch to target blocks
+    canvas.addEventListener('touchstart', (e) => {
+        const touch = e.touches[0];
+        gameState.mouse.x = touch.clientX;
+        gameState.mouse.y = touch.clientY;
+    });
+    
+    canvas.addEventListener('touchmove', (e) => {
+        const touch = e.touches[0];
+        gameState.mouse.x = touch.clientX;
+        gameState.mouse.y = touch.clientY;
+    });
+}
+
+function handleBlockInteraction(button) {
+    const bx = Math.floor((gameState.mouse.x + gameState.camera.x) / BLOCK_SIZE);
+    const by = Math.floor((gameState.mouse.y + gameState.camera.y) / BLOCK_SIZE);
+    
+    if (bx < 0 || bx >= WORLD_WIDTH || by < 0 || by >= WORLD_HEIGHT) return;
+    
+    const dist = Math.hypot(
+        (bx + 0.5) * BLOCK_SIZE - gameState.player.x,
+        (by + 0.5) * BLOCK_SIZE - gameState.player.y
+    );
+    
+    if (dist > 150 && gameState.mode === 'survival') return;
+    
+    if (button === 0) {
+        // Break block
+        const block = gameState.world[bx][by];
+        if (block !== 0 && !BLOCKS[block].unbreakable) {
+            gameState.world[bx][by] = 0;
+            if (gameState.mode === 'survival') {
+                addToInventory(block);
+            }
+        }
+    } else if (button === 2) {
+        // Place block
+        const selectedItem = gameState.mode === 'creative' ? 
+            { id: gameState.player.selectedSlot + 1 } :
+            gameState.player.hotbar[gameState.player.selectedSlot];
+            
+        if (selectedItem && gameState.world[bx][by] === 0) {
+            gameState.world[bx][by] = selectedItem.id;
+            if (gameState.mode === 'survival' && selectedItem.count) {
+                selectedItem.count--;
+                if (selectedItem.count <= 0) {
+                    gameState.player.hotbar[gameState.player.selectedSlot] = null;
+                }
+                updateHotbar();
+            }
+        }
+    }
+}
+
+function addToInventory(blockId) {
+    // Check hotbar first
+    for (let i = 0; i < 9; i++) {
+        if (gameState.player.hotbar[i] && gameState.player.hotbar[i].id === blockId) {
+            gameState.player.hotbar[i].count++;
+            updateHotbar();
+            return;
+        }
+    }
+    
+    // Add to empty hotbar slot
+    for (let i = 0; i < 9; i++) {
+        if (!gameState.player.hotbar[i]) {
+            gameState.player.hotbar[i] = { id: blockId, count: 1 };
+            updateHotbar();
+            return;
+        }
+    }
+    
+    // Add to inventory
+    for (let i = 0; i < 36; i++) {
+        if (!gameState.player.inventory[i]) {
+            gameState.player.inventory[i] = { id: blockId, count: 1 };
+            return;
+        }
+    }
+}
+
+// ==================== CHAT & COMMANDS ====================
+function processChat(input) {
+    if (input.startsWith('/')) {
+        processCommand(input.slice(1));
+    } else {
+        addChatMessage('Steve: ' + input);
+    }
+}
+
+function processCommand(cmd) {
+    const parts = cmd.split(' ');
+    const command = parts[0].toLowerCase();
+    
+    switch (command) {
+        case 'gamemode':
+        case 'gm':
+            const mode = parts[1];
+            if (mode === 'creative' || mode === 'c' || mode === '1') {
+                gameState.mode = 'creative';
+                gameState.player.flying = true;
+                addChatMessage('§aРежим игры изменен на Творческий');
+            } else if (mode === 'survival' || mode === 's' || mode === '0') {
+                gameState.mode = 'survival';
+                gameState.player.flying = false;
+                addChatMessage('§aРежим игры изменен на Выживание');
+            }
+            updateHotbar();
+            break;
+            
+        case 'time':
+            if (parts[1] === 'set') {
+                if (parts[2] === 'day') {
+                    gameStartTime = Date.now();
+                    addChatMessage('§aВремя установлено на день');
+                } else if (parts[2] === 'night') {
+                    gameStartTime = Date.now() - DAY_LENGTH;
+                    addChatMessage('§aВремя установлено на ночь');
+                }
+            }
+            break;
+            
+        case 'tp':
+        case 'teleport':
+            const tx = parseInt(parts[1]) * BLOCK_SIZE;
+            const ty = (WORLD_HEIGHT - parseInt(parts[2])) * BLOCK_SIZE;
+            if (!isNaN(tx) && !isNaN(ty)) {
+                gameState.player.x = tx;
+                gameState.player.y = ty;
+                addChatMessage('§aТелепортирован в ' + parts[1] + ', ' + parts[2]);
+            }
+            break;
+            
+        case 'give':
+            const blockName = parts[1];
+            const count = parseInt(parts[2]) || 1;
+            const blockId = Object.keys(BLOCKS).find(id => BLOCKS[id].name === blockName);
+            if (blockId) {
+                for (let i = 0; i < count; i++) addToInventory(parseInt(blockId));
+                addChatMessage('§aВыдано ' + count + ' ' + blockName);
+            }
+            break;
+            
+        case 'kill':
+            gameState.entities = [];
+            addChatMessage('§aВсе мобы убиты');
+            break;
+            
+        case 'heal':
+            gameState.player.health = gameState.player.maxHealth;
+            gameState.player.hunger = gameState.player.maxHunger;
+            updateHealthDisplay();
+            updateHungerDisplay();
+            addChatMessage('§aВы исцелены');
+            break;
+            
+        case 'fly':
+            gameState.player.flying = !gameState.player.flying;
+            addChatMessage(gameState.player.flying ? '§aПолет включен' : '§cПолет выключен');
+            break;
+            
+        case 'spawn':
+            const mobType = parts[1];
+            if (MOBS[mobType]) {
+                spawnMob(mobType, gameState.player.x + 100, gameState.player.y);
+                addChatMessage('§aСоздан ' + mobType);
+            }
+            break;
+            
+        case 'weather':
+            addChatMessage('§aПогода изменена');
+            break;
+            
+        case 'seed':
+            addChatMessage('§aSeed: ' + Math.floor(Math.random() * 1000000));
+            break;
+            
+        case 'help':
+            addChatMessage('§eКоманды: /gamemode, /time, /tp, /give, /kill, /heal, /fly, /spawn');
+            break;
+            
+        default:
+            addChatMessage('§cНеизвестная команда: ' + command);
+    }
+}
+
+function addChatMessage(msg) {
+    const container = document.getElementById('chatMessages');
+    const div = document.createElement('div');
+    div.className = 'chat-msg';
+    
+    // Parse color codes
+    msg = msg.replace(/§a/g, '<span style="color:#55ff55">');
+    msg = msg.replace(/§c/g, '<span style="color:#ff5555">');
+    msg = msg.replace(/§e/g, '<span style="color:#ffff55">');
+    div.innerHTML = msg;
+    
+    container.appendChild(div);
+    container.scrollTop = container.scrollHeight;
+    
+    // Show chat temporarily
+    container.classList.add('active');
+    setTimeout(() => {
+        if (!document.getElementById('chatInput').classList.contains('active')) {
+            container.classList.remove('active');
+        }
+    }, 5000);
+}
+
+// ==================== GAME CONTROL ====================
+function startGame(mode) {
+    gameState.mode = mode;
+    gameState.player.flying = mode === 'creative';
+    
+    document.getElementById('mainMenu').style.display = 'none';
+    document.getElementById('gameContainer').style.display = 'block';
+    
+    generateWorld();
+    updateHotbar();
+    updateHealthDisplay();
+    updateHungerDisplay();
+    updateExpDisplay();
+    
+    gameStartTime = Date.now();
+    lastTime = performance.now();
+    
+    addChatMessage('§eДобро пожаловать в Minecraft 2D!');
+    addChatMessage('§eВведите /help для списка команд');
+    
+    requestAnimationFrame(gameLoop);
+}
+
+function togglePause() {
+    gameState.paused = !gameState.paused;
+    document.getElementById('pauseMenu').classList.toggle('active', gameState.paused);
+}
+
+function resumeGame() {
+    gameState.paused = false;
+    document.getElementById('pauseMenu').classList.remove('active');
+}
+
+function quitGame() {
+    gameState.paused = false;
+    document.getElementById('pauseMenu').classList.remove('active');
+    document.getElementById('gameContainer').style.display = 'none';
+    document.getElementById('mainMenu').style.display = 'flex';
+}
+
+function toggleFullscreen() {
+    if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(err => {
+            console.log('Fullscreen error:', err);
+        });
+    } else {
+        document.exitFullscreen();
+    }
+}
+
+// Initialize on load
+window.onload = init;
+    </script>
+</body>
+</html>
